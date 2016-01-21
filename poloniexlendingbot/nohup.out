@@ -1,9 +1,0 @@
-2016-01-20 18:45:04 Welcome to Poloniex Lending Bot
-Lended: [0.017 BTC] 2016-01-20 18:45:05 Placing 0.00776135 BTC at 0.185% for 2 days... Loan order placed.
-Lended: [0.017 BTC] Lended: [0.017 BTC] Lended: [0.017 BTC] 2016-01-20 18:46:06 Placing 0.00776136 BTC at 0.184999% for 2 days... Loan order placed.
-Lended: [0.017 BTC] Lended: [0.017 BTC] Lended: [0.017 BTC] 2016-01-20 18:47:07 Placing 0.00776137 BTC at 0.185099% for 2 days... Loan order placed.
-Lended: [0.017 BTC] Lended: [0.017 BTC] Lended: [0.025 BTC] Lended: [0.025 BTC] Lended: [0.025 BTC] Traceback (most recent call last):
-  File "lendingbot.py", line 218, in <module>
-    time.sleep(sleepTime)
-KeyboardInterrupt
-                      
