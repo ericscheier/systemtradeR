@@ -1,0 +1,294 @@
+<ui version="4.0" >
+ <class>Plot</class>
+ <widget class="QWidget" name="Plot" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>669</width>
+    <height>442</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" >
+   <property name="spacing" >
+    <number>6</number>
+   </property>
+   <property name="margin" >
+    <number>9</number>
+   </property>
+   <item>
+    <widget class="QSplitter" name="plotSplitter" >
+     <property name="orientation" >
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QWidget" name="layoutWidget" >
+      <layout class="QVBoxLayout" >
+       <property name="spacing" >
+        <number>6</number>
+       </property>
+       <property name="margin" >
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QTreeView" name="controlsTree" >
+         <property name="contextMenuPolicy" >
+          <enum>Qt::CustomContextMenu</enum>
+         </property>
+         <property name="frameShape" >
+          <enum>QFrame::NoFrame</enum>
+         </property>
+         <property name="frameShadow" >
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="uniformRowHeights" >
+          <bool>true</bool>
+         </property>
+         <property name="animated" >
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" >
+         <property name="spacing" >
+          <number>6</number>
+         </property>
+         <property name="margin" >
+          <number>0</number>
+         </property>
+         <item>
+          <spacer>
+           <property name="orientation" >
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0" >
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="plotButton" >
+           <property name="text" >
+            <string>Plot</string>
+           </property>
+           <property name="icon" >
+            <iconset resource="profit.qrc" >
+             <normaloff>:/images/icons/kchart.png</normaloff>:/images/icons/kchart.png</iconset>
+           </property>
+           <property name="flat" >
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="optionsButton" >
+           <property name="text" >
+            <string>Options</string>
+           </property>
+           <property name="icon" >
+            <iconset resource="profit.qrc" >
+             <normaloff>:/images/icons/kcontrol.png</normaloff>:/images/icons/kcontrol.png</iconset>
+           </property>
+           <property name="flat" >
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QwtPlot" name="plot" >
+      <property name="sizePolicy" >
+       <sizepolicy vsizetype="Preferred" hsizetype="Preferred" >
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+  <action name="actionDrawLegend" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Draw Legend</string>
+   </property>
+  </action>
+  <action name="actionDrawMajorX" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Draw Major Grid X</string>
+   </property>
+  </action>
+  <action name="actionDrawMinorX" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Draw Minor Grid X</string>
+   </property>
+  </action>
+  <action name="actionChangeMajorGridStyle" >
+   <property name="text" >
+    <string>Major Grid Style...</string>
+   </property>
+  </action>
+  <action name="actionChangeMinorGridStyle" >
+   <property name="text" >
+    <string>Minor Grid Style...</string>
+   </property>
+  </action>
+  <action name="actionChangeCanvasColor" >
+   <property name="text" >
+    <string>Background Color...</string>
+   </property>
+  </action>
+  <action name="actionChangeCurveStyle" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/kchart.png</normaloff>:/images/icons/kchart.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Change Style...</string>
+   </property>
+  </action>
+  <action name="actionChangeCurveAxisY" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/kruler.png</normaloff>:/images/icons/kruler.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Move to Left Axis</string>
+   </property>
+  </action>
+  <action name="actionDrawMajorY" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Draw Major Grid Y</string>
+   </property>
+  </action>
+  <action name="actionDrawMinorY" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Draw Minor Grid Y</string>
+   </property>
+  </action>
+  <action name="actionChangeAxesFont" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/fonts.png</normaloff>:/images/icons/fonts.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Change Font...</string>
+   </property>
+  </action>
+  <action name="actionChangeAxesColor" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/colorize.png</normaloff>:/images/icons/colorize.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Change Color...</string>
+   </property>
+   <property name="iconText" >
+    <string>Change Color</string>
+   </property>
+   <property name="toolTip" >
+    <string>Change Color</string>
+   </property>
+  </action>
+  <action name="actionShowDataDialog" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Data Display...</string>
+   </property>
+   <property name="iconText" >
+    <string>Show plot data dialog.</string>
+   </property>
+   <property name="toolTip" >
+    <string>Show plot data dialog.</string>
+   </property>
+   <property name="statusTip" >
+    <string>Show plot data dialog.</string>
+   </property>
+  </action>
+  <action name="actionNewPlot" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/filenew.png</normaloff>:/images/icons/filenew.png</iconset>
+   </property>
+   <property name="text" >
+    <string>New Plot</string>
+   </property>
+  </action>
+  <action name="actionClosePlot" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/fileclose.png</normaloff>:/images/icons/fileclose.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Close Plot</string>
+   </property>
+  </action>
+  <action name="actionChangeDataMarker" >
+   <property name="text" >
+    <string>Data Marker Style...</string>
+   </property>
+   <property name="iconText" >
+    <string>Data Marker Style</string>
+   </property>
+   <property name="toolTip" >
+    <string>Data Marker Style</string>
+   </property>
+  </action>
+  <action name="actionChangeCurveAxisX" >
+   <property name="icon" >
+    <iconset resource="profit.qrc" >
+     <normaloff>:/images/icons/kruler.png</normaloff>:/images/icons/kruler.png</iconset>
+   </property>
+   <property name="text" >
+    <string>Move to Top Axis</string>
+   </property>
+  </action>
+  <action name="actionSyncWithData" >
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="checked" >
+    <bool>true</bool>
+   </property>
+   <property name="text" >
+    <string>Sync with Data</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QwtPlot</class>
+   <extends>QFrame</extends>
+   <header>qwt_plot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="profit.qrc" />
+ </resources>
+ <connections/>
+</ui>

@@ -1,0 +1,817 @@
+/// <reference path="../../../typings/tsd.d.ts" />
+/// <reference path="../utils.ts" />
+/// <reference path="../../common/models.ts" />
+/// <reference path="nullgw.ts" />
+///<reference path="../interfaces.ts"/>
+
+import Config = require("../config");
+import request = require('request');
+import url = require("url");
+import querystring = require("querystring");
+import NullGateway = require("./nullgw");
+import Models = require("../../common/models");
+import Utils = require("../utils");
+import Interfaces = require("../interfaces");
+import io = require("socket.io-client");
+import moment = require("moment");
+import WebSocket = require('ws');
+import _ = require('lodash');
+
+var uuid = require('node-uuid');
+import CoinbaseExchange = require("./coinbase-api");
+var SortedArrayMap = require("collections/sorted-array-map");
+
+interface StateChange {
+    old: string;
+    new: string;
+}
+
+interface CoinbaseBase {
+    type: string;
+    side: string; // "buy"/"sell"
+    sequence: number;
+}
+
+// A valid order has been received and is now active. This message is emitted for every single valid order as soon as
+// the matching engine receives it whether it fills immediately or not.
+// The received message does not indicate a resting order on the order book. It simply indicates a new incoming order
+// which as been accepted by the matching engine for processing. Received orders may cause match message to follow if
+// they are able to begin being filled (taker behavior). Self-trade prevention may also trigger change messages to
+// follow if the order size needs to be adjusted. Orders which are not fully filled or canceled due to self-trade
+// prevention result in an open message and become resting orders on the order book.
+interface CoinbaseReceived extends CoinbaseBase {
+    client_oid?: string;
+    order_id: string; // guid
+    size: string; // "0.00"
+    price: string; // "0.00"
+}
+
+// The order is now open on the order book. This message will only be sent for orders which are not fully filled
+// immediately. remaining_size will indicate how much of the order is unfilled and going on the book.
+interface CoinbaseOpen extends CoinbaseBase {
+    order_id: string; // guid
+    price: string;
+    remaining_size: string;
+}
+
+// The order is no longer on the order book. Sent for all orders for which there was a received message.
+// This message can result from an order being canceled or filled. There will be no more messages for this order_id
+// after a done message. remaining_size indicates how much of the order went unfilled; this will be 0 for filled orders.
+interface CoinbaseDone extends CoinbaseBase {
+    price: string;
+    order_id: string;
+    reason: string; // "filled"??
+    remaining_size: string;
+}
+
+// A trade occurred between two orders. The aggressor or taker order is the one executing immediately after
+// being received and the maker order is a resting order on the book. The side field indicates the maker order side.
+// If the side is sell this indicates the maker was a sell order and the match is considered an up-tick. A buy side
+// match is a down-tick.
+interface CoinbaseMatch extends CoinbaseBase {
+    trade_id: number; //": 10,
+    maker_order_id: string;
+    taker_order_id: string;
+    time: string; // "2014-11-07T08:19:27.028459Z",
+    size: string;
+    price: string;
+}
+
+// An order has changed in size. This is the result of self-trade prevention adjusting the order size.
+// Orders can only decrease in size. change messages are sent anytime an order changes in size;
+// this includes resting orders (open) as well as received but not yet open.
+interface CoinbaseChange extends CoinbaseBase {
+    order_id: string;
+    time: string;
+    new_size: string;
+    old_size: string;
+    price: string;
+}
+
+interface CoinbaseEntry {
+    size: string;
+    price: string;
+    id: string;
+}
+
+interface CoinbaseBookStorage {
+    sequence: string;
+    bids: { [id: string]: CoinbaseEntry };
+    asks: { [id: string]: CoinbaseEntry };
+}
+
+interface CoinbaseOrderEmitter {
+    on(event: string, cb: Function): CoinbaseOrderEmitter;
+    on(event: 'statechange', cb: (data: StateChange) => void): CoinbaseOrderEmitter;
+    on(event: 'received', cd: (msg: Models.Timestamped<CoinbaseReceived>) => void): CoinbaseOrderEmitter;
+    on(event: 'open', cd: (msg: Models.Timestamped<CoinbaseOpen>) => void): CoinbaseOrderEmitter;
+    on(event: 'done', cd: (msg: Models.Timestamped<CoinbaseDone>) => void): CoinbaseOrderEmitter;
+    on(event: 'match', cd: (msg: Models.Timestamped<CoinbaseMatch>) => void): CoinbaseOrderEmitter;
+    on(event: 'change', cd: (msg: Models.Timestamped<CoinbaseChange>) => void): CoinbaseOrderEmitter;
+    on(event: 'error', cd: (msg: Models.Timestamped<Error>) => void): CoinbaseOrderEmitter;
+
+    state: string;
+    book: CoinbaseBookStorage;
+}
+
+interface CoinbaseOrder {
+    client_oid?: string;
+    price?: string;
+    size: string;
+    product_id: string;
+    stp?: string;
+    time_in_force?: string;
+    post_only?: boolean;
+    funds?: string;
+    type?: string;
+}
+
+interface CoinbaseOrderAck {
+    id: string;
+    error?: string;
+    message?: string;
+}
+
+interface CoinbaseAccountInformation {
+    id: string;
+    balance: string;
+    hold: string;
+    available: string;
+    currency: string;
+}
+
+interface CoinbaseRESTTrade {
+    time: string;
+    trade_id: number;
+    price: string;
+    size: string;
+    side: string;
+}
+
+interface CoinbaseAuthenticatedClient {
+    buy(order: CoinbaseOrder, cb: (err?: Error, response?: any, ack?: CoinbaseOrderAck) => void);
+    sell(order: CoinbaseOrder, cb: (err?: Error, response?: any, ack?: CoinbaseOrderAck) => void);
+    cancelOrder(id: string, cb: (err?: Error, response?: any) => void);
+    getOrders(cb: (err?: Error, response?: any, ack?: CoinbaseOpen[]) => void);
+    getProductTrades(product: string, cb: (err?: Error, response?: any, ack?: CoinbaseRESTTrade[]) => void);
+    getAccounts(cb: (err?: Error, response?: any, info?: CoinbaseAccountInformation[]) => void);
+    getAccount(accountID: string, cb: (err?: Error, response?: any, info?: CoinbaseAccountInformation) => void);
+}
+
+function convertConnectivityStatus(s: StateChange) {
+    return s.new === "processing" ? Models.ConnectivityStatus.Connected : Models.ConnectivityStatus.Disconnected;
+}
+
+function convertSide(msg: CoinbaseBase): Models.Side {
+    return msg.side === "buy" ? Models.Side.Bid : Models.Side.Ask;
+}
+
+function convertPrice(pxStr: string) {
+    return parseFloat(pxStr);
+}
+
+function convertSize(szStr: string) {
+    return parseFloat(szStr);
+}
+
+function convertTime(time: string) {
+    return moment(time);
+}
+
+class PriceLevel {
+    orders: { [id: string]: number } = {};
+    marketUpdate = new Models.MarketSide(0, 0);
+}
+
+class CoinbaseOrderBook {
+    private static Eq = (a, b) => Math.abs(a - b) < 1e-4;
+
+    private static BidCmp = (a, b) => {
+        if (CoinbaseOrderBook.Eq(a, b)) return 0;
+        return a > b ? -1 : 1
+    };
+
+    private static AskCmp = (a, b) => {
+        if (CoinbaseOrderBook.Eq(a, b)) return 0;
+        return a > b ? 1 : -1
+    };
+
+    public bids: any = new SortedArrayMap([], CoinbaseOrderBook.Eq, CoinbaseOrderBook.BidCmp);
+    public asks: any = new SortedArrayMap([], CoinbaseOrderBook.Eq, CoinbaseOrderBook.AskCmp);
+
+    private getStorage = (side: Models.Side): any => {
+        if (side === Models.Side.Bid) return this.bids;
+        if (side === Models.Side.Ask) return this.asks;
+    };
+
+    private addToOrderBook = (storage: any, price: number, size: number, order_id: string) => {
+        var priceLevelStorage: PriceLevel = storage.get(price);
+
+        if (typeof priceLevelStorage === "undefined") {
+            var pl = new PriceLevel();
+            pl.marketUpdate.price = price;
+            priceLevelStorage = pl;
+            storage.set(price, pl);
+        }
+
+        priceLevelStorage.marketUpdate.size += size;
+        priceLevelStorage.orders[order_id] = size;
+    };
+
+    public onReceived = (msg: CoinbaseReceived, t: moment.Moment): boolean => {
+        var price = convertPrice(msg.price);
+        var size = convertSize(msg.size);
+        var side = convertSide(msg);
+
+        var otherSide = side === Models.Side.Bid ? Models.Side.Ask : Models.Side.Bid;
+        var storage = this.getStorage(otherSide);
+
+        var changed = false;
+        var remaining_size = size;
+        for (var i = 0; i < storage.store.length; i++) {
+            if (remaining_size <= 0) break;
+
+            var kvp = storage.store.array[i];
+            var price_level = kvp.key;
+
+            if (side === Models.Side.Bid && price < price_level) break;
+            if (side === Models.Side.Ask && price > price_level) break;
+
+            var level_size = kvp.value.marketUpdate.size;
+
+            if (level_size <= remaining_size) {
+                storage.delete(price_level);
+                remaining_size -= level_size;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    public onOpen = (msg: CoinbaseOpen, t: moment.Moment) => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+        var storage = this.getStorage(side);
+        this.addToOrderBook(storage, price, convertSize(msg.remaining_size), msg.order_id);
+    };
+
+    public onDone = (msg: CoinbaseDone, t: moment.Moment): boolean => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+        var storage = this.getStorage(side);
+
+        var priceLevelStorage = storage.get(price);
+
+        if (typeof priceLevelStorage === "undefined")
+            return false;
+
+        var orderSize = priceLevelStorage.orders[msg.order_id];
+        if (typeof orderSize === "undefined")
+            return false;
+
+        priceLevelStorage.marketUpdate.size -= orderSize;
+        delete priceLevelStorage.orders[msg.order_id];
+
+        if (_.isEmpty(priceLevelStorage.orders)) {
+            storage.delete(price);
+        }
+
+        return true;
+    };
+
+    public onMatch = (msg: CoinbaseMatch, t: moment.Moment): boolean => {
+        var price = convertPrice(msg.price);
+        var size = convertSize(msg.size);
+        var side = convertSide(msg);
+
+        var makerStorage = this.getStorage(side);
+        var priceLevelStorage = makerStorage.get(price);
+
+        if (typeof priceLevelStorage !== "undefined") {
+            priceLevelStorage.marketUpdate.size -= size;
+            priceLevelStorage.orders[msg.maker_order_id] -= size;
+
+            if (priceLevelStorage.orders[msg.maker_order_id] < 1e-4)
+                delete priceLevelStorage.orders[msg.maker_order_id];
+
+            if (_.isEmpty(priceLevelStorage.orders)) {
+                makerStorage.delete(price);
+            }
+
+            return true;
+        }
+
+        return false;
+    };
+
+    public onChange = (msg: CoinbaseChange, t: moment.Moment): boolean => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+        var storage = this.getStorage(side);
+
+        var priceLevelStorage: PriceLevel = storage.get(convertPrice(msg.price));
+
+        if (typeof priceLevelStorage === "undefined")
+            return false;
+
+        var oldSize = priceLevelStorage.orders[msg.order_id];
+        if (typeof oldSize === "undefined")
+            return false;
+
+        var newSize = convertSize(msg.new_size);
+
+        priceLevelStorage.orders[msg.order_id] = newSize;
+        priceLevelStorage.marketUpdate.size -= (oldSize - newSize);
+
+        return true;
+    };
+
+    public clear = () => {
+        this.asks.clear();
+        this.bids.clear();
+    }
+
+    public initialize = (book: CoinbaseBookStorage) => {
+        var add = (st, u) =>
+            this.addToOrderBook(st, convertPrice(u.price), convertSize(u.size), u.id);
+
+        _.forEach(book.asks, a => add(this.asks, a));
+        _.forEach(book.bids, b => add(this.bids, b));
+    };
+}
+
+class CoinbaseMarketDataGateway implements Interfaces.IMarketDataGateway {
+    MarketData = new Utils.Evt<Models.Market>();
+    MarketTrade = new Utils.Evt<Models.MarketSide>();
+    ConnectChanged = new Utils.Evt<Models.ConnectivityStatus>();
+
+    private onReceived = (msg: CoinbaseReceived, t: moment.Moment) => {
+        if (this._orderBook.onReceived(msg, t)) {
+            this.reevalBids();
+            this.reevalAsks();
+            this.raiseMarketData(t);
+        }
+    }
+
+    private onOpen = (msg: CoinbaseOpen, t: moment.Moment) => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+        this._orderBook.onOpen(msg, t);
+        this.onOrderBookChanged(t, side, price);
+    };
+
+    private onDone = (msg: CoinbaseDone, t: moment.Moment) => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+
+        if (this._orderBook.onDone(msg, t)) {
+            this.onOrderBookChanged(t, side, price);
+        }
+    };
+
+    private onMatch = (msg: CoinbaseMatch, t: moment.Moment) => {
+        var price = convertPrice(msg.price);
+        var size = convertSize(msg.size);
+        var side = convertSide(msg);
+
+        if (this._orderBook.onMatch(msg, t)) {
+            this.onOrderBookChanged(t, side, price);
+        }
+
+        this.MarketTrade.trigger(new Models.GatewayMarketTrade(price, size, convertTime(msg.time), false, side));
+    };
+
+    private onChange = (msg: CoinbaseChange, t: moment.Moment) => {
+        var price = convertPrice(msg.price);
+        var side = convertSide(msg);
+
+        if (this._orderBook.onChange(msg, t)) {
+            this.onOrderBookChanged(t, side, price);
+        }
+    };
+
+    private _cachedBids: Models.MarketSide[] = null;
+    private _cachedAsks: Models.MarketSide[] = null;
+
+    private reevalBids = () => {
+        this._cachedBids = _.map(this._orderBook.bids.store.slice(0, 3), s => (<any>s).value.marketUpdate);
+    };
+
+    private reevalAsks = () => {
+        this._cachedAsks = _.map(this._orderBook.asks.store.slice(0, 3), s => (<any>s).value.marketUpdate);
+    };
+
+    private onOrderBookChanged = (t: moment.Moment, side: Models.Side, price: number) => {
+        if (side === Models.Side.Bid) {
+            if (this._cachedBids.length > 0 && price < _.last(this._cachedBids).price) return;
+            else this.reevalBids();
+        }
+
+        if (side === Models.Side.Ask) {
+            if (this._cachedAsks.length > 0 && price > _.last(this._cachedAsks).price) return;
+            else this.reevalAsks();
+        }
+
+        this.raiseMarketData(t);
+    };
+
+    private onStateChange = (s: StateChange) => {
+        var t = this._timeProvider.utcNow();
+        var status = convertConnectivityStatus(s);
+
+        if (status === Models.ConnectivityStatus.Connected) {
+            this._orderBook.initialize(this._client.book);
+        }
+        else {
+            this._orderBook.clear();
+        }
+
+        this.ConnectChanged.trigger(status);
+
+        this.reevalBids();
+        this.reevalAsks();
+        this.raiseMarketData(t);
+    };
+
+    private raiseMarketData = (t: moment.Moment) => {
+        if (typeof this._cachedBids[0] !== "undefined" && typeof this._cachedAsks[0] !== "undefined") {
+            if (this._cachedBids[0].price > this._cachedAsks[0].price) {
+                this._log("WARNING: crossed Coinbase market detected! bid:", this._cachedBids[0].price, "ask:", this._cachedAsks[0].price);
+                (<any>this._client).changeState('error');
+                return;
+            }
+
+            this.MarketData.trigger(new Models.Market(this._cachedBids, this._cachedAsks, t));
+        }
+    };
+
+    _log: Utils.Logger = Utils.log("tribeca:gateway:CoinbaseMD");
+    constructor(private _orderBook: CoinbaseOrderBook, private _client: CoinbaseOrderEmitter, private _timeProvider: Utils.ITimeProvider) {
+        this._client.on("statechange", m => this.onStateChange(m));
+        this._client.on("received", m => this.onReceived(m.data, m.time));
+        this._client.on("open", m => this.onOpen(m.data, m.time));
+        this._client.on("done", m => this.onDone(m.data, m.time));
+        this._client.on("match", m => this.onMatch(m.data, m.time));
+        this._client.on("change", m => this.onChange(m.data, m.time));
+    }
+}
+
+class CoinbaseOrderEntryGateway implements Interfaces.IOrderEntryGateway {
+    OrderUpdate = new Utils.Evt<Models.OrderStatusReport>();
+
+    generateClientOrderId = (): string => {
+        return uuid.v1();
+    }
+
+    cancelOrder = (cancel: Models.BrokeredCancel): Models.OrderGatewayActionReport => {
+        this._authClient.cancelOrder(cancel.exchangeId, (err?: Error, resp?: any, ack?: CoinbaseOrderAck) => {
+            var status: Models.OrderStatusReport
+            var t = this._timeProvider.utcNow();
+
+            var msg = null;
+            if (err) {
+                if (err.message) msg = err.message;
+            }
+            else if (ack != null) {
+                if (ack.message) msg = ack.message;
+                if (ack.error) msg = ack.error;
+            }
+
+            if (msg !== null) {
+                status = {
+                    orderId: cancel.clientOrderId,
+                    rejectMessage: msg,
+                    orderStatus: Models.OrderStatus.Rejected,
+                    cancelRejected: true,
+                    time: t,
+                    leavesQuantity: 0
+                };
+
+                if (msg === "You have exceeded your request rate of 5 r/s." || msg === "BadRequest") {
+                    this._timeProvider.setTimeout(() => this.cancelOrder(cancel), moment.duration(500));
+                }
+
+            }
+            else {
+                status = {
+                    orderId: cancel.clientOrderId,
+                    orderStatus: Models.OrderStatus.Cancelled,
+                    time: t,
+                    leavesQuantity: 0
+                };
+            }
+
+            this.OrderUpdate.trigger(status);
+        });
+        return new Models.OrderGatewayActionReport(this._timeProvider.utcNow());
+    };
+
+    replaceOrder = (replace: Models.BrokeredReplace): Models.OrderGatewayActionReport => {
+        this.cancelOrder(new Models.BrokeredCancel(replace.origOrderId, replace.orderId, replace.side, replace.exchangeId));
+        return this.sendOrder(replace);
+    };
+
+    sendOrder = (order: Models.BrokeredOrder): Models.OrderGatewayActionReport => {
+        var cb = (err?: Error, resp?: any, ack?: CoinbaseOrderAck) => {
+            var status: Models.OrderStatusReport
+            var t = this._timeProvider.utcNow();
+
+            if (ack == null || typeof ack.id === "undefined") {
+                this._log("NO EXCHANGE ID PROVIDED FOR ORDER ID:", order.orderId, err, ack);
+            }
+
+            var msg = null;
+            if (err) {
+                if (err.message) msg = err.message;
+            }
+            else if (ack != null) {
+                if (ack.message) msg = ack.message;
+                if (ack.error) msg = ack.error;
+            }
+            else if (ack == null) {
+                msg = "No ack provided!!"
+            }
+
+            if (msg !== null) {
+                status = {
+                    orderId: order.orderId,
+                    rejectMessage: msg,
+                    orderStatus: Models.OrderStatus.Rejected,
+                    time: t
+                };
+            }
+            else {
+                status = {
+                    exchangeId: ack.id,
+                    orderId: order.orderId,
+                    orderStatus: Models.OrderStatus.Working,
+                    time: t
+                };
+            }
+
+            this.OrderUpdate.trigger(status);
+        };
+
+        var o: CoinbaseOrder = {
+            client_oid: order.orderId,
+            size: order.quantity.toString(),
+            product_id: this._symbolProvider.symbol
+        };
+        
+        if (order.type === Models.OrderType.Limit) {
+            o.price = order.price.toString();
+            
+            switch (order.timeInForce) {
+                case Models.TimeInForce.GTC: 
+                    break;
+                case Models.TimeInForce.FOK: 
+                    o.time_in_force = "FOK";
+                    break;
+                case Models.TimeInForce.IOC: 
+                    o.time_in_force = "IOC";
+                    break;
+                default: 
+                    throw new Error("Cannot map " + Models.TimeInForce[order.timeInForce] + " to a coinbase TIF");
+            }
+        }
+        else if (order.type === Models.OrderType.Market) {
+            o.type = "market";
+        }
+
+        if (order.side === Models.Side.Bid)
+            this._authClient.buy(o, cb);
+        else if (order.side === Models.Side.Ask)
+            this._authClient.sell(o, cb);
+
+        return new Models.OrderGatewayActionReport(this._timeProvider.utcNow());
+    };
+
+    public cancelsByClientOrderId = false;
+
+    ConnectChanged = new Utils.Evt<Models.ConnectivityStatus>();
+
+    private onStateChange = (s: StateChange) => {
+        var status = convertConnectivityStatus(s);
+        this.ConnectChanged.trigger(status);
+    };
+
+    private onReceived = (tsMsg: Models.Timestamped<CoinbaseReceived>) => {
+        var msg = tsMsg.data;
+        if (typeof msg.client_oid === "undefined" || !this._orderData.allOrders.hasOwnProperty(msg.client_oid))
+            return;
+
+        var status: Models.OrderStatusReport = {
+            exchangeId: msg.order_id,
+            orderId: msg.client_oid,
+            orderStatus: Models.OrderStatus.Working,
+            time: tsMsg.time,
+            leavesQuantity: convertSize(msg.size)
+        };
+
+        this.OrderUpdate.trigger(status);
+    };
+
+    private onOpen = (tsMsg: Models.Timestamped<CoinbaseOpen>) => {
+        var msg = tsMsg.data;
+        var orderId = this._orderData.exchIdsToClientIds[msg.order_id];
+        if (typeof orderId === "undefined")
+            return;
+
+        var t = this._timeProvider.utcNow();
+        var status: Models.OrderStatusReport = {
+            orderId: orderId,
+            orderStatus: Models.OrderStatus.Working,
+            time: tsMsg.time,
+            leavesQuantity: convertSize(msg.remaining_size)
+        };
+
+        this.OrderUpdate.trigger(status);
+    };
+
+    private onDone = (tsMsg: Models.Timestamped<CoinbaseDone>) => {
+        var msg = tsMsg.data;
+        var orderId = this._orderData.exchIdsToClientIds[msg.order_id];
+        if (typeof orderId === "undefined")
+            return;
+
+        var ordStatus = msg.reason === "filled"
+            ? Models.OrderStatus.Complete
+            : Models.OrderStatus.Cancelled;
+
+        var status: Models.OrderStatusReport = {
+            orderId: orderId,
+            orderStatus: ordStatus,
+            time: tsMsg.time,
+            leavesQuantity: 0
+        };
+
+        this.OrderUpdate.trigger(status);
+    };
+
+    private onMatch = (tsMsg: Models.Timestamped<CoinbaseMatch>) => {
+        var msg = tsMsg.data;
+        var liq: Models.Liquidity = Models.Liquidity.Make;
+        var client_oid = this._orderData.exchIdsToClientIds[msg.maker_order_id];
+
+        if (typeof client_oid === "undefined") {
+            liq = Models.Liquidity.Take;
+            client_oid = this._orderData.exchIdsToClientIds[msg.taker_order_id];
+        }
+
+        if (typeof client_oid === "undefined")
+            return;
+
+        var status: Models.OrderStatusReport = {
+            orderId: client_oid,
+            orderStatus: Models.OrderStatus.Working,
+            time: tsMsg.time,
+            lastQuantity: convertSize(msg.size),
+            lastPrice: convertPrice(msg.price),
+            liquidity: liq
+        };
+
+        this.OrderUpdate.trigger(status);
+    };
+
+    private onChange = (tsMsg: Models.Timestamped<CoinbaseChange>) => {
+        var msg = tsMsg.data;
+        var orderId = this._orderData.exchIdsToClientIds[msg.order_id];
+        if (typeof orderId === "undefined")
+            return;
+
+        var status: Models.OrderStatusReport = {
+            orderId: orderId,
+            orderStatus: Models.OrderStatus.Working,
+            time: tsMsg.time,
+            quantity: convertSize(msg.new_size)
+        };
+
+        this.OrderUpdate.trigger(status);
+    };
+
+    _log: Utils.Logger = Utils.log("tribeca:gateway:CoinbaseOE");
+    constructor(
+        private _timeProvider: Utils.ITimeProvider,
+        private _orderData: Interfaces.IOrderStateCache,
+        private _orderBook: CoinbaseOrderEmitter,
+        private _authClient: CoinbaseAuthenticatedClient,
+        private _symbolProvider: CoinbaseSymbolProvider) {
+
+        this._orderBook.on("statechange", this.onStateChange);
+
+        this._orderBook.on("received", this.onReceived)
+        this._orderBook.on("open", this.onOpen);
+        this._orderBook.on("done", this.onDone);
+        this._orderBook.on("match", this.onMatch);
+        this._orderBook.on("change", this.onChange);
+    }
+}
+
+class CoinbasePositionGateway implements Interfaces.IPositionGateway {
+    _log: Utils.Logger = Utils.log("tribeca:gateway:CoinbasePG");
+    PositionUpdate = new Utils.Evt<Models.CurrencyPosition>();
+
+    private onTick = () => {
+        this._authClient.getAccounts((err?: Error, resp?: any, data?: CoinbaseAccountInformation[]) => {
+            try {
+                _.forEach(data, d => {
+                    var c = GetCurrencyEnum(d.currency);
+                    var rpt = new Models.CurrencyPosition(convertPrice(d.available), convertPrice(d.hold), c);
+                    this.PositionUpdate.trigger(rpt);
+                });
+            } catch (error) {
+                Utils.errorLog("Exception while downloading Coinbase positions: " + error, data)
+            }
+        });
+    };
+
+    constructor(
+        timeProvider: Utils.ITimeProvider,
+        private _authClient: CoinbaseAuthenticatedClient) {
+        timeProvider.setInterval(this.onTick, moment.duration(7500));
+        this.onTick();
+    }
+}
+
+class CoinbaseBaseGateway implements Interfaces.IExchangeDetailsGateway {
+    public get hasSelfTradePrevention() {
+        return true;
+    }
+
+    exchange(): Models.Exchange {
+        return Models.Exchange.Coinbase;
+    }
+
+    makeFee(): number {
+        return 0;
+    }
+
+    takeFee(): number {
+        return 0;
+    }
+
+    name(): string {
+        return "Coinbase";
+    }
+
+    private static AllPairs = [
+        new Models.CurrencyPair(Models.Currency.BTC, Models.Currency.USD),
+        new Models.CurrencyPair(Models.Currency.BTC, Models.Currency.EUR),
+        new Models.CurrencyPair(Models.Currency.BTC, Models.Currency.GBP)
+    ];
+    public get supportedCurrencyPairs() {
+        return CoinbaseBaseGateway.AllPairs;
+    }
+}
+
+function GetCurrencyEnum(name: string): Models.Currency {
+    switch (name.toUpperCase()) {
+        case "BTC": return Models.Currency.BTC;
+        case "USD": return Models.Currency.USD;
+        case "EUR": return Models.Currency.EUR;
+        case "GBP": return Models.Currency.GBP;
+        default: throw new Error("Unsupported currency " + name);
+    }
+}
+
+function GetCurrencySymbol(c: Models.Currency): string {
+    switch (c) {
+        case Models.Currency.USD: return "USD";
+        case Models.Currency.GBP: return "GBP";
+        case Models.Currency.BTC: return "BTC";
+        case Models.Currency.EUR: return "EUR";
+        default: throw new Error("Unsupported currency " + Models.Currency[c]);
+    }
+}
+
+class CoinbaseSymbolProvider {
+    public symbol: string;
+
+    constructor(pair: Models.CurrencyPair) {
+        this.symbol = GetCurrencySymbol(pair.base) + "-" + GetCurrencySymbol(pair.quote);
+    }
+}
+
+export class Coinbase extends Interfaces.CombinedGateway {
+    constructor(config: Config.IConfigProvider, orders: Interfaces.IOrderStateCache, timeProvider: Utils.ITimeProvider, pair: Models.CurrencyPair) {
+        var symbolProvider = new CoinbaseSymbolProvider(pair);
+
+        var orderEventEmitter = new CoinbaseExchange.OrderBook(symbolProvider.symbol, config.GetString("CoinbaseWebsocketUrl"), config.GetString("CoinbaseRestUrl"), timeProvider);
+        var authClient = new CoinbaseExchange.AuthenticatedClient(config.GetString("CoinbaseApiKey"),
+            config.GetString("CoinbaseSecret"), config.GetString("CoinbasePassphrase"), config.GetString("CoinbaseRestUrl"));
+
+        var orderGateway = config.GetString("CoinbaseOrderDestination") == "Coinbase" ?
+            <Interfaces.IOrderEntryGateway>new CoinbaseOrderEntryGateway(timeProvider, orders, orderEventEmitter, authClient, symbolProvider)
+            : new NullGateway.NullOrderGateway();
+
+        var positionGateway = new CoinbasePositionGateway(timeProvider, authClient);
+        var mdGateway = new CoinbaseMarketDataGateway(new CoinbaseOrderBook(), orderEventEmitter, timeProvider);
+
+        super(
+            mdGateway,
+            orderGateway,
+            positionGateway,
+            new CoinbaseBaseGateway());
+    }
+};

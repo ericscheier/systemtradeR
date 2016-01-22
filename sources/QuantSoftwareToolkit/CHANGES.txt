@@ -1,0 +1,40 @@
+Changes in QSTK
+===================
+
+0.2.6
+=====
+* Remove CVXOPT from the hard requirements.
+* Pandas upgrade to support 0.11
+* Setup.py metadata update
+* Ubuntu Installation Optimization
+* Bug fix in Aroon feature
+* Remove missing symbols from lists
+* Event profiler bugs for 1/0 events
+* Tutorials updated
+* Bug fix in DataAccess
+* Remove dead files and tutorials
+* Update mac installation
+
+0.2.5
+=====
+* Adding validation script
+* Removed dependencies from all environment variables
+* Use of tempfile in creating scratch location
+* Refractoring of all tutorials for cleaner code and documentation
+* Rewriting of the event profiler
+* Creating the egg and starting work towards the windows installation
+* Creating windows installation
+* Paths to be os independent
+
+0.2.4
+=====
+* Moved from distutils to setuptools as data files were not getting added
+* ez_setup.py added to support setuptools
+* Changing DataAccess to read from the correct location 
+
+0.2.3
+=====
+* Cleaning up the repository for redundant code not used in its applications. 
+* Better installation and setup capabilities. 
+* Speed optimization for basic functions.
+* Formatting the repository as a python library for better documentation and control.  

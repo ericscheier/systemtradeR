@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright 2007 Troy Melhase
+# Distributed under the terms of the GNU General Public License v2
+# Author: Troy Melhase <troy@gci.net>
+
+import sys
+
+from PyQt4.QtGui import QApplication
+
+from profit.lib import Signals, Settings
+from profit.strategydesigner import StrategyDesigner
+
+
+if __name__ == '__main__':
+    settings = Settings()
+    settings.beginGroup(settings.keys.strategy)
+    filename = None
+    message = ''
+
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        message = 'Using strategy filename %s command line.' % (filename, )
+    elif settings.value('type', '').toString()=='file':
+        filename = settings.value('location', '').toString()
+        message = 'Using strategy filename %s from config.' % (filename, )
+
+    app = QApplication(sys.argv)
+    app.setApplicationName(Settings.keys.designer)
+    window = StrategyDesigner(filename=filename, parent=None)
+    window.showMessage(message, 10000)
+    window.show()
+    sys.exit(app.exec_())

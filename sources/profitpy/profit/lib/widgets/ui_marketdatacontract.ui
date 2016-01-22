@@ -1,0 +1,235 @@
+<ui version="4.0" >
+ <class>Form</class>
+ <widget class="QWidget" name="Form" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>360</width>
+    <height>426</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout" >
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout" >
+     <item>
+      <widget class="QLabel" name="label" >
+       <property name="text" >
+        <string>TIcker Id:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="tickerId" />
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="contract" >
+     <property name="sizePolicy" >
+      <sizepolicy vsizetype="Preferred" hsizetype="Preferred" >
+       <horstretch>0</horstretch>
+       <verstretch>2</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title" >
+      <string>Contract Description</string>
+     </property>
+     <property name="flat" >
+      <bool>false</bool>
+     </property>
+     <property name="checkable" >
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout" >
+      <item row="0" column="0" >
+       <widget class="QLabel" name="label_3" >
+        <property name="text" >
+         <string>Symbol:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2" >
+       <widget class="QLineEdit" name="symbol" >
+        <property name="text" >
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" >
+       <widget class="QLabel" name="label_8" >
+        <property name="text" >
+         <string>Local Symbol:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2" >
+       <widget class="QLineEdit" name="localSymbol" >
+        <property name="text" >
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" >
+       <widget class="QLabel" name="label_6" >
+        <property name="text" >
+         <string>Exchange:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2" >
+       <widget class="QLineEdit" name="exchange" >
+        <property name="text" >
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2" >
+       <widget class="QLabel" name="label_7" >
+        <property name="text" >
+         <string>Primary Exchange:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2" >
+       <widget class="QLineEdit" name="primaryExchange" >
+        <property name="text" >
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0" >
+       <widget class="QLabel" name="label_9" >
+        <property name="text" >
+         <string>Currency:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2" >
+       <widget class="QComboBox" name="comboBox" >
+        <item>
+         <property name="text" >
+          <string>USD</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>EUR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="5" column="0" >
+       <widget class="QLabel" name="label_2" >
+        <property name="text" >
+         <string>Security Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2" >
+       <widget class="QComboBox" name="secType" >
+        <item>
+         <property name="text" >
+          <string>STK</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>OPT</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>FUT</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="6" column="0" >
+       <widget class="QLabel" name="label_11" >
+        <property name="text" >
+         <string>Multiplier:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="2" >
+       <widget class="QSpinBox" name="multiplier" />
+      </item>
+      <item row="7" column="0" >
+       <widget class="QLabel" name="label_4" >
+        <property name="text" >
+         <string>Expiry:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="2" >
+       <widget class="QLineEdit" name="expiry" >
+        <property name="text" >
+         <string>YYYYMM</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0" >
+       <widget class="QLabel" name="label_5" >
+        <property name="text" >
+         <string>Strike:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="2" >
+       <widget class="QDoubleSpinBox" name="strike" />
+      </item>
+      <item row="9" column="2" >
+       <widget class="QComboBox" name="comboBox_2" >
+        <item>
+         <property name="text" >
+          <string>CALL</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>PUT</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="9" column="0" >
+       <widget class="QLabel" name="label_10" >
+        <property name="text" >
+         <string>Right:</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+     <zorder>secType</zorder>
+     <zorder>label_2</zorder>
+     <zorder>label_3</zorder>
+     <zorder>symbol</zorder>
+     <zorder>label_4</zorder>
+     <zorder>expiry</zorder>
+     <zorder>label_5</zorder>
+     <zorder>strike</zorder>
+     <zorder>label_6</zorder>
+     <zorder>exchange</zorder>
+     <zorder>primaryExchange</zorder>
+     <zorder>label_8</zorder>
+     <zorder>primaryExchange_2</zorder>
+     <zorder>comboBox</zorder>
+     <zorder>strike</zorder>
+     <zorder>multiplier</zorder>
+     <zorder>label_11</zorder>
+     <zorder>label_9</zorder>
+     <zorder>label_7</zorder>
+     <zorder>localSymbol</zorder>
+     <zorder>comboBox_2</zorder>
+     <zorder>label_10</zorder>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

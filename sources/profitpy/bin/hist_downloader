@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright 2007 Yichun Wei
+# Distributed under the terms of the GNU General Public License v2
+# Author: Yichun Wei <yichun.wei@gmail.com>
+
+import copy
+import datetime
+import logging
+import optparse
+import signal
+import sys
+import time
+import os
+
+from cPickle import dump
+from PyQt4.QtCore import QCoreApplication, QObject, QThread, SLOT
+
+from ib.opt import ibConnection
+from ib.opt.message import registry
+
+from profit.lib import Signals
+from profit.lib.scripttools import defaults, check_duration, check_hms
+from profit.lib.scripttools import CollectorThread, WaitingThread
+
+from profit.session import Session, SessionBuilder, Ticker, Order, Contract, Series
+
+
+class LocalOption(optparse.Option):
+    TYPES = optparse.Option.TYPES + ('duration', 'hms', )
+    TYPE_CHECKER = copy.copy(optparse.Option.TYPE_CHECKER)
+    TYPE_CHECKER['duration'] = check_duration
+    TYPE_CHECKER['hms'] = check_hms
+
+
+def options(args=None):
+    if args is None:
+        args = sys.argv[1:]
+
+    defformat = ' [default:%default]'
+    parser = optparse.OptionParser(version='%prog 0.2',
+                                   conflict_handler='resolve',
+                                   option_class=LocalOption)
+    add_option = parser.add_option
+
+    add_option('-d', '--duration', dest='duration',
+                      help='collection duration in minutes' + defformat,
+                      type='duration',
+                      default=defaults.duration)
+
+    add_option('-s', '--start', dest='start',
+                      help='start time in 24-hour format HH:MM[:SS]' + defformat,
+                      type='hms',
+                      default=defaults.start)
+
+    add_option('-t', '--stop', dest='stop',
+                      help='stop time in 24-hour format HH:MM[:SS]' + defformat,
+                      type='hms',
+                      default=defaults.stop)
+
+    add_option('-n', '--nice', dest='nice', metavar='NICE',
+                      help='process niceness.' + defformat,
+                      default=defaults.nice,
+                      type='int')
+
+    add_option('-p', '--port', dest='port', metavar='PORT',
+                      help='remote port' + defformat,
+                      default=defaults.port,
+                      type='int')
+
+    add_option('-h', '--hostname', dest='host', metavar='HOST',
+                      help='remote host' + defformat,
+                      default=defaults.host)
+
+    add_option('-c', '--clientid', dest='clientid', metavar='CLIENTID',
+                      help='client id' + defformat,
+                      type='int',
+                      default=defaults.clientid)
+
+    add_option('-o', '--output', dest='output', metavar='OUTFILE',
+                      default=defaults.output,
+                      help='output filename' + defformat)
+
+    add_option('-v', '--verbose', dest='verbose',
+                      help='echo progress to stdout',
+                      action='store_true',
+                      default=defaults.verbose)
+    add_option('-i', '--interval', dest='interval',
+                     help='save interval in minutes' + defformat,
+                     type='int',
+                     default=defaults.interval)
+
+    options, args = parser.parse_args()
+    return options
+
+
+def main(options):
+    if options.verbose:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)s %(message)s')
+    ymd = time.localtime()[0:3]
+    start = options.start
+    stop = options.stop
+    duration = options.duration
+    now = time.time()
+    if start == defaults.start:
+        startdelay = startat = 0
+    else:
+        hms = time.strptime(start, '%H:%M:%S')[3:]
+        startat = time.mktime(ymd+hms)
+        startdelay = startat - now
+        if startdelay < 0:
+            logging.warning('Start time in the past - adjusted +24 hours.')
+            ymd = (ymd[0], ymd[1]+1, ymd[2])
+            startat = time.mktime(ymd+hms)
+            startdelay = startat - time.time()
+    if stop == defaults.stop and duration == defaults.duration:
+        stopat = None
+    elif duration != defaults.duration:
+        offset = startat if startat else now
+        stopat = offset + (duration * 60)
+    else:
+        hms = time.strptime(stop, '%H:%M:%S')[3:]
+        stopat = time.mktime(ymd+hms)
+        if stopat < now:
+            stopat += (60*60*24)
+            logging.warning('Stop time in the past - adjusted +24 hours.')
+    if startat:
+        atdis = time.strftime('%H:%M:%S', time.localtime(startat))
+        logging.debug('Collection will start at %s - delay %.2f seconds.',
+                      atdis, startdelay)
+    if stopat:
+        logging.debug('Collection will stop at %s.', time.ctime(stopat))
+    if startat:
+        wait = WaitingThread(startat)
+        wait.start()
+        wait.wait()
+
+    # Obtain historical data
+    #now = time.localtime()
+    #aweekago = (now[0], now[1], now[2]-6, 0, 0, 0, 0, 0, 0)
+    #endDateTime = time.strftime("%Y%m%d %H:%M:%S PST", aweekago)
+    now = datetime.datetime.now()
+    aweekago = (now - datetime.timedelta(14))
+    endDateTime = aweekago.strftime("%Y%m%d %H:%M:%S PST")
+    SessionBuilder.paramsHistoricalData(endDateTime=endDateTime)
+
+    sess = Session()
+    sess.histdataQueue.put(('AAPL', 100))
+
+    sess.connect(sess, Signals.session.status, logging.debug)
+    sess.filename = options.output
+    sess.connectTWS(
+         options.host, options.port, options.clientid)
+
+    if not sess.isConnected():
+        logging.error('Could not connect to %s:%s.',
+                      options.host, options.port)
+        logging.error('Aborting.')
+        return
+    sess.requestAccount()
+
+    sess.histdataQueue.put(('RMBS', 101))
+    sess.histdataQueue.put(('LVLT', 102))
+
+    last = time.time()
+    stop = None
+    interval = options.interval * 60
+    while True:
+        now = time.time()
+        if stop is not None:
+            if stop < now:
+                break
+        time.sleep(1)
+        if stop is None and sess.histdataQueue.qsize() == 0:
+            QCoreApplication.connect(sess.historicalCollection, Signals.finishedHistoricalData, sys.exit)
+        QCoreApplication.processEvents()
+    QCoreApplication.processEvents()
+    logging.debug('Collector thread completed.')
+
+    return 0
+
+
+if __name__ == '__main__':
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    exit_codes = {False:255, True:0,}
+    app = QCoreApplication(sys.argv)
+    opts = options()
+    res = main(opts)
+    sys.exit(exit_codes.get(res, exit_codes[False]))

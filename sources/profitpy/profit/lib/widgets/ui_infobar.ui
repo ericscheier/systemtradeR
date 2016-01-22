@@ -1,0 +1,82 @@
+<ui version="4.0" >
+ <class>InfoBar</class>
+ <widget class="QFrame" name="InfoBar" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>486</width>
+    <height>58</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Form</string>
+  </property>
+  <property name="frameShape" >
+   <enum>QFrame::StyledPanel</enum>
+  </property>
+  <property name="frameShadow" >
+   <enum>QFrame::Raised</enum>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout" >
+   <item>
+    <widget class="QWidget" native="1" name="widget" />
+   </item>
+   <item>
+    <spacer name="horizontalSpacer" >
+     <property name="orientation" >
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0" >
+      <size>
+       <width>337</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="barHelp" >
+     <property name="text" >
+      <string>Information</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="barClose" >
+     <property name="text" >
+      <string/>
+     </property>
+     <property name="icon" >
+      <iconset resource="profit.qrc" >
+       <normaloff>:/images/icons/fileclose.png</normaloff>:/images/icons/fileclose.png</iconset>
+     </property>
+     <property name="autoRaise" >
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="profit.qrc" />
+ </resources>
+ <connections>
+  <connection>
+   <sender>barClose</sender>
+   <signal>clicked()</signal>
+   <receiver>InfoBar</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>23</x>
+     <y>28</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>242</x>
+     <y>28</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -1,0 +1,504 @@
+<ui version="4.0" >
+ <class>HistoricalDataDialog</class>
+ <widget class="QDialog" name="HistoricalDataDialog" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>446</width>
+    <height>540</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Historical Data Parameters</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout" >
+   <item>
+    <widget class="QGroupBox" name="groupBox" >
+     <property name="title" >
+      <string>Contract</string>
+     </property>
+     <property name="flat" >
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout" >
+      <item row="2" column="1" >
+       <widget class="QComboBox" name="secType" >
+        <item>
+         <property name="text" >
+          <string>STK</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>OPT</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>FUT</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0" >
+       <widget class="QLabel" name="label_2" >
+        <property name="text" >
+         <string>Security Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" >
+       <widget class="QLabel" name="label_3" >
+        <property name="text" >
+         <string>Symbol:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" >
+       <widget class="QLineEdit" name="symbolName" >
+        <property name="alignment" >
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1" >
+       <widget class="QComboBox" name="exchangeName" >
+        <item>
+         <property name="text" >
+          <string>SMART</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>NASDAQ</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>NYSE</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="0" >
+       <widget class="QLabel" name="label_4" >
+        <property name="text" >
+         <string>Exchange:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" >
+       <widget class="QLabel" name="label" >
+        <property name="text" >
+         <string>Ticker Id:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" >
+       <widget class="QSpinBox" name="tickId" >
+        <property name="frame" >
+         <bool>true</bool>
+        </property>
+        <property name="specialValueText" >
+         <string>Auto</string>
+        </property>
+        <property name="minimum" >
+         <number>-1</number>
+        </property>
+        <property name="maximum" >
+         <number>999999</number>
+        </property>
+        <property name="value" >
+         <number>-1</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_2" >
+     <property name="title" >
+      <string>Data</string>
+     </property>
+     <property name="flat" >
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2" >
+      <item row="0" column="0" >
+       <widget class="QLabel" name="label_5" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Beginning:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" >
+       <widget class="QDateTimeEdit" name="startDate" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Fixed" hsizetype="MinimumExpanding" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="dateTime" >
+         <datetime>
+          <hour>8</hour>
+          <minute>0</minute>
+          <second>0</second>
+          <year>2008</year>
+          <month>7</month>
+          <day>7</day>
+         </datetime>
+        </property>
+        <property name="date" >
+         <date>
+          <year>2008</year>
+          <month>7</month>
+          <day>7</day>
+         </date>
+        </property>
+        <property name="displayFormat" >
+         <string>yyyy/MM/dd h:mm:ss AP</string>
+        </property>
+        <property name="calendarPopup" >
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" >
+       <widget class="QLabel" name="label_6" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Duration:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" >
+       <widget class="QSpinBox" name="durationValue" >
+        <property name="minimum" >
+         <number>1</number>
+        </property>
+        <property name="maximum" >
+         <number>99999</number>
+        </property>
+        <property name="singleStep" >
+         <number>1</number>
+        </property>
+        <property name="value" >
+         <number>2</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" >
+       <widget class="QComboBox" name="durationType" >
+        <property name="currentIndex" >
+         <number>1</number>
+        </property>
+        <item>
+         <property name="text" >
+          <string>Seconds</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Days</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Weeks</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="0" >
+       <widget class="QLabel" name="label_10" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Bar Size:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1" >
+       <widget class="QComboBox" name="barSize" >
+        <property name="currentIndex" >
+         <number>4</number>
+        </property>
+        <item>
+         <property name="text" >
+          <string>1 secs</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>5 secs</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>15 secs</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>30 secs</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 min</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>2 mins</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>3 mins</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>5 mins</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>15 mins</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>30 mins</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 hour</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 day</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 week</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 month</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>3 months</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>1 year</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="0" >
+       <widget class="QLabel" name="label_9" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Trading Hours:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1" >
+       <widget class="QRadioButton" name="rthYes" >
+        <property name="text" >
+         <string>Regular Trading Hours</string>
+        </property>
+        <property name="checked" >
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1" >
+       <widget class="QRadioButton" name="rthNo" >
+        <property name="text" >
+         <string>All Hours</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0" >
+       <widget class="QLabel" name="label_7" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Show:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1" >
+       <widget class="QComboBox" name="showType" >
+        <item>
+         <property name="text" >
+          <string>Trades</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Midpoint</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Bid</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Ask</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Bid_Ask</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="7" column="0" >
+       <widget class="QLabel" name="label_8" >
+        <property name="sizePolicy" >
+         <sizepolicy vsizetype="Preferred" hsizetype="Minimum" >
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text" >
+         <string>Date Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1" >
+       <widget class="QComboBox" name="dateType" >
+        <item>
+         <property name="text" >
+          <string>Strings</string>
+         </property>
+        </item>
+        <item>
+         <property name="text" >
+          <string>Integers</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer" >
+     <property name="orientation" >
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0" >
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox" >
+     <property name="orientation" >
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons" >
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>tickId</tabstop>
+  <tabstop>symbolName</tabstop>
+  <tabstop>secType</tabstop>
+  <tabstop>exchangeName</tabstop>
+  <tabstop>startDate</tabstop>
+  <tabstop>durationValue</tabstop>
+  <tabstop>durationType</tabstop>
+  <tabstop>barSize</tabstop>
+  <tabstop>rthYes</tabstop>
+  <tabstop>rthNo</tabstop>
+  <tabstop>showType</tabstop>
+  <tabstop>dateType</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <includes/>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>HistoricalDataDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>HistoricalDataDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
