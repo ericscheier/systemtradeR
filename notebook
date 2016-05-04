@@ -1,0 +1,46 @@
+import requests
+import json
+import pandas as pd
+from pandas.io.json import json_normalize
+import time
+import os
+
+ticker_url = 'https://poloniex.com/public?command=returnTicker'
+r_tickers = requests.get(ticker_url)
+all_tickers = r_tickers.json()
+unique_tickers = list(all_tickers.keys())
+
+for ticker in unique_tickers:
+    print('Evaluating '+ticker)
+    # currency = 'BTC'
+    # base = 'ETH'
+    
+    lookback = 24 * 60 #minutes
+    
+    # pair = currency+'_'+base
+    end = '9999999999' #now
+    start = '1405699200' #end - lookback
+    period = 5 #minutes
+    
+    period = str(period * 60) #convert period to seconds
+    
+    url = 'https://poloniex.com/public?command=returnChartData&currencyPair='+ticker+'&start='+start+'&end='+end+'&period='+period
+    # print(url)
+    # url = 'https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400'
+    
+    r = requests.get(url)
+    data = json_normalize(r.json())
+    
+    data['date'] = pd.to_datetime(data['date'], unit='s')
+    data.set_index('date', inplace=True)
+    
+    returns = data['close'].pct_change()
+    var = pd.rolling_std(returns, (24*60*60)/float(period))
+    
+    daily_std = var.mean()*((24*60)/5)**0.5
+    annual_std = daily_std*(365**0.5)
+    
+    print('Daily std for '+ticker+' is: '+str(daily_std))
+    data.to_csv(str(os.getcwd()+"\\altfund\\data\\raw\\"+ticker+"_ohlc.csv"))
+    time.sleep(5)
+    
