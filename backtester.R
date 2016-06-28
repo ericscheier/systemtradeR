@@ -6,12 +6,15 @@ library(IKTrading)  # install_github("IlyaKipnis/IKTrading") needs devtools
 library(doMC) # install.packages("doMC", repos="http://R-Forge.R-project.org")
 registerDoMC(cores=detectCores())
 
-poloniex.ohlc.30m <- content(GET("https://poloniex.com/public?command=returnChartData&currencyPair=BTC_ETH&start=1439010600&end=9999999999&period=1800"))  # https://poloniex.com/support/api/
-ETHBTC.30m <- ldply(poloniex.ohlc.30m, data.frame)  # Convert OHLCV to data.frame
-ETHBTC.30m$date <- as.POSIXct(ETHBTC.30m$date, origin = "1970-01-01")
+# poloniex.ohlc.30m <- content(GET("https://poloniex.com/public?command=returnChartData&currencyPair=BTC_ETH&start=1439010600&end=9999999999&period=1800"))  # https://poloniex.com/support/api/
+pair <- "BTC_ETH"
+poloniex.ohlc.5m <- read.csv(paste0(getwd(),"/data/raw/",pair,"_ohlc.csv"), stringsAsFactors = FALSE)
+ETHBTC.5m <- poloniex.ohlc.5m
+# ETHBTC.5m <- ldply(poloniex.ohlc.5m, data.frame)  # Convert OHLCV to data.frame
+ETHBTC.5m$date <- as.POSIXct(ETHBTC.5m$date, origin = "1970-01-01")
 
 # Create 'xts' object:
-ethbtc.30m.xts <- xts(ETHBTC.30m[, 2:8], order.by = ETHBTC.30m$date)  # is.OHLCV(ETHBTC.30m)
+ethbtc.30m.xts <- xts(ETHBTC.5m[, 2:8], order.by = ETHBTC.5m$date)  # is.OHLCV(ETHBTC.30m)
 
 # Rebuild empty environments if RStudio's "Clear All" has been used:
 if (!exists('.instrument')) .instrument <- new.env()
@@ -19,13 +22,13 @@ if (!exists('.blotter')) .blotter <- new.env()
 if (!exists('.strategy')) .strategy <- new.env()
 
 ## Optional: Subset timeframe
-ETHBTC <- ethbtc.30m.xts[,c("open", "high", "low", "close", "volume")]["2016-02-01::"]
+ETHBTC <- to.hourly(ethbtc.30m.xts[,c("open", "high", "low", "close", "volume")]["2015-09-01::"])
 
 ## Define instruments
 currency(c('BTC', 'ETH'))  # ls_currencies()
 exchange_rate('ETHBTC', currency = 'BTC', counter_currency = 'ETH', tick_size = 0.00001)
 
-initDate = '2016-02-01'
+initDate = '2015-09-01'
 initBTC <- 100
 initETH <- 0
 
@@ -105,7 +108,7 @@ add.rule(strategy.name,name='ruleSignal',
 
 ## Run it
 applyStrategy(strategy.name,
-              portfolios=portfolio.name,
+              portfolios=portfolio.name, debug=T,
               parameters=list(nFast = .nFast, nSlow = .nSlow, nSig = .nSig, maType = 'EMA'),
               verbose=TRUE)
 
