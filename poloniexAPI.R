@@ -3,8 +3,8 @@ library(httr)
 library(digest)
 
 api.poloniex <- function(command, args = list()) {
-  key <- "O2NT3UJT-04WVU41J-52ETHGHN-WCGM7DUM"
-  secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541fc8823c725b1c352fa2b04edceba44d37cb7c216c6f2a062fc538a3119abcbe8e317f8eee32165168d"
+  key <- config$poloniex.key
+  secret <- config$poloniex.secret
   
   req <- c(list(
     command = command,
@@ -16,7 +16,14 @@ api.poloniex <- function(command, args = list()) {
               body = req,
               encode = "form")
   stop_for_status(ret)
-  content(ret)
+  return(content(ret))
+}
+
+api.poloniex.public <- function(command){
+  req <- paste0("https://poloniex.com/public?command=",command)
+  ret <- POST(req)
+  stop_for_status(ret)
+  return(content(ret))
 }
 
 returnOpenOrders <- function(currency.pair="all"){
@@ -104,5 +111,83 @@ buy <- function(currency.pair=NULL, rate=NULL, amount=NULL, fillOrKill=0, immedi
   config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount
                        , fillOrKill=fillOrKill, immediateOrCancel=immediateOrCancel, postOnly=postOnly)
   command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+sell <- function(currency.pair=NULL, rate=NULL, amount=NULL, fillOrKill=0, immediateOrCancel=0, postOnly=0){
+  command <- "sell"
+  # Places a sell order in a given market. Parameters and output are the same as for the buy method.
+  # Places a limit buy order in a given market. Required POST parameters are "currencyPair", "rate", and "amount".
+  # If successful, the method will return the order number. Sample output:
+  #   
+  # {"orderNumber":31226040,"resultingTrades":[{"amount":"338.8732","date":"2014-10-18 23:03:21","rate":"0.00000173","total":"0.00058625","tradeID":"16164","type":"buy"}]}
+  # 
+  # You may optionally set "fillOrKill", "immediateOrCancel", "postOnly" to 1.
+  # A fill-or-kill order will either fill in its entirety or be completely aborted.
+  # An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book.
+  # A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.
+  config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount
+                       , fillOrKill=fillOrKill, immediateOrCancel=immediateOrCancel, postOnly=postOnly)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnMarginAccountSummary <- function(){
+  command <- "returnMarginAccountSummary"
+  # Returns a summary of your entire margin account. This is the same information you will find in the Margin Account section of the Margin Trading page, under the Markets list. Sample output:
+  #   
+  # {"totalValue": "0.00346561","pl": "-0.00001220","lendingFees": "0.00000000","netValue": "0.00345341","totalBorrowedValue": "0.00123220","currentMargin": "2.80263755"}
+  command.result <- api.poloniex(command=command)
+  return(command.result)
+}
+
+getMarginPosition <- function(currency.pair="all"){
+  command <- "getMarginPosition"
+  # Returns information about your margin position in a given market, specified by the "currencyPair" POST parameter.
+  # You may set "currencyPair" to "all" if you wish to fetch all of your margin positions at once.
+  # If you have no margin position in the specified market, "type" will be set to "none".
+  # "liquidationPrice" is an estimate, and does not necessarily represent the price at which an actual forced liquidation will occur.
+  # If you have no liquidation price, the value will be -1. Sample output:
+  #   
+  # {"amount":"40.94717831","total":"-0.09671314",""basePrice":"0.00236190","liquidationPrice":-1,"pl":"-0.00058655", "lendingFees":"-0.00000038","type":"long"}
+  
+  config.specs <- list(currencyPair=currency.pair)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.02){
+  command <- "marginBuy"
+  # Places a margin buy order in a given market.
+  # Required POST parameters are "currencyPair", "rate", and "amount".
+  # You may optionally specify a maximum lending rate using the "lendingRate" parameter.
+  # If successful, the method will return the order number and any trades immediately resulting from your order. Sample output:
+  #   
+  # {"success":1,"message":"Margin order placed.","orderNumber":"154407998","resultingTrades":{"BTC_DASH":[{"amount":"1.00000000","date":"2015-05-10 22:47:05","rate":"0.01383692","total":"0.01383692","tradeID":"1213556","type":"buy"}]}}
+  
+  config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount, lendingRate=lending.rate)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+marginSell <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.02){
+  command <- "marginSell"
+  # Places a margin sell order in a given market. Parameters and output are the same as for the marginBuy method.
+  
+  config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount, lendingRate=lending.rate)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnTicker <- function(){
+  command <- "returnTicker"
+  # Returns the ticker for all markets. Sample output:
+  #   
+  # {"BTC_LTC":{"last":"0.0251","lowestAsk":"0.02589999","highestBid":"0.0251","percentChange":"0.02390438",
+  #   "baseVolume":"6.16485315","quoteVolume":"245.82513926"},"BTC_NXT":{"last":"0.00005730","lowestAsk":"0.00005710",
+  #     "highestBid":"0.00004903","percentChange":"0.16701570","baseVolume":"0.45347489","quoteVolume":"9094"}, ... }
+  # 
+  # Call: https://poloniex.com/public?command=returnTicker
+  command.result <- api.poloniex.public(command)
   return(command.result)
 }

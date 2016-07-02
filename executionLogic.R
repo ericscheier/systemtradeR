@@ -1,4 +1,5 @@
-cancelAllOrders <- function(account="exchange"){
+cancelAllOrders <- function(account="margin"){
+  print("Canceling all open orders")
   open.orders <- returnOpenOrders()
   for(pair in names(open.orders)){
     orders <- open.orders[[pair]]
@@ -13,13 +14,50 @@ cancelAllOrders <- function(account="exchange"){
   }
 }
 
-transactAtMid <- function(pair=NULL, action="buy", units=0){
+tradesToMake <- function(){
+  print("Determining trades to make")
+  optimal.portfolio <- calculateOptimalPortfolio()
+  current.portfolio <- calculateCurrentPortfolio()[names(optimal.portfolio)]
+  # print(paste0("Optimal Portfolio: ", optimal.portfolio))
+  # print(paste0("Current Portfolio: ", current.portfolio))
   
-  if(action=="buy"){
-    
+  portfolio.difference <- optimal.portfolio - current.portfolio
+  transactions <- portfolio.difference * (abs(portfolio.difference/current.portfolio) > config$minimum.position.change)
+  return(transactions)
+}
+
+getMid <- function(ticker, pair){
+  mid.point <- mean(c(as.numeric(ticker[[pair]]$highestBid),as.numeric(ticker[[pair]]$lowestAsk)))
+  return(mid.point)
+}
+
+transactPair <- function(pair, transaction.size){
+  # for margin trading only
+  ticker <- returnTicker()
+  mid.point <- getMid(ticker=ticker, pair=pair)
+  # mid.point <- round(mid.point, -log10(config$minimum.order.size)) # need to change this rounding if min.order.size is not a factor of 10
+  trade.result <- NULL
+  if(abs(mid.point * transaction.size) < config$minimum.order.size){transaction.size <- 0}
+  if(transaction.size>0){
+    # buy
+    trade.result <- marginBuy(currency.pair=pair, rate=mid.point, amount=transaction.size, lending.rate=0.02)
   }
-  if(action="sell"){
-    
+  if(transaction.size<0){
+    # sell
+    trade.result <- marginSell(currency.pair=pair, rate=mid.point, amount=abs(transaction.size), lending.rate=0.02)
   }
-  
+  print(paste0(pair, ": ",transaction.size))
+  return(trade.result)
+}
+
+makeTrades <- function(){
+  transactions <- as.list(tradesToMake())
+  for (transaction in 1:length(transactions)){
+    pair <- names(transactions[transaction])
+    transact <- transactions[[transaction]]
+    print(paste0("Transacting: ",transact," of ",pair))
+    result <- transactPair(pair, transact)
+    Sys.sleep(0.2)
+  }
+  return(transactions)
 }
