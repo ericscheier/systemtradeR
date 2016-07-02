@@ -2,15 +2,6 @@ Public API Methods
 Please note that making more than 6 calls per second to the public API, or repeatedly and needlessly fetching excessive amounts of data, can result in your IP being banned.
 
 There are six public methods, all of which take HTTP GET requests and return output in JSON format:
-  
-  returnTicker
-Returns the ticker for all markets. Sample output:
-  
-{"BTC_LTC":{"last":"0.0251","lowestAsk":"0.02589999","highestBid":"0.0251","percentChange":"0.02390438",
-  "baseVolume":"6.16485315","quoteVolume":"245.82513926"},"BTC_NXT":{"last":"0.00005730","lowestAsk":"0.00005710",
-    "highestBid":"0.00004903","percentChange":"0.16701570","baseVolume":"0.45347489","quoteVolume":"9094"}, ... }
-
-Call: https://poloniex.com/public?command=returnTicker
 
 return24Volume
 Returns the 24-hour volume for all markets, plus totals for primary currencies. Sample output:
@@ -109,8 +100,6 @@ There are several methods accepted by the trading API, each of which is specifie
   
   [{"globalTradeID": 20825863, "tradeID": 147142, "currencyPair": "BTC_XVC", "type": "buy", "rate": "0.00018500", "amount": "455.34206390", "total": "0.08423828", "fee": "0.00200000", "date": "2016-03-14 01:04:36"}, ...]
   
-  sell
-  Places a sell order in a given market. Parameters and output are the same as for the buy method.
   
   moveOrder
   Cancels an order and places a new one of the same type in a single atomic transaction, meaning either both operations will succeed or both will fail. Required POST parameters are "orderNumber" and "rate"; you may optionally specify "amount" if you wish to change the amount of the new order. Sample output:
@@ -142,23 +131,6 @@ There are several methods accepted by the trading API, each of which is specifie
   
   {"success":1,"message":"Transferred 2 BTC from exchange to margin account."}
   
-  returnMarginAccountSummary
-  Returns a summary of your entire margin account. This is the same information you will find in the Margin Account section of the Margin Trading page, under the Markets list. Sample output:
-  
-  {"totalValue": "0.00346561","pl": "-0.00001220","lendingFees": "0.00000000","netValue": "0.00345341","totalBorrowedValue": "0.00123220","currentMargin": "2.80263755"}
-  
-  marginBuy
-  Places a margin buy order in a given market. Required POST parameters are "currencyPair", "rate", and "amount". You may optionally specify a maximum lending rate using the "lendingRate" parameter. If successful, the method will return the order number and any trades immediately resulting from your order. Sample output:
-  
-  {"success":1,"message":"Margin order placed.","orderNumber":"154407998","resultingTrades":{"BTC_DASH":[{"amount":"1.00000000","date":"2015-05-10 22:47:05","rate":"0.01383692","total":"0.01383692","tradeID":"1213556","type":"buy"}]}}
-  
-  marginSell
-  Places a margin sell order in a given market. Parameters and output are the same as for the marginBuy method.
-  
-  getMarginPosition
-  Returns information about your margin position in a given market, specified by the "currencyPair" POST parameter. You may set "currencyPair" to "all" if you wish to fetch all of your margin positions at once. If you have no margin position in the specified market, "type" will be set to "none". "liquidationPrice" is an estimate, and does not necessarily represent the price at which an actual forced liquidation will occur. If you have no liquidation price, the value will be -1. Sample output:
-  
-  {"amount":"40.94717831","total":"-0.09671314",""basePrice":"0.00236190","liquidationPrice":-1,"pl":"-0.00058655", "lendingFees":"-0.00000038","type":"long"}
 
 closeMarginPosition
 Closes your margin position in a given market (specified by the "currencyPair" POST parameter) using a market order. This call will also return success if you do not have an open position in the specified market. Sample output:

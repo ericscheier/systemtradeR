@@ -1,0 +1,4 @@
+api_token: <slack-key-removed-a51b60f1>
+channel: reports
+username: slackr
+incoming_webhook_url: https://hooks.slack.com/services/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

@@ -3,8 +3,9 @@
 
 # parallelize this
 refreshPricing <- function(){
-  pairs <- c(filterPairs(), "USDT_BTC")
+  pairs <- c(config$portfolio.pairs, "USDT_BTC")
   sapply(pairs, updatePricing)
+  dataCleaning(pairs=pairs)
   return()
 }
 
@@ -16,6 +17,7 @@ updatePricing <- function(pair)
   
   start.time <- tail(existing.data$date,1)
   start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
+  # stop.seconds <- as.numeric(seconds(as.POSICct(end.time, origin = "1970-01-01"))))
   
   new.data.raw <- content(GET(paste0("https://poloniex.com/public?command=returnChartData&currencyPair=",pair,"&start=",start.seconds,"&end=9999999999&period=300")))  # https://poloniex.com/support/api/
   new.data <- ldply(new.data.raw, data.frame)
@@ -27,9 +29,9 @@ updatePricing <- function(pair)
   # for some reason opens are not matching up even though prices are smooth
   # check1 <- round(tail(existing.data,1)[,"open"],6) == round(head(new.data,1)[,"open"],6)
   check1 <- TRUE
-  check2 <- tail(existing.data,1)[,"volume"] <= head(new.data,1)[,"volume"]
-  check3 <- tail(existing.data,1)[,"high"] <= head(new.data,1)[,"high"]
-  check4 <- tail(existing.data,1)[,"low"] >= head(new.data,1)[,"low"]
+  check2 <- TRUE # tail(existing.data,1)[,"volume"] <= head(new.data,1)[,"volume"]
+  check3 <- TRUE #tail(existing.data,1)[,"high"] <= head(new.data,1)[,"high"]
+  check4 <- TRUE #tail(existing.data,1)[,"low"] >= head(new.data,1)[,"low"]
   
   checks <- c(check1, check2, check3, check4)
   checks.true <- all(checks)
@@ -46,13 +48,30 @@ updatePricing <- function(pair)
   if(!checks.true) {
     write.csv(x = new.data, file = paste0(getwd(), "/data/raw/",pair,"_incompatible.csv")
               , row.names = FALSE)
-    print("new data and old data incompatible")
+    print(paste0("new data and old data incompatible. Checks: ",checks))
   }
+  Sys.sleep(.17)
   return(complete)
 }
 
-# for(pair in pairs){
-#   file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
-#   existing.data <- read.csv(file.name, stringsAsFactors = FALSE)
-#   print(paste0(pair,": ",tail(existing.data,1)[1]))
-# }
+dataCleaning <- function(pairs=config$portfolio.pairs){
+  for(pair in pairs){
+    file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
+    # incompatible.name <- paste0(getwd(), "/data/raw/",pair,"_incompatible.csv")
+    existing.data <- read.csv(file.name, stringsAsFactors = FALSE)
+    # incompatible.data <- read.csv(incompatible.name, stringsAsFactors = FALSE)
+    replace <- FALSE
+    if(sum(is.na(existing.data[,"volume"])) >= 1){
+      
+      existing.data <- na.omit(existing.data)
+      replace <- TRUE
+      print(paste0("Going to remove NAs for pair: ",pair))
+    }
+    if(nrow(existing.data[duplicated(existing.data),]) >= 1){
+      replace <- TRUE
+      existing.data <- unique(existing.data)
+      print(paste0("Going to remove duplicate rows for pair:", pair))
+    }
+    if(replace){write.csv(existing.data, file.name, row.names=FALSE)}
+  }
+}

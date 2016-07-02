@@ -6,6 +6,18 @@ getPairData <- function(pair=NULL){
   return(five.price.xts)
 }
 
+getHourlyPairData <- function(pair=NULL){
+  five.price.xts <- getPairData(pair)
+  hour.price.xts <- to.hourly(five.price.xts, OHLC=FALSE, indexAt="endof")
+  return(hour.price.xts)
+}
+
+getExchangeRate <- function(pair="USDT_BTC"){
+  five.price.xts <- getPairData(pair)
+  exchange.rate <- as.numeric(tail(five.price.xts,1))
+  return(exchange.rate)
+}
+
 combinedInstrumentForecast <- function(pair=NULL){
   # five.price.xts <- getPairData(pair)
   # returns <- diff(log(ohlc.prices[,"weightedAverage"]))
@@ -20,35 +32,77 @@ combinedInstrumentForecast <- function(pair=NULL){
 
 # need to add volatility calculations, volatility adjutment, and combining forecasts for staunch systems trader
 calculateVolatility <- function(pair=NULL){
+  hour.price.xts <- getHourlyPairData(pair)
   volatility.lookback <- config$volatility.lookback
+  
   # we want hourly vol looking back x hours
-  percentage.change <- na.omit(tail((diff(hour.price.xts)/lag(hour.price.xts)), volatility.lookback)^2)
+  percentage.change <- na.omit(tail(CalculateReturns(hour.price.xts), volatility.lookback)^2)
   calculated.volatility <- sqrt(EMA(percentage.change, n=36))
   return(na.omit(calculated.volatility))
 }
 
-cashVolatilityTarget <- function(account.value, volatility.target){
-  cash.volatility.target <- account.value * volatility.target
+cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
+  account.value=config$poloniex.margin.value
+  # returns the cash volatility target in USDT
+  volatility.target <- config$volatility.target
+  cash.volatility.target <- account.value * volatility.target * exchange.rate
   return(cash.volatility.target)
 }
 
-instrumentValueVolatility <- function(exchange.rate, hour.price.xts, minimum.order.size, volatility.lookback){
-  block.value <- minimum.order.size # minimum contract size, may need to adjust based on market rules
-  price.volatility <- as.numeric(tail(calculateVolatility(hour.price.xts, volatility.lookback),1)) # ewma of 36 trading periods
+instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL){
+  block.size <- getExchangeRate(pair=pair) #  BTC/XRP     # minimum.order.size <- config$minimum.order.size
+  volatility.lookback <- config$volatility.lookback
+  # hour.price.xts <- getHourlyPairData(pair)
+  block.value <- block.size * .01 # change in price when block moves 1%, BTC/XRP
+  price.volatility <- 100*as.numeric(tail(calculateVolatility(pair),1)) # ewma of 36 trading periods
   instrument.currency.volatility <- block.value * price.volatility # expected hourly profit/loss in instrument units
+  ## ^^ can be simplified to block.size * price.volatility when there is one asset per block (i.e. equities, raw FX)
+  ## However, framework adapts to futures, etc.
+  ## We are calculating the impact a % price move in the asset has on our bottom line per [hour], then
+  ## How many % price moves we should expect per [hour]
   instrument.value.volatility <- instrument.currency.volatility * exchange.rate # instrument.currency.volatility converted to account value currency
   return(instrument.value.volatility)
 }
 
-volatilityScalar <- function(cash.volatility.target, instrument.value.volatility){
-  volatility.scalar <- cash.volatility.target/instrument.value.volatility
+volatilityScalar <- function(pair=NULL){
+  cash.volatility.target=cashVolatilityTarget()
+  instrument.value.volatility=instrumentValueVolatility(pair=pair)
+  volatility.scalar <- cash.volatility.target/instrument.value.volatility # unitless
   return(volatility.scalar)
 }
 
-subsystemPosition <- function(volatility.scalar=volatilityScalar(), combined.instrument.forecast=combinedInstrumentForecast()){
+subsystemPosition <- function(pair=NULL){
+  volatility.scalar=volatilityScalar(pair=pair)
+  combined.instrument.forecast=combinedInstrumentForecast(pair=pair)
   system.forecast.average = 10 # by design this should be 10
   subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
   return(subsystem.position)
+}
+
+maxPosition <- function(pair=NULL, account.value){
+  original.account.value <- config$poloniex.margin.value
+  config$poloniex.margin.value <- account.value
+  volatility.scalar <- volatilityScalar(pair=pair)
+  instrument.weight <- as.numeric(tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)[,pair])
+  instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
+  max.position <- 1 * volatility.scalar * instrument.weight * instrument.diversification.multiplier
+  config$poloniex.margin.value <- original.account.value
+  price <- getExchangeRate(pair=pair)
+  btc.max.position <- max.position * price
+  return(btc.max.position)
+}
+
+minAccountValue <- function(){
+  optFunc <- function(pair, X){
+    max.position <- maxPosition(pair=pair, account.value=X)
+    return(abs(max.position - 4*config$minimum.order.size))
+  }
+  optimFunc <- function(pair){
+    return(optimize(optFunc, pair=pair, interval=c(0,6), tol=0.1)$minimum)
+  }
+  min.account.values <- sapply(config$portfolio.pairs, optimFunc)
+  min.account.value <- max(min.account.values)
+  return(min.account.value)
 }
 
 rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS")))
