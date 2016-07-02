@@ -20,24 +20,24 @@ last.updated <- readRDS("last_updated.RDS")
   if(toggles$mins){
     minutelyFunction <- function(){
       # update & note account value
-      slackr_bot(recordAccountValue())
+      print(recordAccountValue())
       # check in on open orders and adjust accordingly
-      slackr_bot(ldply(returnOpenOrders(), data.frame))
+      print(ldply(returnOpenOrders(), data.frame))
     }
-    minutes.successful <- try(minutelyFunction())
+    minutes.successful <- try(slackr_bot(minutelyFunction()))
     if(!inherits(minutes.successful, "try-error")){last.updated$mins <- current.time}
   }
   
   if(toggles$hours){
     hourlyFunction <- function(){
       # update pricing
-      slackr_bot(refreshPricing())
+      print(refreshPricing())
       # cancel open trades
-      slackr_bot(cancelAllOrders())
+      print(cancelAllOrders())
       # update portfolio & make trades
-      slackr_bot(makeTrades())
+      print(makeTrades())
     }
-    hours.successful <- try(hourlyFunction())
+    hours.successful <- try(slackr_bot(hourlyFunction()))
     if(!inherits(hours.successful, "try-error")){last.updated$hours <- current.time}
   }
   
