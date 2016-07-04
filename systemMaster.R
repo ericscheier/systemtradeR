@@ -8,14 +8,15 @@ last.updated <- readRDS("last_updated.RDS")
                   , hours=FALSE
                   , mins=FALSE)
   current.time <- Sys.time()
-  slackr_bot(print(current.time))
-  slackr_bot(sapply(last.updated, timeDifferences, current.time=current.time))
   if(difftime(current.time, last.updated$mins, units="mins") >= 10){toggles$mins=TRUE}
   if(difftime(current.time, last.updated$hours, units="hours") >= 1){toggles$hours=TRUE}
   if(difftime(current.time, last.updated$days, units="days") >= 1){toggles$days=TRUE}
   if(difftime(current.time, last.updated$weeks, units="weeks") >= 1){toggles$weeks=TRUE}
   
-  print(toggles[toggles==1])
+  if(any(toggles[toggles==1])){
+    slackr_bot(current.time)
+    slackr_bot(sapply(last.updated, timeDifferences, current.time=current.time))
+  }
   
   if(toggles$mins){
     minutelyFunction <- function(){
