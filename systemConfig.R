@@ -15,7 +15,7 @@ library(stringr)
 library(slackr)
 
 source("SystematicTrading.R")
-source("PoloniexAPI.R")
+source("poloniexAPI.R")
 source("executionLogic.R")
 source("portfolioLogic.R")
 source("updatePricing.R")
