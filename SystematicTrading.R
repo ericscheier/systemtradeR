@@ -79,6 +79,9 @@ volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
 }
 
 subsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
+  if(is.null(five.minute.price.xts)){
+    five.minute.price.xts <- getPairData(pair)
+  }
   hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
   volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
   combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
