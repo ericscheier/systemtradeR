@@ -18,7 +18,7 @@ getExchangeRate <- function(pair="USDT_BTC"){
   return(exchange.rate)
 }
 
-combinedInstrumentForecast <- function(pair=NULL){
+combinedInstrumentForecast <- function(pair=NULL, five.minute.price.xts=NULL){
   # five.price.xts <- getPairData(pair)
   # returns <- diff(log(ohlc.prices[,"weightedAverage"]))
   combined.instrument.forecast <- 10
@@ -31,8 +31,10 @@ combinedInstrumentForecast <- function(pair=NULL){
 }
 
 # need to add volatility calculations, volatility adjutment, and combining forecasts for staunch systems trader
-calculateVolatility <- function(pair=NULL){
-  hour.price.xts <- getHourlyPairData(pair)
+calculateVolatility <- function(pair=NULL, hour.price.xts=NULL){
+  if(is.null(hour.price.xts)){
+    hour.price.xts <- getHourlyPairData(pair)
+  }
   volatility.lookback <- config$volatility.lookback
   
   # we want hourly vol looking back x hours
@@ -49,12 +51,17 @@ cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
   return(cash.volatility.target)
 }
 
-instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL){
-  block.size <- getExchangeRate(pair=pair) #  BTC/XRP     # minimum.order.size <- config$minimum.order.size
+instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL, hour.price.xts=NULL){
+  if(is.null(hour.price.xts)){
+    block.size <- getExchangeRate(pair=pair) #  BTC/XRP     # minimum.order.size <- config$minimum.order.size
+  }
+  else {
+    block.size <- as.numeric(tail(hour.price.xts,1))
+  }
   volatility.lookback <- config$volatility.lookback
   # hour.price.xts <- getHourlyPairData(pair)
   block.value <- block.size * .01 # change in price when block moves 1%, BTC/XRP
-  price.volatility <- 100*as.numeric(tail(calculateVolatility(pair),1)) # ewma of 36 trading periods
+  price.volatility <- 100*as.numeric(tail(calculateVolatility(pair, hour.price.xts=hour.price.xts),1)) # ewma of 36 trading periods
   instrument.currency.volatility <- block.value * price.volatility # expected hourly profit/loss in instrument units
   ## ^^ can be simplified to block.size * price.volatility when there is one asset per block (i.e. equities, raw FX)
   ## However, framework adapts to futures, etc.
@@ -64,16 +71,17 @@ instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL
   return(instrument.value.volatility)
 }
 
-volatilityScalar <- function(pair=NULL){
+volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
   cash.volatility.target=cashVolatilityTarget()
-  instrument.value.volatility=instrumentValueVolatility(pair=pair)
+  instrument.value.volatility=instrumentValueVolatility(pair=pair, hour.price.xts = hour.price.xts)
   volatility.scalar <- cash.volatility.target/instrument.value.volatility # unitless
   return(volatility.scalar)
 }
 
-subsystemPosition <- function(pair=NULL){
-  volatility.scalar=volatilityScalar(pair=pair)
-  combined.instrument.forecast=combinedInstrumentForecast(pair=pair)
+subsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
+  hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
+  volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
+  combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
   system.forecast.average = 10 # by design this should be 10
   subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
   return(subsystem.position)
@@ -106,7 +114,8 @@ minAccountValue <- function(){
 }
 
 rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS")))
-                                                        , volatility.target, all_time=TRUE){
+                                                        , all_time=TRUE){
+  volatility.target = config$volatility.target
   instruments = colnames(subsystem.returns)
   df.con = portfolio.spec(assets = instruments)
   df.con = add.constraint(portfolio = df.con, type = "long_only")
@@ -140,7 +149,7 @@ rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(
   
   raw.instrument.weights <- extractWeights(opt.dn)
   saveRDS(raw.instrument.weights, paste0(getwd(),"/data/clean/raw_instrument_weights.RDS"))
-  return(raw.instrument.weights)
+  # return(raw.instrument.weights)
 }
 
 updateSmoothedWeights <- function(smoothed.instrument.weights, new.raw.weights, ema.n=36){
@@ -153,7 +162,7 @@ smoothedInstrumentWeights <- function(raw.instrument.weights=readRDS(paste0(getw
   smoothed.instrument.weights <- na.omit(xts(x=apply(raw.instrument.weights, 2, EMA, n=ema.n)
                                      , order.by=index(raw.instrument.weights)))
   
-  chart.StackedBar(smoothed.instrument.weights, colorset=rainbow12equal)
+  # chart.StackedBar(smoothed.instrument.weights, colorset=rainbow12equal)
   
   saveRDS(smoothed.instrument.weights, paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS"))
   return(smoothed.instrument.weights)
