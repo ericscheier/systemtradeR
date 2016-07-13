@@ -21,7 +21,7 @@ source("executionLogic.R")
 source("portfolioLogic.R")
 source("updatePricing.R")
 source("monitoring.R")
-# source("simulateSubsystem.R")
+source("simulateSubsystem.R")
 
 Sys.setenv(TZ = "UTC")
 set_config(timeout(seconds = 30))
