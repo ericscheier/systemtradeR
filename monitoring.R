@@ -35,3 +35,14 @@ recordAccountValue <- function(){
 timeDifferences <- function(last.updated, current.time){
   difftime(current.time, last.updated, units="mins")
 }
+
+volatilityTargetChecking <- function(){
+  account.value <- readRDS(paste0(getwd(), "/data/clean/margin_account_value.RDS"))
+  vol.target <- round(100*config$volatility.target,2)
+  
+  value.xts <- as.xts(account.value[c("usdt_value", "btc_value")], order.by=account.value[,"date"])
+  hourly.value.xts <- to.hourly(value.xts, OHLC=FALSE, indexAt="endof")
+  hourly.returns.xts <- na.omit(CalculateReturns(hourly.value.xts))
+  realized.vol <- round(100*sd(hourly.returns.xts[,"usdt_value"]),2)
+  print(paste0("Hourly Volatility Target: ",vol.target,"%. All-Time Realized Hourly Volatility: ",realized.vol,"%. (St. Dev.'s)"))
+}
