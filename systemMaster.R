@@ -1,9 +1,19 @@
 # x <- 5
-temp.last.updated <- last.updated <- readRDS("last_updated.RDS")
+mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
+temp.last.updated <- last.updated <- list(weeks=mock.time
+                                          , days=mock.time
+                                          , hours=mock.time
+                                          , mins=mock.time)
+
+if(file.exists("last_updated.RDS")){
+  temp.last.updated <- last.updated <- readRDS("last_updated.RDS")
+}
+
 toggles <- list(weeks=FALSE
                 , days=FALSE
                 , hours=FALSE
                 , mins=FALSE)
+
 
 # while (x>4){
   current.time <- Sys.time()
