@@ -75,7 +75,7 @@ simulateSubsystem <- function(pair=NULL){
     # if(blocks.transacted!=0){print(paste0("Transacted ",blocks.transacted," BTC worth of ",pair))}
     
     position.size <- position.size + transaction.size * execution.price
-    total.transaction.fee <- transaction.size * execution.price * transaction.fee
+    total.transaction.fee <- transaction.size * execution.price * config$transaction.fee
     account.cash <- account.cash - transaction.size * execution.price - total.transaction.fee
     post.execution.account.value <- execution.exchange.rate * (position.size * execution.price + account.cash)
     
