@@ -17,10 +17,11 @@ toggles <- list(weeks=FALSE
 
 # while (x>4){
   current.time <- Sys.time()
-  if(difftime(current.time, last.updated$mins, units="mins") >= 9.5){toggles$mins=TRUE}
-  if(difftime(current.time, last.updated$hours, units="hours") >= 1){toggles$hours=TRUE}
-  if(difftime(current.time, last.updated$days, units="days") >= 1){toggles$days=TRUE}
-  if(difftime(current.time, last.updated$weeks, units="weeks") >= 1){toggles$weeks=TRUE}
+
+  if(difftime(current.time, last.updated$mins, units="mins") >= 9.99){toggles$mins=TRUE}
+  if(difftime(current.time, last.updated$hours, units="hours") >= 0.99){toggles$hours=TRUE}
+#  if(difftime(current.time, last.updated$days, units="days") >= 0.99){toggles$days=TRUE}
+#  if(difftime(current.time, last.updated$weeks, units="weeks") >= 0.99){toggles$weeks=TRUE}
   
   if(toggles$mins){temp.last.updated$mins <- current.time}
   if(toggles$hours){temp.last.updated$mins <- current.time}
@@ -73,9 +74,9 @@ toggles <- list(weeks=FALSE
     # weekly recalculate instrument weights (daily when sped up, currently takes 25-60 minutes)
     # need to find a way to deal with assets that haven't started trading yet (ETH & FCT)
     weeklyFunction <- function(){
-      simulateSubsystems()
-      rawInstrumentWeights()
-      smoothedInstrumentWeights()
+    #  simulateSubsystems()
+    #  rawInstrumentWeights()
+    #  smoothedInstrumentWeights()
       # subsystem.returns <- readRDS(paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
       # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
       # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
@@ -84,6 +85,3 @@ toggles <- list(weeks=FALSE
     # if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
   }
   saveRDS(last.updated, file="last_updated.RDS")
-  # Sys.sleep(60*7.5)
-  # source("systemConfig.R")
-# tr}
