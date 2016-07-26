@@ -4,3 +4,4 @@ default.cfg
 .Rproj.user
 *.csv
 *.RDS
+.Rhistory
