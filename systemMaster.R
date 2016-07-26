@@ -1,20 +1,25 @@
-x <- 5
-last.updated <- readRDS("last_updated.RDS")
-
+# x <- 5
+temp.last.updated <- last.updated <- readRDS("last_updated.RDS")
+toggles <- list(weeks=FALSE
+                , days=FALSE
+                , hours=FALSE
+                , mins=FALSE)
 
 # while (x>4){
-  toggles <- list(weeks=FALSE
-                  , days=FALSE
-                  , hours=FALSE
-                  , mins=FALSE)
   current.time <- Sys.time()
-  if(difftime(current.time, last.updated$mins, units="mins") >= 10){toggles$mins=TRUE}
+  if(difftime(current.time, last.updated$mins, units="mins") >= 9.5){toggles$mins=TRUE}
   if(difftime(current.time, last.updated$hours, units="hours") >= 1){toggles$hours=TRUE}
   if(difftime(current.time, last.updated$days, units="days") >= 1){toggles$days=TRUE}
   if(difftime(current.time, last.updated$weeks, units="weeks") >= 1){toggles$weeks=TRUE}
   
+  if(toggles$mins){temp.last.updated$mins <- current.time}
+  if(toggles$hours){temp.last.updated$mins <- current.time}
+  if(toggles$days){temp.last.updated$mins <- current.time}
+  if(toggles$weeks){temp.last.updated$mins <- current.time}
+  saveRDS(temp.last.updated, file="last_updated.RDS")
+  
   if(any(unlist(toggles))){
-    slackr_bot(current.time)
+    slackr_bot(print(current.time))
     slackr_bot(sapply(last.updated, timeDifferences, current.time=current.time))
   }
   
@@ -49,8 +54,8 @@ last.updated <- readRDS("last_updated.RDS")
     dailyFunction <- function(){
       volatilityTargetChecking()
     }
-    days.successful <- try(slackr_bot(dailyFunction()))
-    if(!inherits(days.successful, "try-error")){last.updated$days <- current.time}
+    # days.successful <- try(slackr_bot(dailyFunction()))
+    # if(!inherits(days.successful, "try-error")){last.updated$days <- current.time}
   }
   
   if(toggles$weeks){
@@ -65,10 +70,10 @@ last.updated <- readRDS("last_updated.RDS")
       # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
       # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
     }
-    weeks.successful <- try(slackr_bot(weeklyFunction()))
-    if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
+    # weeks.successful <- try(slackr_bot(weeklyFunction()))
+    # if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
   }
   saveRDS(last.updated, file="last_updated.RDS")
-  Sys.sleep(60*7.5)
-  source("systemConfig.R")
+  # Sys.sleep(60*7.5)
+  # source("systemConfig.R")
 # tr}
