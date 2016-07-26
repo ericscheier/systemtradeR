@@ -6,12 +6,15 @@ getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
   five.price.xts <- xts(x=ohlc.prices[,columns]
                         , order.by = as.POSIXct(ohlc.prices[,"date"], origin = "1970-01-01", format="%Y-%m-%d %H:%M:%S")
                         , tzone = "UTC")
+  names(five.price.xts) <- columns
   return(five.price.xts)
 }
 
 getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
   five.price.xts <- getPairData(pair, ohlc=ohlc, volume=volume)
+  # columns <- colnames(five.price.xts)
   hour.price.xts <- to.hourly(five.price.xts, OHLC=FALSE, indexAt="endof")
+  # names(hour.price.xts) <- columns
   return(hour.price.xts)
 }
 
@@ -139,7 +142,7 @@ rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(
   daily.returns <- aggregate(x=subsystem.returns, by=date, FUN=sum)
   
   if(all_time){
-    registerDoParallel()
+    # registerDoParallel()
     opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
                                              , optimize_method = "random", trace=FALSE #, rp=rp
                                              , rebalance_on="days")
