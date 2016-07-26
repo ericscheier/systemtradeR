@@ -1,20 +1,36 @@
-x <- 5
-last.updated <- readRDS("last_updated.RDS")
+# x <- 5
+mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
+temp.last.updated <- last.updated <- list(weeks=mock.time
+                                          , days=mock.time
+                                          , hours=mock.time
+                                          , mins=mock.time)
+
+if(file.exists("last_updated.RDS")){
+  temp.last.updated <- last.updated <- readRDS("last_updated.RDS")
+}
+
+toggles <- list(weeks=FALSE
+                , days=FALSE
+                , hours=FALSE
+                , mins=FALSE)
 
 
 # while (x>4){
-  toggles <- list(weeks=FALSE
-                  , days=FALSE
-                  , hours=FALSE
-                  , mins=FALSE)
   current.time <- Sys.time()
+
   if(difftime(current.time, last.updated$mins, units="mins") >= 9.99){toggles$mins=TRUE}
   if(difftime(current.time, last.updated$hours, units="hours") >= 0.99){toggles$hours=TRUE}
 #  if(difftime(current.time, last.updated$days, units="days") >= 0.99){toggles$days=TRUE}
 #  if(difftime(current.time, last.updated$weeks, units="weeks") >= 0.99){toggles$weeks=TRUE}
   
+  if(toggles$mins){temp.last.updated$mins <- current.time}
+  if(toggles$hours){temp.last.updated$mins <- current.time}
+  if(toggles$days){temp.last.updated$mins <- current.time}
+  if(toggles$weeks){temp.last.updated$mins <- current.time}
+  saveRDS(temp.last.updated, file="last_updated.RDS")
+  
   if(any(unlist(toggles))){
-    slackr_bot(current.time)
+    slackr_bot(print(current.time))
     slackr_bot(sapply(last.updated, timeDifferences, current.time=current.time))
   }
   
@@ -69,6 +85,3 @@ last.updated <- readRDS("last_updated.RDS")
     # if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
   }
   saveRDS(last.updated, file="last_updated.RDS")
-#  Sys.sleep(60*7.5)
-#   source("systemConfig.R")
-# tr}

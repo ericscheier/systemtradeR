@@ -1,0 +1,7 @@
+source("SystematicTrading.R")
+source("poloniexAPI.R")
+source("executionLogic.R")
+source("portfolioLogic.R")
+source("updatePricing.R")
+source("monitoring.R")
+source("simulateSubsystem.R")
