@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#
+# Script to update portfolio
+#
+
+cd altfund  && Rscript systemConfig.R
+

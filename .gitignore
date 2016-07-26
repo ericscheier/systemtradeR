@@ -2,5 +2,5 @@
 *.swp
 default.cfg
 .Rproj.user
-.csv
-.RDS
+*.csv
+*.RDS
