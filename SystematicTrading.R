@@ -1,13 +1,16 @@
-getPairData <- function(pair=NULL){
+getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
+  columns <- c("close")
+  if(ohlc){columns <- c("high", "low", "open", columns)}
+  if(volume){columns <- c(columns, "volume")}
   ohlc.prices <- read.csv(paste0(getwd(),"/data/raw/",pair,"_ohlc.csv"), stringsAsFactors = FALSE) # five minute frequency
-  five.price.xts <- xts(x=ohlc.prices[,"close"]
-                        , order.by = strptime(ohlc.prices[,"date"], format="%Y-%m-%d %H:%M:%S")
+  five.price.xts <- xts(x=ohlc.prices[,columns]
+                        , order.by = as.POSIXct(ohlc.prices[,"date"], origin = "1970-01-01", format="%Y-%m-%d %H:%M:%S")
                         , tzone = "UTC")
   return(five.price.xts)
 }
 
-getHourlyPairData <- function(pair=NULL){
-  five.price.xts <- getPairData(pair)
+getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
+  five.price.xts <- getPairData(pair, ohlc=ohlc, volume=volume)
   hour.price.xts <- to.hourly(five.price.xts, OHLC=FALSE, indexAt="endof")
   return(hour.price.xts)
 }
@@ -17,6 +20,8 @@ getExchangeRate <- function(pair="USDT_BTC"){
   exchange.rate <- as.numeric(tail(five.price.xts,1))
   return(exchange.rate)
 }
+
+
 
 combinedInstrumentForecast <- function(pair=NULL, five.minute.price.xts=NULL){
   # five.price.xts <- getPairData(pair)
@@ -53,7 +58,7 @@ cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
 
 instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL, hour.price.xts=NULL){
   if(is.null(hour.price.xts)){
-    block.size <- getExchangeRate(pair=pair) #  BTC/XRP     # minimum.order.size <- config$minimum.order.size
+    block.size <- getExchangeRate(pair=pair)     # minimum.order.size <- config$minimum.order.size
   }
   else {
     block.size <- as.numeric(tail(hour.price.xts,1))

@@ -44,8 +44,10 @@ last.updated <- readRDS("last_updated.RDS")
   
   if(toggles$days){
     # reporting
+    # recalculate forecast scalars?
+    # recalculate forecast weights?
     dailyFunction <- function(){
-      
+      volatilityTargetChecking()
     }
     # days.successful <- try(slackr_bot(dailyFunction()))
     # if(!inherits(days.successful, "try-error")){last.updated$days <- current.time}
@@ -53,10 +55,8 @@ last.updated <- readRDS("last_updated.RDS")
   
   if(toggles$weeks){
     # weekly simulate subsystem returns (daily when sped up, currently takes 1.5 hours)
-    # source("simulateSubsystem.R")
     # weekly recalculate instrument weights (daily when sped up, currently takes 25-60 minutes)
     # need to find a way to deal with assets that haven't started trading yet (ETH & FCT)
-    # smoothedInstrumentWeights(rawInstrumentWeights(volatility.target=volatility.target))
     weeklyFunction <- function(){
     #  simulateSubsystems()
     #  rawInstrumentWeights()
