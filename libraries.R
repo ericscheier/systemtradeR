@@ -12,7 +12,7 @@ library(RCurl)
 library(stringr)
 library(slackr)
 library(httr)
-library(quantstrat) # install.packages("quantstrat", repos="http://R-Forge.R-project.org")
-library(IKTrading)  # install_github("IlyaKipnis/IKTrading") needs devtools
-library(lattice)
-library(doParallel)
+# library(quantstrat) # install.packages("quantstrat", repos="http://R-Forge.R-project.org")
+# library(IKTrading)  # install_github("IlyaKipnis/IKTrading") needs devtools
+# library(lattice)
+# library(doParallel)
