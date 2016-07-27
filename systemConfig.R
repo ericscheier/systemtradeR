@@ -49,6 +49,6 @@ config$five.exchange.rate <- xts(x=exchange.rate.prices[,"close"]
 
 config$first.exchange.rate <- index(head(config$five.exchange.rate,1))
 config$last.exchange.rate <- index(tail(config$five.exchange.rate,1)) - minutes(10)
-
-source("systemMaster.R")
+config$current.exchange.rate <- as.numeric(config$five.exchange.rate[config$last.exchange.rate])
+# if(config$live.trading){source("systemMaster.R")}
 

@@ -1,4 +1,6 @@
 # x <- 5
+source("systemConfig.R")
+
 mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
 temp.last.updated <- last.updated <- list(weeks=mock.time
                                           , days=mock.time
@@ -74,14 +76,14 @@ toggles <- list(weeks=FALSE
     # weekly recalculate instrument weights (daily when sped up, currently takes 25-60 minutes)
     # need to find a way to deal with assets that haven't started trading yet (ETH & FCT)
     weeklyFunction <- function(){
-    #  simulateSubsystems()
-    #  rawInstrumentWeights()
-    #  smoothedInstrumentWeights()
+     simulateSubsystems()
+     rawInstrumentWeights()
+     smoothedInstrumentWeights()
       # subsystem.returns <- readRDS(paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
       # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
       # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
     }
-    # weeks.successful <- try(slackr_bot(weeklyFunction()))
-    # if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
+    weeks.successful <- try(slackr_bot(weeklyFunction()))
+    if(!inherits(weeks.successful, "try-error")){last.updated$weeks <- current.time}
   }
   saveRDS(last.updated, file="last_updated.RDS")
