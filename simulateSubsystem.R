@@ -87,6 +87,7 @@ systematicRebalance <- function (...,
              replace = TRUE, return = FALSE, ..., TxnFees = "percentFee",
              time.in.force = "GTC")
   }
+}
 
 simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   if(!is.null(dev.list())){dev.off(which=dev.list())}
@@ -256,7 +257,6 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
     #             symbol=symbol,
     #             timestamp=timestamp)
     # print(paste(timestamp, pos.limit, sep=": "))
-  }
   
   
   ## Rules
