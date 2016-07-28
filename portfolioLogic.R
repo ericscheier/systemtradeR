@@ -77,6 +77,7 @@ refreshPairs <- function(){
   portfolio.pairs <- filterPairs()
   
   saveRDS(portfolio.pairs, file=paste0(getwd(),"/data/clean/portfolio_pairs.RDS"))
+  return(portfolio.pairs)
 }
 
 getPairs <- function(){

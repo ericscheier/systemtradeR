@@ -19,7 +19,7 @@ system.config$volatility.target <- .005 # hourly target volatility in % terms
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
 system.config$minimum.position.change <- .1 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
-system.config$portfolio.pairs <- getPairs()
+system.config$portfolio.pairs <- ifelse(inherits(try(getPairs()), "try-error"), refreshPairs(), getPairs())
 system.config$poloniex.key <- "O2NT3UJT-04WVU41J-52ETHGHN-WCGM7DUM"
 system.config$poloniex.secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541fc8823c725b1c352fa2b04edceba44d37cb7c216c6f2a062fc538a3119abcbe8e317f8eee32165168d"
 if(is.null(system.config$poloniex.margin.value)){try(system.config$poloniex.margin.value <- accountValue())}
