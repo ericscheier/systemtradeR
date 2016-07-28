@@ -22,7 +22,7 @@ tradesToMake <- function(){
   # print(paste0("Current Portfolio: ", current.portfolio))
   
   portfolio.difference <- optimal.portfolio - current.portfolio
-  transactions <- portfolio.difference * (abs(portfolio.difference/current.portfolio) > config$minimum.position.change)
+  transactions <- portfolio.difference * (abs(portfolio.difference/current.portfolio) > system.config$minimum.position.change)
   saveRDS(transactions, file=paste0(getwd(), "/data/clean/transactions_to_make.RDS"))
   return(transactions)
 }
@@ -36,9 +36,9 @@ transactPair <- function(pair, transaction.size){
   # for margin trading only
   ticker <- returnTicker()
   mid.point <- getMid(ticker=ticker, pair=pair)
-  # mid.point <- round(mid.point, -log10(config$minimum.order.size)) # need to change this rounding if min.order.size is not a factor of 10
+  # mid.point <- round(mid.point, -log10(system.config$minimum.order.size)) # need to change this rounding if min.order.size is not a factor of 10
   trade.result <- NULL
-  if(abs(mid.point * transaction.size) < config$minimum.order.size){transaction.size <- 0}
+  if(abs(mid.point * transaction.size) < system.config$minimum.order.size){transaction.size <- 0}
   if(transaction.size>0){
     # buy
     trade.result <- marginBuy(currency.pair=pair, rate=mid.point, amount=transaction.size, lending.rate=0.02)
