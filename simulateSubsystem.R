@@ -182,7 +182,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
                                                                     ,exchange.rate=quote(Cl(get(fx.rate, envir=.GlobalEnv)))), label="exchange.rate")
   
-  # applyIndicators(strategy.name, mktdata=ETHBTC)
+  mktdata <- applyIndicators(strategy.name, mktdata=get(trade.target, envir=.GlobalEnv))
   
   
   ## Signals
@@ -312,6 +312,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   ## Run it
   applyStrategy.rebalancing(strategy.name,
                             portfolios=portfolio.name, debug=T,
+                            mktdata=mktdata,
                             parameters=list(),
                             verbose=TRUE,
                             envir=.instrument)
