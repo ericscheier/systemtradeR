@@ -27,6 +27,10 @@ systematicRebalance <- function (...,
                                  exchange.rate.col=NULL,
                                  instrument.volatility.col=NULL,
                                  combined.instrument.forecast.col=NULL,
+                                 initEq=NULL,
+                                 volatility.target=NULL,
+                                 minimum.order.size=NULL,
+                                 minimum.position.change=NULL,
                                  portfolio,
                                  symbol,
                                  timestamp)
@@ -116,9 +120,6 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   
   
   # Rebuild empty environments if RStudio's "Clear All" has been used:
-  if (!exists('.instrument')) .instrument <- new.env()
-  if (!exists('.blotter')) .blotter <- new.env()
-  if (!exists('.strategy')) .strategy <- new.env()
   
   ## Subsetting: components of mktdata must be same length
   trade.target.data <- getPairData(pair=pair, ohlc=TRUE, volume=TRUE)
@@ -131,10 +132,12 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   first.hour <- last.hour - hours(lookback.hours)
   date.subset <- paste(first.hour,last.hour,sep="::")
  
-  trade.target <- paste0(asset,base)
-  fx.rate <- paste0(base,"USD") #paste0("USD",base)
-  assign(trade.target, trade.target.data[date.subset]) #, envir=.GlobalEnv) # getHourlyPairData
-  assign(fx.rate, fx.rate.data[date.subset]) #, envir=.GlobalEnv) #getHourlyPairData
+  assign("trade.target", paste0(asset,base), envir=.GlobalEnv)
+  assign("fx.rate",paste0(base,"USD"), envir=.GlobalEnv) #paste0("USD",base)
+  
+  assign(trade.target, trade.target.data[date.subset], envir=.GlobalEnv) # getHourlyPairData
+  assign(fx.rate, fx.rate.data[date.subset], envir=.GlobalEnv) #getHourlyPairData
+  
   # combo.prices <- na.omit(merge(BTC_ETH, BTCUSD))
   # BTC_ETH <- BTC_ETH[index(combo.prices)]
   # BTCUSD <- BTCUSD[index(combo.prices)]
@@ -145,7 +148,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   exchange_rate(trade.target, currency = base, counter_currency = asset, tick_size = 0.00001)
   exchange_rate(fx.rate, currency = 'USD', counter_currency = base, tick_size = 0.01)  #exchange_rate(fx.rate, currency = 'USD', counter_currency = base, tick_size = 0.01)
   
-  initDate = as.character(as.Date(min(index(get(trade.target)))-days(1))) # '2015-09-01'
+  initDate = as.character(as.Date(min(index(get(trade.target, envir=.GlobalEnv)))-days(1))) # '2015-09-01'
   initBTC <- .5
   init.target <- 0
   initUSD <- system.config$poloniex.margin.value * system.config$current.exchange.rate
@@ -177,7 +180,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   add.indicator(strategy.name, name= "emaVolatility", arguments = list(price.xts=quote(Cl(mktdata))), label='instrument.volatility')
   add.indicator(strategy.name, name="scaledForecast", arguments = list(price.xts=quote(Cl(mktdata))), label='combined.instrument.forecast')
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
-                                                                    ,exchange.rate=quote(Cl(get(fx.rate)))), label="exchange.rate")
+                                                                    ,exchange.rate=quote(Cl(get(fx.rate, envir=.GlobalEnv)))), label="exchange.rate")
   
   # applyIndicators(strategy.name, mktdata=ETHBTC)
   
@@ -274,7 +277,11 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
                           ref.price.col="close",
                           exchange.rate.col="X1.exchange.rate",
                           instrument.volatility.col="X1.instrument.volatility",
-                          combined.instrument.forecast.col="X1.combined.instrument.forecast"
+                          combined.instrument.forecast.col="X1.combined.instrument.forecast",
+                          initEq=initEq,
+                          volatility.target=volatility.target,
+                          minimum.order.size=minimum.order.size,
+                          minimum.position.change=minimum.position.change
            ),
            type='rebalance',
            label='rebalance')
@@ -306,7 +313,8 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   applyStrategy.rebalancing(strategy.name,
                             portfolios=portfolio.name, debug=T,
                             parameters=list(),
-                            verbose=TRUE)
+                            verbose=TRUE,
+                            envir=.instrument)
   
   updatePortf(Portfolio=portfolio.name,Dates=paste('::',as.Date(Sys.time()),sep=''))
   updateAcct(account.name)
