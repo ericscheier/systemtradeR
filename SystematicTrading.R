@@ -86,17 +86,24 @@ volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
   return(volatility.scalar)
 }
 
-# subsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
-#   if(is.null(five.minute.price.xts)){
-#     five.minute.price.xts <- getPairData(pair)
-#   }
-#   hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
-#   volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
-#   combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
-#   system.forecast.average = 10 # by design this should be 10
-#   subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
-#   return(subsystem.position)
-# }
+productionSubsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
+  if(is.null(five.minute.price.xts)){
+    five.minute.price.xts <- getPairData(pair)
+  }
+  hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
+  volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
+  combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
+  system.forecast.average = 10 # by design this should be 10
+  subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  
+  # subsystem.position <- subsystemPosition(ref.price=
+  #                                         , total.equity=
+  #                                         , volatility.target=
+  #                                         , exchange.rate=
+  #                                         , instrument.volatility=
+  #                                         , combined.instrument.forecast=combined.instrument.forecast)
+  return(subsystem.position)
+}
 
 subsystemPosition <- function(ref.price, total.equity
                               , volatility.target
