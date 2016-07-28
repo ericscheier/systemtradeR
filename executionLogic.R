@@ -16,13 +16,14 @@ cancelAllOrders <- function(account="margin"){
 
 tradesToMake <- function(){
   print("Determining trades to make")
-  optimal.portfolio <- calculateOptimalPortfolio()
-  current.portfolio <- calculateCurrentPortfolio()[names(optimal.portfolio)]
+  optimal.portfolio <- readRDS(file=paste0(getwd(), "/data/clean/optimal_portfolio.RDS"))
+  current.portfolio <- readRDS(file=paste0(getwd(), "/data/clean/current_portfolio.RDS"))[names(optimal.portfolio)]
   # print(paste0("Optimal Portfolio: ", optimal.portfolio))
   # print(paste0("Current Portfolio: ", current.portfolio))
   
   portfolio.difference <- optimal.portfolio - current.portfolio
   transactions <- portfolio.difference * (abs(portfolio.difference/current.portfolio) > config$minimum.position.change)
+  saveRDS(transactions, file=paste0(getwd(), "/data/clean/transactions_to_make.RDS"))
   return(transactions)
 }
 
@@ -51,7 +52,7 @@ transactPair <- function(pair, transaction.size){
 }
 
 makeTrades <- function(){
-  transactions <- as.list(tradesToMake())
+  transactions <- as.list(readRDS(file=paste0(getwd(), "/data/clean/transactions_to_make.RDS")))
   for (transaction in 1:length(transactions)){
     pair <- names(transactions[transaction])
     transact <- transactions[[transaction]]

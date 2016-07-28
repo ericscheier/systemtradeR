@@ -86,7 +86,7 @@ volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
   return(volatility.scalar)
 }
 
-subsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
+productionSubsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
   if(is.null(five.minute.price.xts)){
     five.minute.price.xts <- getPairData(pair)
   }
@@ -95,7 +95,54 @@ subsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
   combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
   system.forecast.average = 10 # by design this should be 10
   subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  
+  # subsystem.position <- subsystemPosition(ref.price=
+  #                                         , total.equity=
+  #                                         , volatility.target=
+  #                                         , exchange.rate=
+  #                                         , instrument.volatility=
+  #                                         , combined.instrument.forecast=combined.instrument.forecast)
   return(subsystem.position)
+}
+
+subsystemPosition <- function(ref.price, total.equity
+                              , volatility.target
+                              , exchange.rate
+                              , instrument.volatility
+                              , combined.instrument.forecast){
+  
+  block.value <- ref.price * .01
+  cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
+  instrument.currency.volatility <- block.value * instrument.volatility * 100
+  instrument.value.volatility <- instrument.currency.volatility * exchange.rate
+  volatility.scalar <- cash.volatility.target/instrument.value.volatility
+  system.forecast.average <- 10 # by design, but can make dynamic
+  subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
+  subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
+  return(subsystem.position)
+}
+
+emaVolatility <- function(price.xts){
+  ema.volatility <- EMA(sqrt(CalculateReturns(price.xts)^2), n=36*(60/5)) * sqrt(60/5)
+  colnames(ema.volatility) <- NULL
+  return(ema.volatility)
+}
+
+scaledForecast <- function(price.xts){
+  scaled.forecast <- xts(x=rep(10, times=length(index(price.xts))), order.by = index(price.xts))
+  colnames(scaled.forecast) <- NULL
+  return(scaled.forecast)
+}
+
+xtsIdentity <- function(price.xts, exchange.rate){
+  xts.identity <- exchange.rate[index(price.xts),]
+  colnames(xts.identity) <- NULL
+  return(xts.identity)
+}
+
+percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
+  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # config$transaction.fee, need to add without throwing error
 }
 
 maxPosition <- function(pair=NULL, account.value){
@@ -168,8 +215,8 @@ updateSmoothedWeights <- function(smoothed.instrument.weights, new.raw.weights, 
   saveRDS(smoothed.instrument.weights, paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS"))
 }
 
-smoothedInstrumentWeights <- function(raw.instrument.weights=readRDS(paste0(getwd(),"/data/clean/raw_instrument_weights.RDS"))){
-  ema.n <- 36
+smoothedInstrumentWeights <- function(ema.n=36){
+  raw.instrument.weights <- readRDS(paste0(getwd(),"/data/clean/raw_instrument_weights.RDS"))
   smoothed.instrument.weights <- na.omit(xts(x=apply(raw.instrument.weights, 2, EMA, n=ema.n)
                                      , order.by=index(raw.instrument.weights)))
   
