@@ -43,7 +43,7 @@ calculateVolatility <- function(pair=NULL, hour.price.xts=NULL){
   if(is.null(hour.price.xts)){
     hour.price.xts <- getHourlyPairData(pair)
   }
-  volatility.lookback <- config$volatility.lookback
+  volatility.lookback <- system.config$volatility.lookback
   
   # we want hourly vol looking back x hours
   percentage.change <- na.omit(tail(CalculateReturns(hour.price.xts), volatility.lookback)^2)
@@ -52,21 +52,21 @@ calculateVolatility <- function(pair=NULL, hour.price.xts=NULL){
 }
 
 cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
-  account.value=config$poloniex.margin.value
+  account.value=system.config$poloniex.margin.value
   # returns the cash volatility target in USDT
-  volatility.target <- config$volatility.target
+  volatility.target <- system.config$volatility.target
   cash.volatility.target <- account.value * volatility.target * exchange.rate
   return(cash.volatility.target)
 }
 
 instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL, hour.price.xts=NULL){
   if(is.null(hour.price.xts)){
-    block.size <- getExchangeRate(pair=pair)     # minimum.order.size <- config$minimum.order.size
+    block.size <- getExchangeRate(pair=pair)     # minimum.order.size <- system.config$minimum.order.size
   }
   else {
     block.size <- as.numeric(tail(hour.price.xts,1))
   }
-  volatility.lookback <- config$volatility.lookback
+  volatility.lookback <- system.config$volatility.lookback
   # hour.price.xts <- getHourlyPairData(pair)
   block.value <- block.size * .01 # change in price when block moves 1%, BTC/XRP
   price.volatility <- 100*as.numeric(tail(calculateVolatility(pair, hour.price.xts=hour.price.xts),1)) # ewma of 36 trading periods
@@ -142,17 +142,17 @@ xtsIdentity <- function(price.xts, exchange.rate){
 }
 
 percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
-  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # config$transaction.fee, need to add without throwing error
+  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
 }
 
 maxPosition <- function(pair=NULL, account.value){
-  original.account.value <- config$poloniex.margin.value
-  config$poloniex.margin.value <- account.value
+  original.account.value <- system.config$poloniex.margin.value
+  system.config$poloniex.margin.value <- account.value
   volatility.scalar <- volatilityScalar(pair=pair)
   instrument.weight <- as.numeric(tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)[,pair])
   instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
   max.position <- 1 * volatility.scalar * instrument.weight * instrument.diversification.multiplier
-  config$poloniex.margin.value <- original.account.value
+  system.config$poloniex.margin.value <- original.account.value
   price <- getExchangeRate(pair=pair)
   btc.max.position <- max.position * price
   return(btc.max.position)
@@ -161,19 +161,19 @@ maxPosition <- function(pair=NULL, account.value){
 minAccountValue <- function(){
   optFunc <- function(pair, X){
     max.position <- maxPosition(pair=pair, account.value=X)
-    return(abs(max.position - 4*config$minimum.order.size))
+    return(abs(max.position - 4*system.config$minimum.order.size))
   }
   optimFunc <- function(pair){
     return(optimize(optFunc, pair=pair, interval=c(0,6), tol=0.1)$minimum)
   }
-  min.account.values <- sapply(config$portfolio.pairs, optimFunc)
+  min.account.values <- sapply(system.config$portfolio.pairs, optimFunc)
   min.account.value <- max(min.account.values)
   return(min.account.value)
 }
 
 rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS")))
                                                         , all_time=TRUE){
-  volatility.target = config$volatility.target
+  volatility.target = system.config$volatility.target
   instruments = colnames(subsystem.returns)
   df.con = portfolio.spec(assets = instruments)
   df.con = add.constraint(portfolio = df.con, type = "long_only")

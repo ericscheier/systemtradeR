@@ -44,11 +44,11 @@ hoursFunction <- function(){
   # update pricing
   print(refreshPricing())
   # cancel open trades
-  if(config$live){print(cancelAllOrders())}
+  if(system.config$live){print(cancelAllOrders())}
   # update portfolio & make trades
   refreshPortfolio()
   print(tradesToMake())
-  if(config$live){print(makeTrades())}
+  if(system.config$live){print(makeTrades())}
 }
 
 daysFunction <- function(){

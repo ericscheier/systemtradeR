@@ -1,13 +1,13 @@
 # recordAccountValue <- function()
 # {
-#   config$poloniex.margin.value <- accountValue()
-#   new.data <- data.frame(date=Sys.time(), account.value=config$poloniex.margin.value)
+#   system.config$poloniex.margin.value <- accountValue()
+#   new.data <- data.frame(date=Sys.time(), account.value=system.config$poloniex.margin.value)
 #   
 #   file.name <- paste0(getwd(), "/data/clean/account_value.RDS")
 #   old.data <- readRDS(file=file.name)
 #   combo.data <- rbind(old.data, new.data)
 #   saveRDS(combo.data, file=file.name)
-#   return(config$poloniex.margin.value)
+#   return(system.config$poloniex.margin.value)
 # }
 
 appendNewData <- function(file.name=NULL, new.data=NULL){
@@ -20,12 +20,12 @@ appendNewData <- function(file.name=NULL, new.data=NULL){
 }
 
 recordAccountValue <- function(){
-  config$poloniex.margin.value <- accountValue()
+  system.config$poloniex.margin.value <- accountValue()
   Sys.sleep(.15)
   usdt.exchange.rate <- getMid(ticker=returnTicker(), pair="USDT_BTC")
   current.time <- Sys.time()
-  usdt.value <- config$poloniex.margin.value * usdt.exchange.rate
-  new.data <- data.frame(date=current.time, usdt_value=usdt.value, btc_value=config$poloniex.margin.value)
+  usdt.value <- system.config$poloniex.margin.value * usdt.exchange.rate
+  new.data <- data.frame(date=current.time, usdt_value=usdt.value, btc_value=system.config$poloniex.margin.value)
   
   appendNewData(file.name="margin_account_value", new.data=new.data)
   # print(new.data)
@@ -38,7 +38,7 @@ timeDifferences <- function(last.updated, current.time){
 
 volatilityTargetChecking <- function(){
   account.value <- readRDS(paste0(getwd(), "/data/clean/margin_account_value.RDS"))
-  vol.target <- round(100*config$volatility.target,2)
+  vol.target <- round(100*system.config$volatility.target,2)
   
   value.xts <- as.xts(account.value[c("usdt_value", "btc_value")], order.by=account.value[,"date"])
   hourly.value.xts <- to.hourly(value.xts, OHLC=FALSE, indexAt="endof")

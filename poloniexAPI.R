@@ -3,8 +3,8 @@ library(httr)
 library(digest)
 
 api.poloniex <- function(command, args = list()) {
-  key <- config$poloniex.key
-  secret <- config$poloniex.secret
+  key <- system.config$poloniex.key
+  secret <- system.config$poloniex.secret
   
   req <- c(list(
     command = command,

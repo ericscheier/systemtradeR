@@ -3,7 +3,7 @@
 
 # parallelize this
 refreshPricing <- function(){
-  pairs <- c(config$portfolio.pairs, "USDT_BTC")
+  pairs <- c(system.config$portfolio.pairs, "USDT_BTC")
   sapply(pairs, updatePricing)
   dataCleaning(pairs=pairs)
   return()
@@ -54,7 +54,7 @@ updatePricing <- function(pair)
   return(complete)
 }
 
-dataCleaning <- function(pairs=config$portfolio.pairs){
+dataCleaning <- function(pairs=system.config$portfolio.pairs){
   for(pair in pairs){
     file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
     # incompatible.name <- paste0(getwd(), "/data/raw/",pair,"_incompatible.csv")
