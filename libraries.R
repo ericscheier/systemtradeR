@@ -22,12 +22,6 @@ library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org
 
 library.loaded <- unlist(lapply(libraries, require, character.only = TRUE))
 
-massInstall <- function(x, library.repos){
-  install.packages(x, repos=library.repos)
-  suppressMessages(library (x))
-}
-
-
 if(any(!library.loaded)){lapply(libraries[!library.loaded], massInstall, library.repos=library.repos)}
 
 
