@@ -183,6 +183,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
                                                                     ,exchange.rate=quote(Cl(get(fx.rate, envir=.GlobalEnv)))), label="exchange.rate")
   
   mktdata <- applyIndicators(strategy.name, mktdata=get(trade.target, envir=.GlobalEnv))
+  print(ls())
   
   
   ## Signals
