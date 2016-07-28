@@ -31,7 +31,9 @@ system.config$poloniex.secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541
 if(is.null(system.config$poloniex.margin.value)){try(system.config$poloniex.margin.value <- accountValue())}
 
 base <- "BTC"
-exchange.rate.prices <- read.csv(paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv"), stringsAsFactors = FALSE) # instrument currency / account value currency (USD)
+exchange.rate.prices.path <- paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv")
+if(!file.exists(exchange.rate.prices.path)){refreshPricing()}
+exchange.rate.prices <- read.csv(exchange.rate.prices.path, stringsAsFactors = FALSE) # instrument currency / account value currency (USD)
 
 system.config$five.exchange.rate <- xts(x=exchange.rate.prices[,"close"]
                           , order.by = strptime(exchange.rate.prices[,"date"], format="%Y-%m-%d %H:%M:%S")
