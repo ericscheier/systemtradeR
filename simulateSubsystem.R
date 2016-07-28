@@ -22,6 +22,72 @@ simulateSubsystems <- function(lookback.hours=100*24){
   print(paste0("Finished simulating subsystem returns in ",execution.time," hours."))
 }
 
+systematicRebalance <- function (...,
+                                 ref.price.col=NULL,
+                                 exchange.rate.col=NULL,
+                                 instrument.volatility.col=NULL,
+                                 combined.instrument.forecast.col=NULL,
+                                 portfolio,
+                                 symbol,
+                                 timestamp)
+{
+  mktdata.row <- mktdata[timestamp,]
+  ref.price <- mktdata.row[,ref.price.col]
+  exchange.rate <- mktdata.row[,exchange.rate.col]
+  instrument.volatility <- mktdata.row[,instrument.volatility.col]
+  combined.instrument.forecast <- mktdata.row[,combined.instrument.forecast.col]
+  # print(timestamp)
+  dummy.port <- updatePortf(Portfolio=portfolio,
+                            Dates=paste('::',timestamp,sep=''))
+  trading.pl <- sum(.getPortfolio(portfolio)$summary$Net.Trading.PL)
+  # updateAcct(account.name)
+  # print(trading.pl)
+  total.equity <- initEq + trading.pl * exchange.rate
+  # print(paste(timestamp, total.equity, sep=": "))
+  # print(paste(timestamp, trading.pl * exchange.rate, sep=": "))
+  # tradeSize <- total.equity * trade.percent
+  # if(length(refprice)>1) refprice <- refprice[,1]
+  # if(!is.null(refprice)) tradeSize <- tradeSize/refprice
+  # if(!is.null(digits)) tradeSize<-round(tradeSize,digits)
+  
+  subsystem.position <- subsystemPosition(ref.price, total.equity, volatility.target, exchange.rate, instrument.volatility, combined.instrument.forecast)
+  
+  # position.calcs <- data.frame(block.value=as.numeric(block.value),
+  #                              instrument.volatility=as.numeric(instrument.volatility),
+  #                              exchange.rate=as.numeric(exchange.rate),
+  #                              cash.volatility.target=as.numeric(cash.volatility.target),
+  #                              instrument.currency.volatility=as.numeric(instrument.currency.volatility),
+  #                              instrument.value.volatility=as.numeric(instrument.value.volatility),
+  #                              volatility.scalar=as.numeric(volatility.scalar),
+  #                              combined.instrument.forecast=as.numeric(combined.instrument.forecast),
+  #                              system.forecast.average=as.numeric(system.forecast.average),
+  #                              subsystem.position=as.numeric(subsystem.position))
+  # print(position.calcs)
+  # print(paste(timestamp, subsystem.position * ref.price, sep=": "))
+  
+  current.position <- getPosQty(portfolio, symbol, timestamp)
+  # print(paste(timestamp, current.position, sep=": "))
+  
+  transaction.size <- subsystem.position - current.position
+  transaction.size <- transaction.size * (abs(ref.price * transaction.size) > minimum.order.size)
+  transaction.size <- transaction.size * (abs(transaction.size/current.position) > minimum.position.change)
+  transaction.size <- ifelse(is.na(transaction.size), 0, transaction.size)
+  # print(paste0(timestamp,": wants ", round(subsystem.position,3),
+  #              ", has ", round(current.position,3),
+  #              ", transacting ", round(transaction.size,3)))
+  
+  if(transaction.size!=0){
+    transaction.side <- ifelse(transaction.size>0,"long", "short")
+    prefer.side <- ifelse(transaction.side=="long","high","low")
+    
+    addOrder(portfolio=portfolio, symbol=symbol, timestamp=timestamp,
+             qty=transaction.size, price=ref.price, ordertype="market", side=transaction.side,
+             threshold = NULL, orderset = "", status = "open",
+             statustimestamp = "", prefer = prefer.side, delay = 60*5, tmult = FALSE,
+             replace = TRUE, return = FALSE, ..., TxnFees = "percentFee",
+             time.in.force = "GTC")
+  }
+
 simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   if(!is.null(dev.list())){dev.off(which=dev.list())}
   .pardefault <- par(no.readonly = T)
@@ -171,71 +237,6 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   #            +          type='exit',
   #            +          label='exit')
   
-  systematicRebalance <- function (...,
-                                   ref.price.col=NULL,
-                                   exchange.rate.col=NULL,
-                                   instrument.volatility.col=NULL,
-                                   combined.instrument.forecast.col=NULL,
-                                   portfolio,
-                                   symbol,
-                                   timestamp)
-  {
-    mktdata.row <- mktdata[timestamp,]
-    ref.price <- mktdata.row[,ref.price.col]
-    exchange.rate <- mktdata.row[,exchange.rate.col]
-    instrument.volatility <- mktdata.row[,instrument.volatility.col]
-    combined.instrument.forecast <- mktdata.row[,combined.instrument.forecast.col]
-    # print(timestamp)
-    dummy.port <- updatePortf(Portfolio=portfolio,
-                              Dates=paste('::',timestamp,sep=''))
-    trading.pl <- sum(.getPortfolio(portfolio)$summary$Net.Trading.PL)
-    # updateAcct(account.name)
-    # print(trading.pl)
-    total.equity <- initEq + trading.pl * exchange.rate
-    # print(paste(timestamp, total.equity, sep=": "))
-    # print(paste(timestamp, trading.pl * exchange.rate, sep=": "))
-    # tradeSize <- total.equity * trade.percent
-    # if(length(refprice)>1) refprice <- refprice[,1]
-    # if(!is.null(refprice)) tradeSize <- tradeSize/refprice
-    # if(!is.null(digits)) tradeSize<-round(tradeSize,digits)
-    
-    subsystem.position <- subsystemPosition(ref.price, total.equity, volatility.target, exchange.rate, instrument.volatility, combined.instrument.forecast)
-    
-    # position.calcs <- data.frame(block.value=as.numeric(block.value),
-    #                              instrument.volatility=as.numeric(instrument.volatility),
-    #                              exchange.rate=as.numeric(exchange.rate),
-    #                              cash.volatility.target=as.numeric(cash.volatility.target),
-    #                              instrument.currency.volatility=as.numeric(instrument.currency.volatility),
-    #                              instrument.value.volatility=as.numeric(instrument.value.volatility),
-    #                              volatility.scalar=as.numeric(volatility.scalar),
-    #                              combined.instrument.forecast=as.numeric(combined.instrument.forecast),
-    #                              system.forecast.average=as.numeric(system.forecast.average),
-    #                              subsystem.position=as.numeric(subsystem.position))
-    # print(position.calcs)
-    # print(paste(timestamp, subsystem.position * ref.price, sep=": "))
-    
-    current.position <- getPosQty(portfolio, symbol, timestamp)
-    # print(paste(timestamp, current.position, sep=": "))
-    
-    transaction.size <- subsystem.position - current.position
-    transaction.size <- transaction.size * (abs(ref.price * transaction.size) > minimum.order.size)
-    transaction.size <- transaction.size * (abs(transaction.size/current.position) > minimum.position.change)
-    transaction.size <- ifelse(is.na(transaction.size), 0, transaction.size)
-    # print(paste0(timestamp,": wants ", round(subsystem.position,3),
-    #              ", has ", round(current.position,3),
-    #              ", transacting ", round(transaction.size,3)))
-    
-    if(transaction.size!=0){
-      transaction.side <- ifelse(transaction.size>0,"long", "short")
-      prefer.side <- ifelse(transaction.side=="long","high","low")
-      
-      addOrder(portfolio=portfolio, symbol=symbol, timestamp=timestamp,
-               qty=transaction.size, price=ref.price, ordertype="market", side=transaction.side,
-               threshold = NULL, orderset = "", status = "open",
-               statustimestamp = "", prefer = prefer.side, delay = 60*5, tmult = FALSE,
-               replace = TRUE, return = FALSE, ..., TxnFees = "percentFee",
-               time.in.force = "GTC")
-    }
     
     
     
