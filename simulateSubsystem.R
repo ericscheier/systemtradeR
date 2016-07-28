@@ -133,8 +133,8 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
  
   trade.target <- paste0(asset,base)
   fx.rate <- paste0(base,"USD") #paste0("USD",base)
-  assign(trade.target, trade.target.data[date.subset], envir=.GlobalEnv) # getHourlyPairData
-  assign(fx.rate, fx.rate.data[date.subset], envir=.GlobalEnv) #getHourlyPairData
+  assign(trade.target, trade.target.data[date.subset]) #, envir=.GlobalEnv) # getHourlyPairData
+  assign(fx.rate, fx.rate.data[date.subset]) #, envir=.GlobalEnv) #getHourlyPairData
   # combo.prices <- na.omit(merge(BTC_ETH, BTCUSD))
   # BTC_ETH <- BTC_ETH[index(combo.prices)]
   # BTCUSD <- BTCUSD[index(combo.prices)]
