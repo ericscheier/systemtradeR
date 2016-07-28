@@ -180,10 +180,10 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   add.indicator(strategy.name, name= "emaVolatility", arguments = list(price.xts=quote(Cl(mktdata))), label='instrument.volatility')
   add.indicator(strategy.name, name="scaledForecast", arguments = list(price.xts=quote(Cl(mktdata))), label='combined.instrument.forecast')
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
-                                                                    ,exchange.rate=quote(Cl(get(fx.rate, envir=.GlobalEnv)))), label="exchange.rate")
+                                                                    ,exchange.rate=quote(Cl(get(fx.rate, envir=.instrument)))), label="exchange.rate")
   
-  assign("mktdata", applyIndicators(strategy.name, mktdata=get(trade.target, envir=.GlobalEnv)), envir=.GlobalEnv)
-  # print(str(mktdata))
+  assign("mktdata", applyIndicators(strategy.name, mktdata=get(trade.target, envir=.instrument)), envir=.GlobalEnv)
+  print(str(get("mktdata", envir=.GlobalEnv)))
   
   
   ## Signals
