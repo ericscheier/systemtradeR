@@ -1,18 +1,29 @@
-library(xts)
-library(lubridate)
-library(TTR)
-library(PerformanceAnalytics)
-library(PortfolioAnalytics)
-library(DEoptim)
-library(doParallel)
-library(httr)
-library(plyr)
-library(digest)
-library(RCurl)
-library(stringr)
-library(slackr)
-library(httr)
-# library(quantstrat) # install.packages("quantstrat", repos="http://R-Forge.R-project.org")
-# library(IKTrading)  # install_github("IlyaKipnis/IKTrading") needs devtools
-# library(lattice)
-# library(doParallel)
+libraries <- c("xts",
+               "lubridate",
+               "TTR",
+               "PerformanceAnalytics",
+               "PortfolioAnalytics",
+               "DEoptim",
+               "doParallel",
+               "httr",
+               "plyr",
+               "digest",
+               "RCurl",
+               "stringr",
+               "slackr",
+               "httr",
+               "quantstrat",
+               # "IKTrading",  
+               "lattice",
+               "doParallel"
+               )
+
+library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
+
+library.loaded <- unlist(lapply(libraries, require, character.only = TRUE))
+
+if(any(!library.loaded)){lapply(libraries[!library.loaded], massInstall, library.repos=library.repos)}
+
+
+# install.packages("quantstrat", repos="http://R-Forge.R-project.org"",
+# install_github("IlyaKipnis/IKTrading"", needs devtools
