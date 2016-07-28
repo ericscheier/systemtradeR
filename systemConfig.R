@@ -2,6 +2,8 @@
 
 source("sources.R")
 
+
+
 Sys.setenv(TZ = "UTC")
 set_config(timeout(seconds = 30))
 
@@ -42,6 +44,9 @@ system.config$first.exchange.rate <- index(head(system.config$five.exchange.rate
 system.config$last.exchange.rate <- index(tail(system.config$five.exchange.rate,1)) - minutes(10)
 system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.rate[system.config$last.exchange.rate])
 
+if (!exists('.instrument')) .instrument <- new.env()
+if (!exists('.blotter')) .blotter <- new.env()
+if (!exists('.strategy')) .strategy <- new.env()
 
 if(system.config$live){slackr_bot(systemMaster())}
 if(!system.config$live){systemMaster()}
