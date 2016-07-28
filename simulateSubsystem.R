@@ -182,8 +182,8 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
                                                                     ,exchange.rate=quote(Cl(get(fx.rate, envir=.GlobalEnv)))), label="exchange.rate")
   
-  mktdata <- applyIndicators(strategy.name, mktdata=get(trade.target, envir=.GlobalEnv))
-  print(ls(all.names=TRUE))
+  assign("mktdata", applyIndicators(strategy.name, mktdata=get(trade.target, envir=.GlobalEnv)), envir=.GlobalEnv)
+  # print(str(mktdata))
   
   
   ## Signals
@@ -313,7 +313,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   ## Run it
   applyStrategy.rebalancing(strategy.name,
                             portfolios=portfolio.name, debug=T,
-                            mktdata=mktdata,
+                            mktdata=get("mktdata", envir=.GlobalEnv),
                             parameters=list(),
                             verbose=TRUE,
                             envir=.instrument)
