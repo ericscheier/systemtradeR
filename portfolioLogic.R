@@ -17,7 +17,7 @@ accountValue <- function(){
 }
 
 
-calculateSubsystemPositions <- function(pairs=config$portfolio.pairs){
+calculateSubsystemPositions <- function(pairs=system.config$portfolio.pairs){
   # really need to speed this function up
   recordAccountValue()
   subsystem.positions <- list()
