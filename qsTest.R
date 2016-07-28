@@ -5,3 +5,5 @@ qsTest <- function(){
   source("systemConfig.R")
   simulateSubsystem(pair="BTC_CLAM")
 }
+
+qsTest()
