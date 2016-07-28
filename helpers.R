@@ -1,6 +1,9 @@
 massInstall <- function(x, library.repos){
+  print(paste0("Needing to install package: ",x))
   install.packages(x, repos=library.repos)
-  suppressMessages(library (x))
+  # suppressMessages(
+    library (eval(x), character.only = TRUE)
+    # )
 }
 
 changeFiles <- function(file){
