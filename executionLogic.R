@@ -18,11 +18,13 @@ tradesToMake <- function(){
   print("Determining trades to make")
   optimal.portfolio <- readRDS(file=paste0(getwd(), "/data/clean/optimal_portfolio.RDS"))
   current.portfolio <- readRDS(file=paste0(getwd(), "/data/clean/current_portfolio.RDS"))[names(optimal.portfolio)]
-  # print(paste0("Optimal Portfolio: ", optimal.portfolio))
-  # print(paste0("Current Portfolio: ", current.portfolio))
+  print("Optimal Portfolio: ")
+  print(optimal.portfolio)
+  print("Current Portfolio: ")
+  print(current.portfolio)
   
   portfolio.difference <- optimal.portfolio - current.portfolio
-  transactions <- portfolio.difference * (abs(portfolio.difference/current.portfolio) > system.config$minimum.position.change)
+  transactions <- portfolio.difference * (abs(portfolio.difference) >= abs(system.config$minimum.position.change * current.portfolio))
   saveRDS(transactions, file=paste0(getwd(), "/data/clean/transactions_to_make.RDS"))
   return(transactions)
 }
