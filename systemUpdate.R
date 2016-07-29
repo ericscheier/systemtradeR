@@ -1,7 +1,7 @@
 # x <- 5
 # source("systemConfig.R")
 
-systemMaster <- function(){
+systemUpdate <- function(){
   mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
   update.states <- data.frame(func.label=c("quarters","months","weeks","days","hours","minutes"),
                               unit=c( "months","months","weeks","days","hours","minutes"),

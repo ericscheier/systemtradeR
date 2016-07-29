@@ -6,3 +6,4 @@ default.cfg
 *.RDS
 .Rhistory
 system_config.R
+*.pdf
