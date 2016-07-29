@@ -183,7 +183,7 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
                                                                     ,exchange.rate=quote(Cl(get(fx.rate, envir=.instrument)))), label="exchange.rate")
   
   assign("mktdata", applyIndicators(strategy.name, mktdata=get(trade.target, envir=.instrument)), envir=.GlobalEnv)
-  print(str(get("mktdata", envir=.GlobalEnv)))
+  # print(str(get("mktdata", envir=.GlobalEnv)))
   
   
   ## Signals
@@ -326,7 +326,8 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   t(tradeStats(portfolio.name))
   getTxns(portfolio.name, Symbol = trade.target)
   perTradeStats(portfolio.name, trade.target)
-  
+  pdf.name <- paste0("figures/final/",pair,"_SubsystemSimulation.pdf")
+  pdf(pdf.name)
   chart.Posn(Portfolio=portfolio.name,Symbol=symbols, type = "line", log.scale = F)
   par(.pardefault)
   p <- getPortfolio(portfolio.name)
@@ -341,7 +342,9 @@ simulateSubsystem <- function(pair=NULL, lookback.hours=100*24){
   
   charts.PerformanceSummary(ret, colorset = bluefocus,
                             main=paste0(trade.target," Subsystem Performance"))
+  dev.off()
   par(.pardefault)
+  try(slackr_upload(pdf.name, channels = "reports"))
   # plot(add_Vo())
   # plot(add_MACD(fast=.nFast, slow=.nSlow, signal=.nSig,maType="EMA"))  # nFast = 60, nSlow = 180, nSig = 40, maType = 'EMA'
   
