@@ -1,7 +1,8 @@
 # x <- 5
 # source("systemConfig.R")
 
-systemUpdate <- function(){
+systemUpdate <- function(is.live=system.config$live){
+  system.config$live <- is.live
   mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
   update.states <- data.frame(func.label=c("quarters","months","weeks","days","hours","minutes"),
                               unit=c( "months","months","weeks","days","hours","minutes"),
@@ -22,8 +23,10 @@ systemUpdate <- function(){
       update.states[i, "locked"] <- TRUE
       saveRDS(update.states, "update_states.RDS")
       intervalFunc <- paste0(update.states[i, "func.label"], "Function")
-      print(paste0("Running ",intervalFunc))
+      running.alert <- paste0("Running ",intervalFunc)
+      actionNotify(running.alert)
       func.successful <- try(do.call(intervalFunc, args=list()))
+      actionNotify(func.successful)
       if(!inherits(func.successful, "try-error")){update.states[i, "last.updated"] <- current.time}
       update.states[i, "locked"] <- FALSE
       saveRDS(update.states, "update_states.RDS")
@@ -31,24 +34,33 @@ systemUpdate <- function(){
   }
 }
 
-testFunction <- function(){print("Test Successful")}
+testFunction <- function(){return("Test Successful")}
 
 minutesFunction <- function(){
   # update & note account value
-  print(recordAccountValue())
+  account.value <- recordAccountValue()
   # check in on open orders and adjust accordingly
-  print(ldply(returnOpenOrders(), data.frame))
+  open.orders <- ldply(returnOpenOrders(), data.frame)
+  return(list(account.value,
+              open.orders))
 }
 
 hoursFunction <- function(){
   # update pricing
-  print(refreshPricing())
+  refreshed.pricing <- refreshPricing()
   # cancel open trades
-  if(system.config$live){print(cancelAllOrders())}
+  canceling.orders <- NULL
+  if(system.config$live){canceling.orders <- cancelAllOrders()}
   # update portfolio & make trades
-  refreshPortfolio()
-  print(tradesToMake())
-  if(system.config$live){print(makeTrades())}
+  refreshed.portfolio <- refreshPortfolio()
+  trades.to.make <- tradesToMake()
+  trades.made <- NULL
+  if(system.config$live){trades.made <- makeTrades()}
+  return(list(refreshed.pricing,
+              canceling.orders,
+              refreshed.portfolio,
+              trades.to.make,
+              trades.made))
 }
 
 daysFunction <- function(){
@@ -56,25 +68,32 @@ daysFunction <- function(){
   # reporting
   # recalculate forecast scalars?
   # recalculate forecast weights?
-  print("Nothing in this function yet")
+  return.temp <- "Nothing in this function yet"
+  return(list(return.temp))
 }
 
 weeksFunction <- function(){
   # refreshPairs()
-  print(refreshPricing())
-  simulateSubsystems()
-  rawInstrumentWeights()
-  smoothedInstrumentWeights()
+  refreshed.pricing <- refreshPricing()
+  simulated.subsystems <- simulateSubsystems()
+  raw.instrument.weights <- rawInstrumentWeights()
+  smoothed.instrument.weights <- smoothedInstrumentWeights()
   # subsystem.returns <- readRDS(paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
   # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
   # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
+  return(list(refreshed.pricing,
+              simulated.subsystems,
+              raw.instrument.weights,
+              smoothed.instrument.weights))
 }
 
 monthsFunction <- function(){
-  print("Nothing in this function yet")
+  return.temp <- "Nothing in this function yet"
+  return(list(return.temp))
 }
 
 quartersFunction <- function(){
   # distributions
-  print("Nothing in this function yet")
+  return.temp <- "Nothing in this function yet"
+  return(list(return.temp))
 }

@@ -6,6 +6,14 @@ massInstall <- function(x, library.repos){
     # )
 }
 
+actionNotify <- function(notification.content){
+  if(system.config$live){
+    print(notification.content)
+    slackr_bot(notification.content)
+    }
+  if(!system.config$live){print(notification.content)}
+}
+
 changeFiles <- function(file){
   file.name <- file.path(path, file)
   existing.data <- read.csv(file.name, stringsAsFactors = FALSE, row.names="X")
