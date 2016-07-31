@@ -49,8 +49,8 @@ calculateCurrentPortfolio <- function(){
 }
 
 refreshPortfolio <- function(){
-  calculateOptimalPortfolio()
-  calculateCurrentPortfolio()
+  optimal.portfolio <- calculateOptimalPortfolio()
+  current.portfolio <- calculateCurrentPortfolio()
   return(list("optimal.portfolio"=optimal.portfolio,
               "current.portfolio"=current.portfolio))
 }
