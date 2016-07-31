@@ -62,7 +62,7 @@ updatePricing <- function(pair)
     print(paste0("new data and old data incompatible. Checks: ",checks))
   }
   Sys.sleep(.17)
-  return(complete)
+  return(paste0(pair," successfully updated"))
 }
 
 dataCleaning <- function(pairs=system.config$portfolio.pairs){
@@ -72,17 +72,19 @@ dataCleaning <- function(pairs=system.config$portfolio.pairs){
     existing.data <- read.csv(file.name, stringsAsFactors = FALSE)
     # incompatible.data <- read.csv(incompatible.name, stringsAsFactors = FALSE)
     replace <- FALSE
+    actions <- c(NULL)
     if(sum(is.na(existing.data[,"volume"])) >= 1){
       
       existing.data <- na.omit(existing.data)
       replace <- TRUE
-      print(paste0("Going to remove NAs for pair: ",pair))
+      actions <- c(actions, paste0("Going to remove NAs for pair: ",pair))
     }
     if(nrow(existing.data[duplicated(existing.data),]) >= 1){
       replace <- TRUE
       existing.data <- unique(existing.data)
-      print(paste0("Going to remove duplicate rows for pair:", pair))
+      actions <- c(actions, paste0("Going to remove duplicate rows for pair:", pair))
     }
     if(replace){write.csv(existing.data, file.name, row.names=FALSE)}
   }
+  return(actions)
 }
