@@ -37,7 +37,7 @@ calculateOptimalPortfolio <- function(){
   
   optimal.portfolio <- subsystem.positions * instrument.weights * instrument.diversification.multiplier
   saveRDS(optimal.portfolio, file=paste0(getwd(), "/data/clean/optimal_portfolio.RDS"))
-  # return(portfolio)
+  return(optimal.portfolio)
 }
 
 calculateCurrentPortfolio <- function(){
@@ -45,12 +45,14 @@ calculateCurrentPortfolio <- function(){
   balances <- getMarginPosition(currency.pair="all")
   current.portfolio <- data.frame(lapply(balances, function(x) as.numeric(x$amount)), stringsAsFactors = FALSE)
   saveRDS(current.portfolio, file=paste0(getwd(), "/data/clean/current_portfolio.RDS"))
-  # return(current.portfolio)
+  return(current.portfolio)
 }
 
 refreshPortfolio <- function(){
   calculateOptimalPortfolio()
   calculateCurrentPortfolio()
+  return(list("optimal.portfolio"=optimal.portfolio,
+              "current.portfolio"=current.portfolio))
 }
 
 filterPairs <- function(){
