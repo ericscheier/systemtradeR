@@ -124,6 +124,7 @@ subsystemPosition <- function(ref.price, total.equity
 }
 
 emaVolatility <- function(price.xts){
+  # expects 5-min close of price data
   ema.volatility <- EMA(sqrt(CalculateReturns(price.xts)^2), n=36*(60/5)) * sqrt(60/5)
   colnames(ema.volatility) <- NULL
   return(ema.volatility)
@@ -143,32 +144,6 @@ xtsIdentity <- function(price.xts, exchange.rate){
 
 percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
   return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
-}
-
-maxPosition <- function(pair=NULL, account.value){
-  original.account.value <- system.config$poloniex.margin.value
-  system.config$poloniex.margin.value <- account.value
-  volatility.scalar <- volatilityScalar(pair=pair)
-  instrument.weight <- as.numeric(tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)[,pair])
-  instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
-  max.position <- 1 * volatility.scalar * instrument.weight * instrument.diversification.multiplier
-  system.config$poloniex.margin.value <- original.account.value
-  price <- getExchangeRate(pair=pair)
-  btc.max.position <- max.position * price
-  return(btc.max.position)
-}
-
-minAccountValue <- function(){
-  optFunc <- function(pair, X){
-    max.position <- maxPosition(pair=pair, account.value=X)
-    return(abs(max.position - 4*system.config$minimum.order.size))
-  }
-  optimFunc <- function(pair){
-    return(optimize(optFunc, pair=pair, interval=c(0,6), tol=0.1)$minimum)
-  }
-  min.account.values <- sapply(system.config$portfolio.pairs, optimFunc)
-  min.account.value <- max(min.account.values)
-  return(min.account.value)
 }
 
 rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS")))
