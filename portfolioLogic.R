@@ -19,29 +19,33 @@ accountValue <- function(){
 
 calculateSubsystemPositions <- function(pairs=system.config$portfolio.pairs){
   # really need to speed this function up
-  recordAccountValue()
-  subsystem.positions <- list()
-  for(pair in pairs){
-    subsystem.positions[[pair]] <- productionSubsystemPosition(pair=pair)
-  }
-  subsystem.positions <- data.frame(subsystem.positions)
+  # recordAccountValue()
+  portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
+  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemPosition)
   # want to save these to an RDS every 5 minutes when running live
-  return(subsystem.positions)
+  return(portfolio)
 }
 
 calculateOptimalPortfolio <- function(){
   print("Calculating the optimal portfolio")
-  subsystem.positions <- calculateSubsystemPositions()
-  instrument.weights <- as.data.frame(tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1))[names(subsystem.positions)]
+  portfolio <- calculateSubsystemPositions()
+  iw <- tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)
+  instrument.weights <- data.frame(asset=portfolio$asset, instrument.weight=t(iw)[portfolio$asset,], row.names = NULL)
   instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
+  portfolio <- merge(portfolio, instrument.weights)
   
-  optimal.portfolio <- subsystem.positions * instrument.weights * instrument.diversification.multiplier
-  saveRDS(optimal.portfolio, file=paste0(getwd(), "/data/clean/optimal_portfolio.RDS"))
-  return(optimal.portfolio)
+  portfolio$optimal.position <- with(portfolio, instrument.weight * subsystem.position * instrument.diversification.multiplier)
+  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  
+  investment.universe$optimal.position[match(portfolio$asset, investment.universe$asset)] <- portfolio$optimal.position
+  investment.universe$optimal.position[is.na(match(investment.universe$asset, portfolio$asset))] <- 0
+  saveRDS(investment.universe, file="data/clean/investment_universe.RDS")
+  return(investment.universe)
 }
 
 calculateCurrentPortfolio <- function(){
   print("Calculating the current portfolio")
+  print("calculateCurrentPortfolio needs to be changed to update investment.universe as per optimal portfolio method")
   balances <- getMarginPosition(currency.pair="all")
   current.portfolio <- data.frame(lapply(balances, function(x) as.numeric(x$amount)), stringsAsFactors = FALSE)
   saveRDS(current.portfolio, file=paste0(getwd(), "/data/clean/current_portfolio.RDS"))
@@ -51,38 +55,93 @@ calculateCurrentPortfolio <- function(){
 refreshPortfolio <- function(){
   optimal.portfolio <- calculateOptimalPortfolio()
   current.portfolio <- calculateCurrentPortfolio()
-  return(list("optimal.portfolio"=optimal.portfolio,
-              "current.portfolio"=current.portfolio))
+  
+  return(investment.universe[investment.universe$passes.filter])
+}
+
+# maxPosition <- function(pair=NULL, account.value){
+#   original.account.value <- system.config$poloniex.margin.value
+#   system.config$poloniex.margin.value <- account.value
+#   volatility.scalar <- volatilityScalar(pair=pair)
+#   instrument.weight <- as.numeric(tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)[,pair])
+#   instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
+#   max.position <- 1 * volatility.scalar * instrument.weight * instrument.diversification.multiplier
+#   system.config$poloniex.margin.value <- original.account.value
+#   price <- getExchangeRate(pair=pair)
+#   btc.max.position <- max.position * price
+#   return(btc.max.position)
+# }
+# 
+# minAccountValue <- function(){
+#   optFunc <- function(pair, X){
+#     max.position <- maxPosition(pair=pair, account.value=X)
+#     return(abs(max.position - 4*system.config$minimum.order.size))
+#   }
+#   optimFunc <- function(pair){
+#     return(optimize(optFunc, pair=pair, interval=c(0,6), tol=0.1)$minimum)
+#   }
+#   min.account.values <- sapply(system.config$portfolio.pairs, optimFunc)
+#   min.account.value <- max(min.account.values)
+#   return(min.account.value)
+# }
+
+assetFilterRules <- function(investment.universe.row){
+  asset <- investment.universe.row["asset"]
+  print(investment.universe.row)
+  if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
+  print(investment.universe.row["is.restricted"])
+  if(trimws(investment.universe.row["is.restricted"])){return(FALSE)}
+  
+  asset.data <- getPairData(pair=asset, ohlc = TRUE, volume = TRUE)
+  asset.volatility <- as.numeric(tail(emaVolatility(Cl(asset.data)),1))
+  asset.volume <- sum(as.numeric(tail(asset.data$volume, 24*(60/5))))
+  if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
+  
+  print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
+  
+  rule1 <- asset.volatility >= system.config$volatility.benchmark
+  rule2 <- asset.volume >= system.config$volume.benchmark
+  rules <- c(rule1, rule2)
+  
+  print(rules)
+  
+  return(all(rules))
 }
 
 filterPairs <- function(){
   # update universe of pairs I am interested in
   
   # right now only want BTC pairs with leverage available
-  bases <- c("BTC")
+  investment.universe <- readRDS("data/clean/investment_universe.RDS")
   
-  # volatility should be higher than benchmark
-  volatility.benchmark <- 0.001
-  volume.benchmark <- 100 #BTC/24 hours
-  
-  # if account size isn't big enough to support maximum position, exclude it
-  
-  portfolio.universe <- c("BTC_BTS", "BTC_CLAM", "BTC_DASH", "BTC_DOGE", "BTC_ETH", "BTC_FCT"
-                          , "BTC_LTC", "BTC_MAID", "BTC_STR", "BTC_XMR", "BTC_XRP")
-  
-  portfolio.pairs <- portfolio.universe
-  
+  investment.universe$passes.filter <- apply(investment.universe, 1, assetFilterRules)
+  saveRDS(investment.universe, "data/clean/investment_universe.RDS")
+  return()
+}
+
+refreshPortfolioPairs <- function(){
+  filterPairs()
+  system.config$portfolio.pairs <- getPortfolioPairs()
+  return(system.config$portfolio.pairs)
+}
+
+getPortfolioPairs <- function(){
+  if(!file.exists("data/clean/investment_universe.RDS")){initializeInvestmentUniverse()}
+  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  portfolio.pairs <- investment.universe$asset[investment.universe$passes.filter]
   return(portfolio.pairs)
 }
 
-refreshPairs <- function(){
-  portfolio.pairs <- filterPairs()
+initializeInvestmentUniverse <- function(){
   
-  saveRDS(portfolio.pairs, file=paste0(getwd(),"/data/clean/portfolio_pairs.RDS"))
-  return(portfolio.pairs)
-}
-
-getPairs <- function(){
-  portfolio.pairs <- readRDS(file=paste0(getwd(),"/data/clean/portfolio_pairs.RDS"))
-  return(portfolio.pairs)
+  initial.pairs <- c("BTC_BTS","BTC_CLAM","BTC_DASH","BTC_DOGE","BTC_ETH",
+                     "BTC_FCT","BTC_LTC","BTC_MAID","BTC_STR","BTC_XMR","BTC_XRP")
+  
+  investment.universe <- data.frame(asset=initial.pairs, is.restricted=FALSE, passes.filter=TRUE,
+                                    current.position=0,optimal.position=0, is.locked=FALSE)
+  base.currency <- data.frame(asset="USDT_BTC", is.restricted=TRUE, passes.filter=FALSE, current.position=0,
+                              optimal.position=0, is.locked=FALSE)
+  investment.universe <- rbind(investment.universe, base.currency)
+  
+  saveRDS(investment.universe, file="data/clean/investment_universe.RDS")
 }
