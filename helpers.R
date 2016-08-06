@@ -6,6 +6,12 @@ massInstall <- function(x, library.repos){
     # )
 }
 
+relativePath <- function(path){
+  # path should have a slash in front of it
+  path <- gsub("^/?", "/",path)
+  relative.path <- paste0(getwd(), path)
+}
+
 actionNotify <- function(notification.content){
   if(system.config$live){
     print(notification.content)
