@@ -1,7 +1,3 @@
-library(jsonlite)
-library(httr)
-library(digest)
-
 api.poloniex <- function(command, args = list()) {
   key <- system.config$poloniex.key
   secret <- system.config$poloniex.secret

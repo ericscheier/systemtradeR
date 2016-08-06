@@ -2,11 +2,21 @@
 # random 0 found in five minute USDT_BTC data
 
 # parallelize this
-refreshPricing <- function(){
-  pairs <- c(system.config$portfolio.pairs, "USDT_BTC")
+refreshPricing <- function(pairs){
+  pairs <- c(pairs, "USDT_BTC")
   sapply(pairs, updatePricing)
-  dataCleaning(pairs=pairs)
   return()
+}
+
+refreshPortfolioPricing <- function(){
+  portfolio.pairs <- getPortfolioPairs()
+  refreshPricing(portfolio.pairs)
+}
+
+refreshAllPricing <- function(){
+  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  all.pairs <- investment.universe$asset[!investment.universe$is.restricted]
+  refreshPricing(all.pairs)
 }
 
 getPoloniexPrices <- function(pair, start.time){
@@ -35,56 +45,24 @@ updatePricing <- function(pair)
   new.data <- getPoloniexPrices(pair=pair, start.time=start.time)
   new.data <- new.data[names(existing.data)]
   
-  # check that old and new data match where they are supposed to
+  existing.data[nrow(existing.data),] <- new.data[1,]
   
-  # for some reason opens are not matching up even though prices are smooth
-  # check1 <- round(tail(existing.data,1)[,"open"],6) == round(head(new.data,1)[,"open"],6)
-  check1 <- TRUE
-  check2 <- TRUE # tail(existing.data,1)[,"volume"] <= head(new.data,1)[,"volume"]
-  check3 <- TRUE #tail(existing.data,1)[,"high"] <= head(new.data,1)[,"high"]
-  check4 <- TRUE #tail(existing.data,1)[,"low"] >= head(new.data,1)[,"low"]
-  
-  checks <- c(check1, check2, check3, check4)
-  checks.true <- all(checks)
-  complete <- FALSE
-  
-  if(checks.true){
-    existing.data[nrow(existing.data),] <- new.data[1,]
-    
-    full.data <- rbind(existing.data, new.data[2:nrow(new.data),])
-    write.csv(x = full.data, file = file.name, row.names = FALSE)
-    complete <- TRUE
-    print(paste0(pair," successfully updated"))
-  }
-  if(!checks.true) {
-    write.csv(x = new.data, file = paste0(getwd(), "/data/raw/",pair,"_incompatible.csv")
-              , row.names = FALSE)
-    print(paste0("new data and old data incompatible. Checks: ",checks))
-  }
-  Sys.sleep(.17)
-  return(paste0(pair," successfully updated"))
-}
+  full.data <- rbind(existing.data, new.data[2:nrow(new.data),])
 
-dataCleaning <- function(pairs=system.config$portfolio.pairs){
-  for(pair in pairs){
-    file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
-    # incompatible.name <- paste0(getwd(), "/data/raw/",pair,"_incompatible.csv")
-    existing.data <- read.csv(file.name, stringsAsFactors = FALSE)
-    # incompatible.data <- read.csv(incompatible.name, stringsAsFactors = FALSE)
-    replace <- FALSE
-    actions <- c(NULL)
-    if(sum(is.na(existing.data[,"volume"])) >= 1){
-      
-      existing.data <- na.omit(existing.data)
-      replace <- TRUE
-      actions <- c(actions, paste0("Going to remove NAs for pair: ",pair))
-    }
-    if(nrow(existing.data[duplicated(existing.data),]) >= 1){
-      replace <- TRUE
-      existing.data <- unique(existing.data)
-      actions <- c(actions, paste0("Going to remove duplicate rows for pair:", pair))
-    }
-    if(replace){write.csv(existing.data, file.name, row.names=FALSE)}
+  if(sum(is.na(full.data[,"volume"])) >= 1){
+    
+    full.data <- na.omit(full.data)
+    replace <- TRUE
+    actions <- c(actions, paste0("Going to remove NAs for pair: ",pair))
   }
-  return(actions)
+  if(nrow(full.data[duplicated(full.data),]) >= 1){
+    replace <- TRUE
+    full.data <- unique(full.data)
+    actions <- c(actions, paste0("Going to remove duplicate rows for pair:", pair))
+  }
+  
+  write.csv(x = full.data, file = file.name, row.names = FALSE)
+  print(paste0(pair," successfully updated"))
+  
+  return(paste0(pair," successfully updated"))
 }
