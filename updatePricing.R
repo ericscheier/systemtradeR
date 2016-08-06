@@ -5,7 +5,6 @@
 refreshPricing <- function(pairs){
   pairs <- c(pairs, "USDT_BTC")
   sapply(pairs, updatePricing)
-  dataCleaning(pairs=pairs)
   return()
 }
 
@@ -16,7 +15,7 @@ refreshPortfolioPricing <- function(){
 
 refreshAllPricing <- function(){
   investment.universe <- readRDS("data/clean/investment_universe.RDS")
-  all.pairs <- investment.universe$asset
+  all.pairs <- investment.universe$asset[!investment.universe$is.restricted]
   refreshPricing(all.pairs)
 }
 

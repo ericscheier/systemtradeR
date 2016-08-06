@@ -24,8 +24,9 @@ tradesToMake <- function(){
                                             !is.locked)
   )
   
-  saveRDS(transactions[transactions$to.make!=0,], file="data/clean/transactions_to_make.RDS")
-  return(transactions)
+  transactions.to.make <- transactions[transactions$to.make!=0,]
+  saveRDS(transactions.to.make, file="data/clean/transactions_to_make.RDS")
+  return(transactions.to.make)
 }
 
 getMid <- function(ticker, pair){

@@ -45,18 +45,25 @@ calculateOptimalPortfolio <- function(){
 
 calculateCurrentPortfolio <- function(){
   print("Calculating the current portfolio")
-  print("calculateCurrentPortfolio needs to be changed to update investment.universe as per optimal portfolio method")
   balances <- getMarginPosition(currency.pair="all")
-  current.portfolio <- data.frame(lapply(balances, function(x) as.numeric(x$amount)), stringsAsFactors = FALSE)
-  saveRDS(current.portfolio, file=paste0(getwd(), "/data/clean/current_portfolio.RDS"))
-  return(current.portfolio)
+  portfolio <- data.frame(asset=names(balances), stringsAsFactors = FALSE)
+  portfolio$current.position <- apply(portfolio["asset"], 1, function(x) as.numeric(balances[[x]]$amount))
+  
+  investment.universe <- readRDS(relativePath("data/clean/investment_universe.RDS"))
+  
+  investment.universe$current.position[match(portfolio$asset, investment.universe$asset)] <- portfolio$current.position
+  investment.universe$current.position[is.na(match(investment.universe$asset, portfolio$asset))] <- 0
+  
+  saveRDS(investment.universe, file=relativePath("data/clean/investment_universe.RDS"))
+  return(investment.universe)
 }
 
 refreshPortfolio <- function(){
-  optimal.portfolio <- calculateOptimalPortfolio()
-  current.portfolio <- calculateCurrentPortfolio()
+  calculateOptimalPortfolio()
+  calculateCurrentPortfolio()
   
-  return(investment.universe[investment.universe$passes.filter])
+  investment.universe <- readRDS(relativePath("data/clean/investment_universe.RDS"))
+  return(investment.universe[investment.universe$passes.filter,])
 }
 
 # maxPosition <- function(pair=NULL, account.value){
