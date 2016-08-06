@@ -47,7 +47,7 @@ minutesFunction <- function(){
 
 hoursFunction <- function(){
   # update pricing
-  refreshed.pricing <- refreshPricing()
+  refreshed.pricing <- refreshPortfolioPricing()
   # cancel open trades
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
@@ -74,7 +74,8 @@ daysFunction <- function(){
 
 weeksFunction <- function(){
   # refreshPairs()
-  refreshed.pricing <- refreshPricing()
+  refreshed.pricing <- refreshAllPricing()
+  refreshed.pairs <- refreshPortfolioPairs()
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
@@ -82,6 +83,7 @@ weeksFunction <- function(){
   # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
   # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
   return(list(refreshed.pricing,
+              refreshed.pairs,
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))
