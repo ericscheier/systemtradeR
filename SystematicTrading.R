@@ -130,10 +130,11 @@ emaVolatility <- function(price.xts){
   return(ema.volatility)
 }
 
-scaledForecast <- function(price.xts){
-  scaled.forecast <- xts(x=rep(10, times=length(index(price.xts))), order.by = index(price.xts))
-  colnames(scaled.forecast) <- NULL
-  return(scaled.forecast)
+combinedForecast <- function(price.xts){
+  combined.forecast <- xts(x=rep(10, times=length(index(price.xts))), order.by = index(price.xts))
+  combined.forecast <- cappedForecast(combined.forecast)
+  colnames(combined.forecast) <- NULL
+  return(combined.forecast)
 }
 
 xtsIdentity <- function(price.xts, exchange.rate){
