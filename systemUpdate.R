@@ -69,12 +69,16 @@ daysFunction <- function(){
   # recalculate forecast scalars?
   # recalculate forecast weights?
   # refreshed.pricing <- refreshPortfolioPricing()
-  # return.temp <- "Nothing in this function yet"
+  return.temp <- "Nothing in this function yet"
   return(return.temp)
 }
 
 weeksFunction <- function(){
-  # refreshPairs()
+  return.temp <- "Nothing in this function yet"
+  return(return.temp)
+}
+
+monthsFunction <- function(){
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
   simulated.forecasts <- simulateForecasts()
@@ -83,9 +87,6 @@ weeksFunction <- function(){
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
-  # subsystem.returns <- readRDS(paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
-  # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
-  # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
   return(list(refreshed.pricing,
               refreshed.pairs,
               simulated.forecasts,
@@ -94,11 +95,6 @@ weeksFunction <- function(){
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))
-}
-
-monthsFunction <- function(){
-  return.temp <- "Nothing in this function yet"
-  return(list(return.temp))
 }
 
 quartersFunction <- function(){

@@ -1,7 +1,7 @@
 getPortfolioForecasts <- function(){
   # "ewma_8_32", "ewma_16_64", "ewma_32_128", 
   portfolio.forecasts <- c("ewma_64_256", "ewma_128_512", "ewma_256_1024", "ewma_512_2048",
-                           "no_forecast")
+                           "no_forecast_long", "no_forecast_short")
   return(portfolio.forecasts)
 }
 
@@ -23,8 +23,12 @@ breakoutRawForecast <- function(price.xts, lookback=system.config$volatility.loo
 
 # 8_32, 16_64, 32_128, 64_256, 128_512, 256_1024
 
-no_forecast <- function(price.xts){
+no_forecast_long <- function(price.xts){
   return(xts(x=rep(10, times=length(index(price.xts))), order.by = index(price.xts)))
+}
+
+no_forecast_short <- function(price.xts){
+  return(xts(x=rep(-10, times=length(index(price.xts))), order.by = index(price.xts)))
 }
 
 ewma_8_32 <- function(price.xts){
