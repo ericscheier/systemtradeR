@@ -146,7 +146,8 @@ initializeInvestmentUniverse <- function(){
                      "BTC_FCT","BTC_LTC","BTC_MAID","BTC_STR","BTC_XMR","BTC_XRP")
   
   investment.universe <- data.frame(asset=initial.pairs, is.restricted=FALSE, passes.filter=TRUE,
-                                    current.position=0,optimal.position=0, is.locked=FALSE)
+                                    current.position=0,optimal.position=0, is.locked=FALSE,
+                                    stringsAsFactors = FALSE)
   base.currency <- data.frame(asset="USDT_BTC", is.restricted=TRUE, passes.filter=FALSE, current.position=0,
                               optimal.position=0, is.locked=FALSE)
   investment.universe <- rbind(investment.universe, base.currency)
