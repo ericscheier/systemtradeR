@@ -48,6 +48,8 @@ updatePricing <- function(pair)
   existing.data[nrow(existing.data),] <- new.data[1,]
   
   full.data <- rbind(existing.data, new.data[2:nrow(new.data),])
+  
+  actions <- NULL
 
   if(sum(is.na(full.data[,"volume"])) >= 1){
     
