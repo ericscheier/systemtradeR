@@ -68,14 +68,18 @@ daysFunction <- function(){
   # reporting
   # recalculate forecast scalars?
   # recalculate forecast weights?
-  return.temp <- "Nothing in this function yet"
-  return(list(return.temp))
+  # refreshed.pricing <- refreshPortfolioPricing()
+  # return.temp <- "Nothing in this function yet"
+  return(return.temp)
 }
 
 weeksFunction <- function(){
   # refreshPairs()
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
+  simulated.forecasts <- simulateForecasts()
+  raw.forecast.weights <- rawForecastWeights()
+  smoothed.forecast.weights <- smoothedForecastWeights()
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
@@ -84,6 +88,9 @@ weeksFunction <- function(){
   # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
   return(list(refreshed.pricing,
               refreshed.pairs,
+              simulated.forecasts,
+              raw.forecast.weights,
+              smoothed.forecast.weights,
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))

@@ -29,7 +29,7 @@ calculateSubsystemPositions <- function(pairs=system.config$portfolio.pairs){
 calculateOptimalPortfolio <- function(){
   print("Calculating the optimal portfolio")
   portfolio <- calculateSubsystemPositions()
-  iw <- tail(readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS")),1)
+  iw <- tail(readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS")),1)
   instrument.weights <- data.frame(asset=portfolio$asset, instrument.weight=t(iw)[portfolio$asset,], row.names = NULL)
   instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
   portfolio <- merge(portfolio, instrument.weights)
@@ -94,23 +94,23 @@ refreshPortfolio <- function(){
 
 assetFilterRules <- function(investment.universe.row){
   asset <- investment.universe.row["asset"]
-  print(investment.universe.row)
+  # print(investment.universe.row)
   if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
-  print(investment.universe.row["is.restricted"])
+  # print(investment.universe.row["is.restricted"])
   if(trimws(investment.universe.row["is.restricted"])){return(FALSE)}
   
   asset.data <- getPairData(pair=asset, ohlc = TRUE, volume = TRUE)
   asset.volatility <- as.numeric(tail(emaVolatility(Cl(asset.data)),1))
-  asset.volume <- sum(as.numeric(tail(asset.data$volume, 24*(60/5))))
+  asset.volume <- sum(as.numeric(tail(asset.data$volume, system.config$volatility.lookback*(60/5))))
   if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
   
-  print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
+  # print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
   
   rule1 <- asset.volatility >= system.config$volatility.benchmark
   rule2 <- asset.volume >= system.config$volume.benchmark
   rules <- c(rule1, rule2)
   
-  print(rules)
+  # print(rules)
   
   return(all(rules))
 }
@@ -129,7 +129,8 @@ filterPairs <- function(){
 refreshPortfolioPairs <- function(){
   filterPairs()
   system.config$portfolio.pairs <- getPortfolioPairs()
-  return(system.config$portfolio.pairs)
+  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  return(investment.universe[!investment.universe$is.restricted,])
 }
 
 getPortfolioPairs <- function(){
