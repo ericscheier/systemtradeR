@@ -10,6 +10,25 @@
 #   return(system.config$poloniex.margin.value)
 # }
 
+generateReports <- function(){
+  # file.time <- Sys.time()
+  # pdf.name <- paste0("figures/final/send/MergedPDFs_",file.time,".pdf")
+  # 
+  # plotflow:::mergePDF(
+  #   in.file=relativePath("/figures/final/reports"),
+  #   file=relativePath(pdf.name)
+  # )
+  
+  # clear reports folder
+}
+
+sendReports <- function(){
+  # list the files in the send folder
+  # for each try to send and move to backup if successful
+  # try.to.send <- try(slackr_upload(pdf.name, channels = "reports"))
+  #move to backups folder
+}
+
 appendNewData <- function(file.name=NULL, new.data=NULL){
   
   file.name <- paste0(getwd(), "/data/clean/",file.name,".RDS")
