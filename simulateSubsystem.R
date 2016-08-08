@@ -161,8 +161,8 @@ simulateSubsystem <- function(pair=NULL){
   strategy.name <- "asset_allocation"
   symbols <- c(trade.target) #, "BTCUSD")
   
-  addCombinedForecast <- newTA(FUN=combinedForecast, preFUN=closeOfXts)
-  chartSeries(x=trade.target.data, subset=date.subset, TA='addCombinedForecast()')
+  # addCombinedForecast <- newTA(FUN=combinedForecast, preFUN=closeOfXts)
+  # chartSeries(x=trade.target.data, subset=date.subset, TA='addCombinedForecast()')
   
   ## To rerun
   rm.strat(portfolio.name)

@@ -180,8 +180,8 @@ simulateForecast <- function(pair=NULL, forecast.name=NULL){
     return(cappedScaledForecast(forecast.name=forecast.name, price.xts=price.xts))
   }
   
-  addForecast <- newTA(FUN=specificForecast, preFUN=closeOfXts)
-  chartSeries(x=trade.target.data, subset=date.subset, TA='addForecast()')
+  # addForecast <- newTA(FUN=specificForecast, preFUN=closeOfXts)
+  # chartSeries(x=trade.target.data, subset=date.subset, TA='addForecast()')
   
   ## To rerun
   rm.strat(portfolio.name)
