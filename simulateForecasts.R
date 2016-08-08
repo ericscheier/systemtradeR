@@ -1,105 +1,120 @@
-simulateSubsystems <- function(){
+volatilityAdjustedForecast <- function(price.xts, raw.forecast){
+  volatility.ema <- emaVolatility(price.xts)
+  volatility.adjusted.forecast <- (raw.forecast)/(volatility.ema * price.xts)
+  return(volatility.adjusted.forecast)
+}
+
+scaledForecast <- function(volatility.adjusted.forecast){
+  # apply.fromstart function doesn't work and is too slow. Consider using roll or RcppROll package for true scalar
+  # forecast.scalar <- 10/apply.fromstart(abs(volatility.adjusted.ema), "mean")
+  weighted.forecast.scalar <- 10/SMA(abs(volatility.adjusted.forecast),n=system.config$volatility.lookback*12)
+  scaled.forecast <- volatility.adjusted.forecast * weighted.forecast.scalar
+  # mean(abs(scaled.forecast), na.rm=T) # should be ~10 before capping
+  return(scaled.forecast)
+}
+
+cappedForecast <- function(scaled.forecast){
+  forecast.max <- 20
+  forecast.min <- -1 * forecast.max
+  
+  capped.forecast <- xts(x=pmax(forecast.min,pmin(forecast.max, scaled.forecast)), order.by = index(scaled.forecast))
+  return(capped.forecast)
+}
+
+cappedScaledForecast <- function(forecast.name=NULL, price.xts=NULL){
+  raw.forecast <- do.call(forecast.name, args=list(price.xts))
+  volatility.adjusted.forecast <- volatilityAdjustedForecast(price.xts, raw.forecast)
+  scaled.forecast <- scaledForecast(volatility.adjusted.forecast)
+  capped.forecast <- cappedForecast(scaled.forecast)
+  
+  return(capped.forecast)
+}
+
+rawForecastWeights <- function(){
+  forecast.return.path <- "data/clean/forecast_returns.RDS"
+  raw.forecast.weights <- rawWeights(return.path=forecast.return.path)
+  saveRDS(raw.forecast.weights, relativePath("/data/clean/raw_forecast_weights.RDS"))
+  return(raw.forecast.weights)
+}
+
+smoothedForecastWeights <- function(){
+  raw.forecast.weights.path <- "/data/clean/raw_forecast_weights.RDS"
+  smoothed.forecast.weights <- smoothedWeights(raw.weights.path=raw.forecast.weights.path)
+  
+  saveRDS(smoothed.forecast.weights, relativePath("/data/clean/smoothed_forecast_weights.RDS"))
+  
+  pdf.name <- paste0("figures/final/smoothed_forecast_weights.pdf")
+  pdf(pdf.name)
+  chart.StackedBar(smoothed.forecast.weights, colorset=rainbow12equal)
+  dev.off()
+  return(smoothed.forecast.weights)
+}
+
+forecastDiversificationMultipler <- function(){
+  forecast.returns.path <- "/data/clean/forecast_returns.RDS"
+  forecast.weights.path <- "/data/clean/smoothed_forecast_weights.RDS"
+  
+  
+  forecast.diversification.multiplier <- diversificationMultiplier(returns.path=forecast.returns.path,
+                                                                   weights.path=forecast.weights.path)
+  
+  return(forecast.diversification.multiplier)
+}
+
+simulateForecasts <- function(){
   # registerDoParallel()
   start.time <- Sys.time()
-  portfolio.pairs <- system.config$portfolio.pairs
-  
+  portfolio.forecasts <- system.config$portfolio.forecasts
   
   results.matrix <- xts(x=NA, order.by=floor_date(system.config$last.exchange.rate,unit="hour"))
   
-  for(pair in portfolio.pairs){
-    simulation.results <- simulateSubsystem(pair=pair)
+  for(forecast.name in portfolio.forecasts){
+    simulation.results <- poolForecasts(forecast.name=forecast.name)
     
     results.matrix <- merge.xts(results.matrix, simulation.results)
   }
   
   results.matrix$results.matrix <- NULL
-  colnames(results.matrix) <- portfolio.pairs
-  subsystem.returns <- Return.calculate(results.matrix)[2:nrow(results.matrix),]
+  colnames(results.matrix) <- portfolio.forecasts
+  forecast.returns <- Return.calculate(results.matrix)[2:nrow(results.matrix),]
+  saveRDS(forecast.returns, file=paste0(getwd(), "/data/clean/forecast_returns.RDS"))
   
-  
-  saveRDS(subsystem.returns, file=paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
   execution.time <- round(difftime(Sys.time(), start.time, units="hours"),2)
-  print(paste0("Finished simulating subsystem returns in ",execution.time," hours."))
-  return(paste0("Finished simulating subsystem returns in ",execution.time," hours."))
+  print(paste0("Finished simulating forecast returns in ",execution.time," hours."))
+  return(paste0("Finished simulating forecast returns in ",execution.time," hours."))
 }
 
-systematicRebalance <- function (...,
-                                 ref.price.col=NULL,
-                                 exchange.rate.col=NULL,
-                                 instrument.volatility.col=NULL,
-                                 combined.instrument.forecast.col=NULL,
-                                 initEq=NULL,
-                                 volatility.target=NULL,
-                                 minimum.order.size=NULL,
-                                 minimum.position.change=NULL,
-                                 portfolio,
-                                 symbol,
-                                 timestamp)
-{
-  mktdata.row <- mktdata[timestamp,]
-  ref.price <- mktdata.row[,ref.price.col]
-  exchange.rate <- mktdata.row[,exchange.rate.col]
-  instrument.volatility <- mktdata.row[,instrument.volatility.col]
-  combined.instrument.forecast <- mktdata.row[,combined.instrument.forecast.col]
-  # print(timestamp)
-  dummy.port <- updatePortf(Portfolio=portfolio,
-                            Dates=paste('::',timestamp,sep=''))
-  trading.pl <- sum(.getPortfolio(portfolio)$summary$Net.Trading.PL)
-  # updateAcct(account.name)
-  # print(trading.pl)
-  total.equity <- max(initEq + trading.pl,0) * exchange.rate
-  # print(paste(timestamp, total.equity, sep=": "))
-  # print(paste(timestamp, trading.pl * exchange.rate, sep=": "))
-  # tradeSize <- total.equity * trade.percent
-  # if(length(refprice)>1) refprice <- refprice[,1]
-  # if(!is.null(refprice)) tradeSize <- tradeSize/refprice
-  # if(!is.null(digits)) tradeSize<-round(tradeSize,digits)
+poolForecasts <- function(forecast.name=NULL){
+  start.time <- Sys.time()
+  portfolio.pairs <- system.config$portfolio.pairs
   
-  subsystem.position <- subsystemPosition(ref.price, total.equity, volatility.target, exchange.rate, instrument.volatility, combined.instrument.forecast)
+  results.matrix <- xts(x=NA, order.by=floor_date(system.config$last.exchange.rate,unit="hour"))
   
-  # position.calcs <- data.frame(block.value=as.numeric(block.value),
-  #                              instrument.volatility=as.numeric(instrument.volatility),
-  #                              exchange.rate=as.numeric(exchange.rate),
-  #                              cash.volatility.target=as.numeric(cash.volatility.target),
-  #                              instrument.currency.volatility=as.numeric(instrument.currency.volatility),
-  #                              instrument.value.volatility=as.numeric(instrument.value.volatility),
-  #                              volatility.scalar=as.numeric(volatility.scalar),
-  #                              combined.instrument.forecast=as.numeric(combined.instrument.forecast),
-  #                              system.forecast.average=as.numeric(system.forecast.average),
-  #                              subsystem.position=as.numeric(subsystem.position))
-  # print(position.calcs)
-  # print(paste(timestamp, subsystem.position * ref.price, sep=": "))
-  
-  current.position <- getPosQty(portfolio, symbol, timestamp)
-  # print(paste(timestamp, current.position, sep=": "))
-  
-  transaction.size <- subsystem.position - current.position
-  transaction.size <- transaction.size * (abs(ref.price * transaction.size) > minimum.order.size)
-  transaction.size <- transaction.size * (abs(transaction.size/current.position) > minimum.position.change)
-  transaction.size <- ifelse(is.na(transaction.size), 0, transaction.size)
-  # print(paste0(timestamp,": wants ", round(subsystem.position,3),
-  #              ", has ", round(current.position,3),
-  #              ", transacting ", round(transaction.size,3)))
-  
-  if(transaction.size!=0){
-    transaction.side <- ifelse(transaction.size>0,"long", "short")
-    prefer.side <- ifelse(transaction.side=="long","high","low")
+  for(pair in portfolio.pairs){
+    simulation.results <- simulateForecast(pair=pair, forecast.name=forecast.name)
     
-    addOrder(portfolio=portfolio, symbol=symbol, timestamp=timestamp,
-             qty=transaction.size, price=ref.price, ordertype="market", side=transaction.side,
-             threshold = NULL, orderset = "", status = "open",
-             statustimestamp = "", prefer = prefer.side, delay = 60*5, tmult = FALSE,
-             replace = TRUE, return = FALSE, ..., TxnFees = "percentFee",
-             time.in.force = "GTC")
+    results.matrix <- merge.xts(results.matrix, simulation.results)
   }
+  
+  results.matrix$results.matrix <- NULL
+  results.matrix <- na.omit(results.matrix)
+  colnames(results.matrix) <- portfolio.pairs
+  saveRDS(results.matrix, file=paste0(getwd(), "/data/clean/",forecast.name,"_forecast_returns.RDS"))
+  
+  pooled.account.values <- xts(x=rowSums(results.matrix,na.rm=TRUE), order.by=index(results.matrix))
+  
+  execution.time <- round(difftime(Sys.time(), start.time, units="hours"),2)
+  print(paste0("Finished simulating ",forecast.name," returns in ",execution.time," hours."))
+  
+  return(pooled.account.values)
 }
 
-simulateSubsystem <- function(pair=NULL){
+simulateForecast <- function(pair=NULL, forecast.name=NULL){
   # if(!is.null(dev.list())){dev.off(which=dev.list())}
   # .pardefault <- par(no.readonly = T)
   
   
-  print(paste0("Simulating subsystem returns for ",pair))
+  print(paste0("Simulating forecast returns for ",pair,". Forecast: ",forecast.name))
   split.pair <- unlist(strsplit(pair, "_"))
   base <- split.pair[1]
   asset <- split.pair[2]
@@ -133,7 +148,7 @@ simulateSubsystem <- function(pair=NULL){
   last.hour <- floor_date(min(c(last.hour, system.config$last.exchange.rate)), unit="hour")
   first.hour <- last.hour - hours(lookback.hours)
   date.subset <- paste(first.hour,last.hour,sep="::")
- 
+  
   assign("trade.target", paste0(asset,base), envir=.GlobalEnv)
   assign("fx.rate",paste0(base,"USD"), envir=.GlobalEnv) #paste0("USD",base)
   
@@ -161,8 +176,12 @@ simulateSubsystem <- function(pair=NULL){
   strategy.name <- "asset_allocation"
   symbols <- c(trade.target) #, "BTCUSD")
   
-  addCombinedForecast <- newTA(FUN=combinedForecast, preFUN=closeOfXts)
-  chartSeries(x=trade.target.data, subset=date.subset, TA='addCombinedForecast()')
+  specificForecast <- function(price.xts){
+    return(cappedScaledForecast(forecast.name=forecast.name, price.xts=price.xts))
+  }
+  
+  addForecast <- newTA(FUN=specificForecast, preFUN=closeOfXts)
+  chartSeries(x=trade.target.data, subset=date.subset, TA='addForecast()')
   
   ## To rerun
   rm.strat(portfolio.name)
@@ -183,7 +202,7 @@ simulateSubsystem <- function(pair=NULL){
   
   # add.indicator(strategy.name, name = "MACD", arguments = list(x=quote(Cl(mktdata))), label='MACD')
   add.indicator(strategy.name, name= "emaVolatility", arguments = list(price.xts=quote(Cl(mktdata))), label='instrument.volatility')
-  add.indicator(strategy.name, name="combinedForecast", arguments = list(price.xts=quote(Cl(mktdata))), label='combined.instrument.forecast')
+  add.indicator(strategy.name, name="cappedScaledForecast", arguments = list(forecast.name=forecast.name, price.xts=quote(Cl(mktdata))), label='combined.instrument.forecast')
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
                                                                     ,exchange.rate=quote(Cl(get(fx.rate, envir=.instrument)))), label="exchange.rate")
   
@@ -247,25 +266,25 @@ simulateSubsystem <- function(pair=NULL){
   #            +          type='exit',
   #            +          label='exit')
   
-    
-    
-    
-    # new.position <- current.position + transaction.size
-    
-    
-    
-    # addPosLimit(portfolio = portfolio, 
-    #             symbol = symbol, 
-    #             timestamp = timestamp, 
-    #             maxpos = new.position, 
-    #             longlevels = 1, 
-    #             minpos = new.position, 
-    #             shortlevels = 1)
-    # 
-    # pos.limit <- getPosLimit(portfolio=portfolio,
-    #             symbol=symbol,
-    #             timestamp=timestamp)
-    # print(paste(timestamp, pos.limit, sep=": "))
+  
+  
+  
+  # new.position <- current.position + transaction.size
+  
+  
+  
+  # addPosLimit(portfolio = portfolio, 
+  #             symbol = symbol, 
+  #             timestamp = timestamp, 
+  #             maxpos = new.position, 
+  #             longlevels = 1, 
+  #             minpos = new.position, 
+  #             shortlevels = 1)
+  # 
+  # pos.limit <- getPosLimit(portfolio=portfolio,
+  #             symbol=symbol,
+  #             timestamp=timestamp)
+  # print(paste(timestamp, pos.limit, sep=": "))
   
   
   ## Rules
@@ -331,7 +350,7 @@ simulateSubsystem <- function(pair=NULL){
   t(tradeStats(portfolio.name))
   getTxns(portfolio.name, Symbol = trade.target)
   perTradeStats(portfolio.name, trade.target)
-  pdf.name <- paste0("figures/final/",pair,"_SubsystemSimulation.pdf")
+  pdf.name <- paste0("figures/final/",pair,"_",forecast.name,"_ForecastSimulation.pdf")
   pdf(pdf.name)
   chart.Posn(Portfolio=portfolio.name,Symbol=symbols, type = "line", log.scale = F)
   # par(.pardefault)
@@ -340,13 +359,13 @@ simulateSubsystem <- function(pair=NULL){
   xyplot(a$summary,type="h",col=4)
   # par(.pardefault)
   equity <- a$summary$End.Eq
-  plot(equity,main="Subsystem Equity Curve")
+  plot(equity,main="Forecast Equity Curve")
   # par(.pardefault)
   ret <- na.omit(Return.calculate(equity))
   ret <- ret[is.finite(ret)]
   
   charts.PerformanceSummary(ret, colorset = bluefocus,
-                            main=paste0(trade.target," Subsystem Performance"))
+                            main=paste0(trade.target,"_",forecast.name," Forecast Performance"))
   dev.off()
   # par(.pardefault)
   # try(slackr_upload(pdf.name, channels = "reports"))
@@ -371,71 +390,3 @@ simulateSubsystem <- function(pair=NULL){
   # results <- apply.paramset(strategy.name, paramset.label = "optEMA", portfolio=portfolio.name, account=account.name, nsamples=0)
   return(equity)
 }
-
-
-
-
-old_simulateSubsystem <- function(pair=NULL){
-  print(paste0("Simulating subsystem returns for ",pair))
-  account.cash <- system.config$poloniex.margin.value #btc
-  position.size <- 0 #pair in BTC base
-  base <- unlist(strsplit(pair, "_"))[1]
-  
-  
-  ohlc.prices <- read.csv(paste0(getwd(),"/data/raw/",pair,"_ohlc.csv"), stringsAsFactors = FALSE) # five minute frequency
-  
-  five.price.xts <- xts(x=ohlc.prices[,"close"]
-                        , order.by = strptime(ohlc.prices[,"date"], format="%Y-%m-%d %H:%M:%S")
-                        , tzone = "UTC")
-  hour.price.xts <- to.hourly(five.price.xts, OHLC=FALSE, indexAt="endof")
-  
-  first.hour <- index(head(hour.price.xts,1))
-  first.hour <- ceiling_date(max(first.hour, system.config$first.exchange.rate), unit="hour")
-  trading.start.hour <- first.hour + hours(system.config$volatility.lookback)
-  last.hour <- index(tail(hour.price.xts,1))
-  last.hour <- floor_date(min(last.hour, system.config$last.exchange.rate), unit="hour")
-  
-  simulation.range <- seq.POSIXt(from=trading.start.hour, to=last.hour, by="hour")
-  simulation.results <- xts(data.frame(account.value=rep(NA, length(simulation.range))), order.by=simulation.range)
-  
-  for(simulation.hour in as.list(simulation.range)){
-    exchange.rate <- as.numeric(system.config$five.exchange.rate[simulation.hour])
-    truncated.hour.price.xts <- hour.price.xts[which(index(hour.price.xts) <= simulation.hour)]
-    truncated.five.minute.price.xts <- five.price.xts[which(index(five.price.xts) <= simulation.hour)]
-    current.price <- as.numeric(tail(truncated.hour.price.xts,1))
-    account.value <- exchange.rate * (position.size * current.price + account.cash)
-    simulation.results[simulation.hour] <- account.value
-    # print(account.value)
-    subsystem.position <- subsystemPosition(pair=pair, five.minute.price.xts=truncated.five.minute.price.xts)
-    # combined.instrument.forecast <- combinedInstrumentForecast(ohlc.prices) # filter for simulation.hour
-    # cash.volatility.target <- cashVolatilityTarget(account.value, system.config$volatility.target)
-    # instrument.value.volatility <- instrumentValueVolatility(exchange.rate, truncated.hour.price.xts)
-    # volatility.scalar <- volatilityScalar(cash.volatility.target, instrument.value.volatility)
-    # subsystem.position <- subsystemPosition(volatility.scalar, combined.instrument.forecast)
-    # subsystem.position <- max(min(account.value, subsystem.position),0)
-    # print(paste0("Postion of ",subsystem.position," in ",pair))
-    portfolio.difference <- subsystem.position - position.size
-    transaction.size <- portfolio.difference * (abs(portfolio.difference/position.size) > system.config$minimum.position.change)
-    # subsystem.position.blocks <- (subsystem.position/exchange.rate)
-    # blocks.to.transact <- ifelse(abs((subsystem.position.blocks - position.size)/position.size)<(minimum.position.change),
-    #                              0, subsystem.position.blocks - position.size)
-    # blocks.to.transact <- ifelse(abs(blocks.to.transact) < minimum.order.size, 0, blocks.to.transact)
-    
-    execution.price <- as.numeric(five.price.xts[(simulation.hour + minutes(10))])
-    if(abs(execution.price * transaction.size) < system.config$minimum.order.size){transaction.size <- 0}
-    execution.exchange.rate <- as.numeric(system.config$five.exchange.rate[(simulation.hour + minutes(10))])
-    blocks.transacted <- min(account.cash/execution.price, transaction.size)
-    
-    # if(blocks.transacted!=0){print(paste0("Transacted ",blocks.transacted," BTC worth of ",pair))}
-    
-    position.size <- position.size + transaction.size * execution.price
-    total.transaction.fee <- transaction.size * execution.price * system.config$transaction.fee
-    account.cash <- account.cash - transaction.size * execution.price - total.transaction.fee
-    post.execution.account.value <- execution.exchange.rate * (position.size * execution.price + account.cash)
-    
-    # print(paste0("Account value for ",pair,": $",account.value," [$",post.execution.account.value," after trading]"))
-  }
-  
-  return(simulation.results)
-}
-
