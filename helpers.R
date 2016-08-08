@@ -6,6 +6,10 @@ massInstall <- function(x, library.repos){
     # )
 }
 
+closeOfXts <- function(x){
+  return(Cl(as.xts(x)))
+}
+
 relativePath <- function(path){
   # path should have a slash in front of it
   path <- gsub("^/?", "/",path)

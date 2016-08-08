@@ -130,8 +130,25 @@ emaVolatility <- function(price.xts){
   return(ema.volatility)
 }
 
+weightedForecasts <- function(price.xts){
+  forecast.weights <- xts(order.by=index(price.xts))
+  ###~~~!!!~~~###
+  ## Not sure whether weights need to be lagged by a day. Need to evaluate in depth!
+  fw <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
+  ###~~~!!!~~~###
+  forecast.weights <- na.locf(merge(forecast.weights, fw), na.rm = FALSE)
+  forecast.diversification.multiplier <- forecastDiversificationMultipler()
+  capped.scaled.forecasts <- xts(x=rbind(sapply(names(fw), cappedScaledForecast, price.xts=price.xts))
+                                 , order.by = index(price.xts))
+  
+  weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * forecast.diversification.multiplier
+  return(weighted.forecasts)
+}
+
 combinedForecast <- function(price.xts){
-  combined.forecast <- xts(x=rep(10, times=length(index(price.xts))), order.by = index(price.xts))
+  weighted.forecasts <- weightedForecasts(price.xts)
+  combined.forecast <- xts(x=rowSums(weighted.forecasts, na.rm=FALSE), order.by=index(price.xts))
+  
   combined.forecast <- cappedForecast(combined.forecast)
   colnames(combined.forecast) <- NULL
   return(combined.forecast)
@@ -147,76 +164,95 @@ percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
   return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
 }
 
-rawInstrumentWeights <- function(subsystem.returns=na.omit(readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS")))
-                                                        , all_time=TRUE){
-  volatility.target = system.config$volatility.target
-  instruments = colnames(subsystem.returns)
+rawInstrumentWeights <- function(){
+  
+  subsystem.return.path <- "data/clean/subsystem_returns.RDS"
+  raw.instrument.weights <- rawWeights(return.path=subsystem.return.path)
+  saveRDS(raw.instrument.weights, relativePath("/data/clean/raw_instrument_weights.RDS"))
+  # return(raw.instrument.weights)
+}
+
+smoothedInstrumentWeights <- function(){
+  raw.instrument.weights.path <- "/data/clean/raw_instrument_weights.RDS"
+  smoothed.instrument.weights <- smoothedWeights(raw.weights.path=raw.instrument.weights.path)
+  
+  saveRDS(smoothed.instrument.weights, relativePath("/data/clean/smoothed_instrument_weights.RDS"))
+  
+  pdf.name <- paste0("figures/final/smoothed_instrument_weights.pdf")
+  pdf(pdf.name)
+  chart.StackedBar(smoothed.instrument.weights, colorset=rainbow12equal)
+  dev.off()
+  
+  return(smoothed.instrument.weights)
+}
+
+smoothedWeights <- function(raw.weights.path=NULL){
+  ema.n <- 36 #make a global parameter?
+  
+  raw.weights <- readRDS(relativePath(raw.weights.path))
+  smoothed.weights <- na.omit(xts(x=apply(raw.weights, 2, EMA, n=ema.n)
+                                             , order.by=index(raw.weights)))
+  
+  # chart.StackedBar(smoothed.weights, colorset=rainbow12equal)
+  return(smoothed.weights)
+}
+
+rawWeights <- function(return.path=NULL){
+  returns <- na.omit(readRDS(relativePath(return.path)))
+  instruments = colnames(returns)
+  
   df.con = portfolio.spec(assets = instruments)
   df.con = add.constraint(portfolio = df.con, type = "long_only")
   df.con = add.constraint(portfolio = df.con, type="weight_sum",min_sum=0.99, max_sum=1.01)
   df.con = add.objective(portfolio = df.con, type="return", name="mean")
-                         # , target=log(volatility.target+1))
   df.con <- add.objective(portfolio=df.con, type="risk", name="StdDev")
-                          # , target=log(volatility.target+1))
+  # , target=log(volatility.target+1))
   # window.end <- length(subsystem.returns)
   # window.start <- window.end - volatility.lookback
   # rp <- random_portfolios(df.con, 1000, "sample")
   
-  daily.returns <- aggregate(x=subsystem.returns, by=date, FUN=sum)
+  daily.returns <- aggregate(x=returns, by=date, FUN=sum)
   
-  if(all_time){
-    # registerDoParallel()
-    opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
-                                             , optimize_method = "random", trace=FALSE #, rp=rp
-                                             , rebalance_on="days")
-  }
-  else {
-    opt.dn <- optimize.portfolio(R = daily.returns, portfolio = df.con
-                                             , optimize_method = "random", trace=FALSE #, rp=rp
-                                             )
-  }
+  # registerDoParallel()
+  opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
+                                           , optimize_method = "random", trace=FALSE #, rp=rp
+                                           , rebalance_on="days")
   
-  # raw.instrument.weights <- data.frame(t(sapply(c(1:nrow(subsystem.returns)), optimizeFunction, returns=subsystem.returns, df.con=df.con)))
-  # as.xts(x=raw.instrument.weights, order.by=index(subsystem.returns))
+  print(paste0("Weight Optimization time: ",opt.dn$elapsed_time))
   
-  print(paste0("Instrument Weight Optimization time: ",opt.dn$elapsed_time))
-  
-  raw.instrument.weights <- extractWeights(opt.dn)
-  saveRDS(raw.instrument.weights, paste0(getwd(),"/data/clean/raw_instrument_weights.RDS"))
-  # return(raw.instrument.weights)
+  raw.weights <- extractWeights(opt.dn)
+  return(raw.weights)
 }
 
-updateSmoothedWeights <- function(smoothed.instrument.weights, new.raw.weights, ema.n=36){
-  # append to EMA of weights with new weights
-  saveRDS(smoothed.instrument.weights, paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS"))
-}
-
-smoothedInstrumentWeights <- function(ema.n=36){
-  raw.instrument.weights <- readRDS(paste0(getwd(),"/data/clean/raw_instrument_weights.RDS"))
-  smoothed.instrument.weights <- na.omit(xts(x=apply(raw.instrument.weights, 2, EMA, n=ema.n)
-                                     , order.by=index(raw.instrument.weights)))
+diversificationMultiplier <- function(returns.path=NULL, weights.path=NULL){
   
-  # chart.StackedBar(smoothed.instrument.weights, colorset=rainbow12equal)
+  returns <- readRDS(relativePath(returns.path))
+  weights <- readRDS(relativePath(weights.path))
   
-  saveRDS(smoothed.instrument.weights, paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS"))
-  return(smoothed.instrument.weights)
+  # check that instrument weights sum to 1
+  returns <- na.omit(returns)
+  weights <- tail(weights, 1)
+  weights <- array(weights/sum(weights))
+  # print(sum(instrument.weights==1))
+  correlation.matrix <- cor(returns)
+  # floor negative correlations to 0
+  diversification.multiplier <- 1/sqrt(tcrossprod(crossprod(weights, correlation.matrix), weights))
+  
+  diversification.multiplier.max <- 2.5
+  diversification.multiplier <- min(as.numeric(diversification.multiplier)
+                                               ,diversification.multiplier.max)
+  
+  return(diversification.multiplier)
 }
 
 # generalize to diversificationMultipler function to help building forecastDiversificationMultiplier later
-instrumentDiversificationMultiplier <- function(subsystem.returns=readRDS(paste0(getwd(),"/data/clean/subsystem_returns.RDS"))
-                                                , instrument.weights=readRDS(paste0(getwd(),"/data/clean/smoothed_instrument_weights.RDS"))){
-  # check that instrument weights sum to 1
-  subsystem.returns <- na.omit(subsystem.returns)
-  instrument.weights <- tail(instrument.weights, 1)
-  instrument.weights <- array(instrument.weights/sum(instrument.weights))
-  # print(sum(instrument.weights==1))
-  correlation.matrix <- cor(subsystem.returns)
-  # floor negative correlations to 0
-  instrument.diversification.multiplier <- 1/sqrt(tcrossprod(crossprod(instrument.weights, correlation.matrix), instrument.weights))
+instrumentDiversificationMultiplier <- function(){
+  subsystem.returns.path <- "/data/clean/subsystem_returns.RDS"
+  instrument.weights.path <- "/data/clean/smoothed_instrument_weights.RDS"
   
-  instrument.diversification.multiplier.max <- 2.5
-  instrument.diversification.multiplier <- min(as.numeric(instrument.diversification.multiplier)
-                                               ,instrument.diversification.multiplier.max)
+  
+  instrument.diversification.multiplier <- diversificationMultiplier(returns.path=subsystem.returns.path,
+                                                                     weights.path=instrument.weights.path)
   
   return(instrument.diversification.multiplier)
 }
