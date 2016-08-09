@@ -15,6 +15,17 @@ accountValue <- function(){
   # account.value <- 0.1 # in BTC
   return(account.value)
 }
+calculateSubsystemForecasts <- function(pairs=system.config$portfolio.pairs){
+  portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
+  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemForecast)
+  return(portfolio)
+}
+
+calculateInstrumentVolatilities <- function(pairs=system.config$portfolio.pairs){
+  portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
+  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemForecast)
+  return(portfolio)
+}
 
 
 calculateSubsystemPositions <- function(pairs=system.config$portfolio.pairs){

@@ -14,9 +14,8 @@ libraries <- c("xts",
                "slackr",
                "httr",
                "quantstrat",
-               # "IKTrading",  
-               "lattice",
-               "doParallel"
+               "ROI",  
+               "lattice"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
