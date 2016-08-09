@@ -15,7 +15,7 @@ system.config$live = is.live.machine
 #~~~~!!!!!~~~~#
 
 system.config$volatility.lookback <- 36 #101 #hours
-system.config$lookback.hours <- 365*24
+system.config$lookback.hours <- 450*24
 system.config$volatility.target <- .005 # hourly target volatility in % terms 
 # started at 0.0005
 # bumped up 10x to reflect vol of market & underinvestment
@@ -51,7 +51,3 @@ system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.ra
 
 system.config$volatility.benchmark <- 0.001 # hourly vol (emaVolatility)
 system.config$volume.benchmark <- 50 #BTC per volatility lookback period
-
-if (!exists('.instrument')) .instrument <- new.env()
-if (!exists('.blotter')) .blotter <- new.env()
-if (!exists('.strategy')) .strategy <- new.env()

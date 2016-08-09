@@ -86,22 +86,50 @@ volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
   return(volatility.scalar)
 }
 
-productionSubsystemPosition <- function(pair=NULL, five.minute.price.xts=NULL){
+productionInstrumentVolatility <- function(pair=NULL, five.minute.price.xts=NULL){
   if(is.null(five.minute.price.xts)){
     five.minute.price.xts <- getPairData(pair)
   }
-  hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
-  volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
-  combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
-  system.forecast.average = 10 # by design this should be 10
-  subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  instrument.volatility <- as.numeric(tail(emaVolatility(five.minute.price.xts),1))
+  return(instrument.volatility)
+}
+
+productionSubsystemForecast <- function(pair=NULL, five.minute.price.xts=NULL){
+  if(is.null(five.minute.price.xts)){
+    five.minute.price.xts <- getPairData(pair)
+  }
+  subsystem.forecast <- as.numeric(tail(combinedForecast(five.minute.price.xts),1))
+  return(subsystem.forecast)
+}
+
+productionSubsystemPosition <- function(pair=NULL, subsystem.forecast=NULL, 
+                                        instrument.volatility=NULL, five.minute.price.xts=NULL){
+  if(is.null(five.minute.price.xts)){
+    five.minute.price.xts <- getPairData(pair)
+  }
+  if(is.null(subsystem.forecast)){
+    subsystem.forecast <- productionSubsystemForecast(pair=pair,
+                                                       five.minute.price.xts=five.minute.price.xts)
+  }
+  if(is.null(instrument.volatility)){
+    instrument.volatility <- productionInstrumentVolatility(pair=pair,
+                                                       five.minute.price.xts=five.minute.price.xts)
+  }
+  # hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
+  # volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
+  # combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
+  # system.forecast.average = 10 # by design this should be 10
+  # subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  ref.price <- as.numeric(tail(five.minute.price.xts,1))
   
-  # subsystem.position <- subsystemPosition(ref.price=
-  #                                         , total.equity=
-  #                                         , volatility.target=
-  #                                         , exchange.rate=
-  #                                         , instrument.volatility=
-  #                                         , combined.instrument.forecast=combined.instrument.forecast)
+  
+  
+  subsystem.position <- subsystemPosition(ref.price=ref.price
+                                          , total.equity=system.config$poloniex.margin.value
+                                          , volatility.target=system.config$volatility.target
+                                          , exchange.rate=system.config$current.exchange.rate
+                                          , instrument.volatility=instrument.volatility
+                                          , instrument.forecast=subsystem.forecast)
   return(subsystem.position)
 }
 
@@ -109,7 +137,7 @@ subsystemPosition <- function(ref.price, total.equity
                               , volatility.target
                               , exchange.rate
                               , instrument.volatility
-                              , combined.instrument.forecast){
+                              , instrument.forecast){
   
   block.value <- ref.price * .01
   cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
@@ -117,7 +145,7 @@ subsystemPosition <- function(ref.price, total.equity
   instrument.value.volatility <- instrument.currency.volatility * exchange.rate
   volatility.scalar <- cash.volatility.target/instrument.value.volatility
   system.forecast.average <- 10 # by design, but can make dynamic
-  subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
+  subsystem.position <- (volatility.scalar * instrument.forecast)/system.forecast.average
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
   return(subsystem.position)
@@ -164,30 +192,8 @@ percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
   return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
 }
 
-rawInstrumentWeights <- function(){
-  
-  subsystem.return.path <- "data/clean/subsystem_returns.RDS"
-  raw.instrument.weights <- rawWeights(return.path=subsystem.return.path)
-  saveRDS(raw.instrument.weights, relativePath("/data/clean/raw_instrument_weights.RDS"))
-  # return(raw.instrument.weights)
-}
-
-smoothedInstrumentWeights <- function(){
-  raw.instrument.weights.path <- "/data/clean/raw_instrument_weights.RDS"
-  smoothed.instrument.weights <- smoothedWeights(raw.weights.path=raw.instrument.weights.path)
-  
-  saveRDS(smoothed.instrument.weights, relativePath("/data/clean/smoothed_instrument_weights.RDS"))
-  
-  pdf.name <- paste0("figures/final/smoothed_instrument_weights.pdf")
-  pdf(pdf.name)
-  chart.StackedBar(smoothed.instrument.weights, colorset=rainbow12equal)
-  dev.off()
-  
-  return(smoothed.instrument.weights)
-}
-
 smoothedWeights <- function(raw.weights.path=NULL){
-  ema.n <- 36 #make a global parameter?
+  ema.n <- system.config$volatility.lookback #make a global parameter?
   
   raw.weights <- readRDS(relativePath(raw.weights.path))
   smoothed.weights <- na.omit(xts(x=apply(raw.weights, 2, EMA, n=ema.n)
@@ -199,28 +205,52 @@ smoothedWeights <- function(raw.weights.path=NULL){
 
 rawWeights <- function(return.path=NULL){
   returns <- na.omit(readRDS(relativePath(return.path)))
-  instruments = colnames(returns)
+  returns <- removeLeadingZeros(returns.xts=returns)
+  instruments <- colnames(returns)
   
-  df.con = portfolio.spec(assets = instruments)
-  df.con = add.constraint(portfolio = df.con, type = "long_only")
-  df.con = add.constraint(portfolio = df.con, type="weight_sum",min_sum=0.99, max_sum=1.01)
-  df.con = add.objective(portfolio = df.con, type="return", name="mean")
-  df.con <- add.objective(portfolio=df.con, type="risk", name="StdDev")
+  # r.df <- data.frame(replicate(length(instruments),rnorm(nrow(returns), mean=0, sd=.01)))
+  # names(r.df) <- instruments
+  # 
+  # rand.returns <- xts(x=r.df, order.by=index(returns))
+  
+  init.portf <- portfolio.spec(assets=instruments)
+  init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
+  init.portf <- add.constraint(portfolio=init.portf, type="long_only")
+  init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
+  init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+  
+  daily.returns <- aggregate(x=returns, by=date, FUN=sum)
+  
+  # maxSR.lo.ROI <- optimize.portfolio(R=returns, portfolio=init.portf,
+  #                                  optimize_method="ROI",
+  #                                  maxSR=TRUE, trace=TRUE)
+  
+  opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
+                                           # training_period=3,
+                                           optimize_method="ROI",
+                                           maxSR=TRUE, trace=TRUE,
+                                           rebalance_on="days")
+  
+  # df.con = portfolio.spec(assets = instruments)
+  # df.con = add.constraint(portfolio = df.con, type = "long_only")
+  # df.con = add.constraint(portfolio = df.con, type="weight_sum",min_sum=0.99, max_sum=1.01)
+  # df.con = add.objective(portfolio = df.con, type="return", name="mean")
+  # df.con <- add.objective(portfolio=df.con, type="risk", name="StdDev")
   # , target=log(volatility.target+1))
   # window.end <- length(subsystem.returns)
   # window.start <- window.end - volatility.lookback
   # rp <- random_portfolios(df.con, 1000, "sample")
   
-  daily.returns <- aggregate(x=returns, by=date, FUN=sum)
+  
   
   # registerDoParallel()
-  opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
-                                           , optimize_method = "random", trace=FALSE #, rp=rp
-                                           , rebalance_on="days")
+  # opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
+  #                                          , optimize_method = "ROI", maxSR=TRUE, trace=FALSE #, rp=rp
+  #                                          , rebalance_on="days")
   
   print(paste0("Weight Optimization time: ",opt.dn$elapsed_time))
   
-  raw.weights <- extractWeights(opt.dn)
+  raw.weights <- na.omit(extractWeights(opt.dn))
   return(raw.weights)
 }
 

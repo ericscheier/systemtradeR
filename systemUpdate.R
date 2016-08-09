@@ -25,13 +25,27 @@ systemUpdate <- function(is.live=system.config$live){
       intervalFunc <- paste0(update.states[i, "func.label"], "Function")
       running.alert <- paste0("Running ",intervalFunc)
       actionNotify(running.alert)
-      func.successful <- try(do.call(intervalFunc, args=list()))
+      
+      func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       actionNotify(func.successful)
       if(!inherits(func.successful, "try-error")){update.states[i, "last.updated"] <- current.time}
       update.states[i, "locked"] <- FALSE
       saveRDS(update.states, "update_states.RDS")
     }
   }
+}
+
+runParallelFunc <- function(parallel.func.name, args=list()){
+  cl <- makeCluster(detectCores()-1)
+  registerDoParallel(cl)
+  clusterEvalQ(cl,source("sources.R"))
+  clusterExport(cl, c("system.config"))
+  
+  func.successful <- try(do.call(parallel.func.name, args=args))
+  
+  stopCluster(cl)
+  registerDoSEQ()
+  return(func.successful)
 }
 
 testFunction <- function(){return("Test Successful")}
@@ -46,12 +60,23 @@ minutesFunction <- function(){
 }
 
 hoursFunction <- function(){
+  # cancel open orders
+  # refreshVolatility (not forecasts or anything else)
+  # determine trades to make
+  # make trades
+  return.temp <- "Nothing in this function yet"
+  return(return.temp)
+}
+
+daysFunction <- function(){
+  # volatilityTargetChecking()
+  # reporting
   # update pricing
   refreshed.pricing <- refreshPortfolioPricing()
   # cancel open trades
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
-  # update portfolio & make trades
+  # refresh forecasts and volatility
   refreshed.portfolio <- refreshPortfolio()
   trades.to.make <- tradesToMake()
   trades.made <- NULL
@@ -63,22 +88,12 @@ hoursFunction <- function(){
               trades.made))
 }
 
-daysFunction <- function(){
-  # volatilityTargetChecking()
-  # reporting
-  # recalculate forecast scalars?
-  # recalculate forecast weights?
-  # refreshed.pricing <- refreshPortfolioPricing()
+monthsFunction <- function(){
   return.temp <- "Nothing in this function yet"
   return(return.temp)
 }
 
 weeksFunction <- function(){
-  return.temp <- "Nothing in this function yet"
-  return(return.temp)
-}
-
-monthsFunction <- function(){
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
   simulated.forecasts <- simulateForecasts()
