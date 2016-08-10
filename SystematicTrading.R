@@ -216,8 +216,8 @@ rawWeights <- function(return.path=NULL){
   init.portf <- portfolio.spec(assets=instruments)
   init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
   init.portf <- add.constraint(portfolio=init.portf, type="long_only")
-  init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
-  init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+  # init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
+  # init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
   
   daily.returns <- aggregate(x=returns, by=date, FUN=sum)
   
@@ -228,7 +228,8 @@ rawWeights <- function(return.path=NULL){
   opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
                                            # training_period=3,
                                            optimize_method="ROI",
-                                           maxSR=TRUE, trace=TRUE,
+                                           maxSR=TRUE,
+                                           # trace=TRUE,
                                            rebalance_on="days")
   
   # df.con = portfolio.spec(assets = instruments)
