@@ -36,7 +36,7 @@ systemUpdate <- function(is.live=system.config$live){
 }
 
 runParallelFunc <- function(parallel.func.name, args=list()){
-  cl <- makeCluster(detectCores()-1)
+  cl <- makeCluster(detectCores())
   registerDoParallel(cl)
   clusterEvalQ(cl,source("sources.R"))
   clusterExport(cl, c("system.config"))
@@ -64,8 +64,18 @@ hoursFunction <- function(){
   # refreshVolatility (not forecasts or anything else)
   # determine trades to make
   # make trades
-  return.temp <- "Nothing in this function yet"
-  return(return.temp)
+  canceling.orders <- NULL
+  if(system.config$live){canceling.orders <- cancelAllOrders()}
+  # refreshed.volatility <- refreshVolatility()
+  refreshed.portfolio <- refreshPortfolio()
+  trades.to.make <- tradesToMake()
+  trades.made <- NULL
+  if(system.config$live){trades.made <- makeTrades()}
+  return(list(refreshed.pricing,
+              canceling.orders,
+              refreshed.portfolio,
+              trades.to.make,
+              trades.made))
 }
 
 daysFunction <- function(){
@@ -77,6 +87,8 @@ daysFunction <- function(){
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
   # refresh forecasts and volatility
+  # refreshed.forecasts <- refreshForecasts()
+  # refreshed.volatility <- refreshVolatility()
   refreshed.portfolio <- refreshPortfolio()
   trades.to.make <- tradesToMake()
   trades.made <- NULL
