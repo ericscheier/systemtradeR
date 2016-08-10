@@ -14,25 +14,28 @@ if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.
 system.config$live = is.live.machine
 #~~~~!!!!!~~~~#
 
-system.config$volatility.lookback <- 101 #hours
+system.config$volatility.lookback <- 36 #101 #hours
+system.config$lookback.hours <- 450*24
 system.config$volatility.target <- .005 # hourly target volatility in % terms 
 # started at 0.0005
 # bumped up 10x to reflect vol of market & underinvestment
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
 system.config$minimum.position.change <- .1 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
-if(inherits(try(getPairs(), silent=TRUE), "try-error")){
-  system.config$portfolio.pairs <- refreshPairs()
-} else {
-    system.config$portfolio.pairs <- getPairs()
-    }
+
+system.config$portfolio.pairs <- getPortfolioPairs()
+system.config$portfolio.forecasts <- getPortfolioForecasts()
+
 system.config$poloniex.key <- "O2NT3UJT-04WVU41J-52ETHGHN-WCGM7DUM"
 system.config$poloniex.secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541fc8823c725b1c352fa2b04edceba44d37cb7c216c6f2a062fc538a3119abcbe8e317f8eee32165168d"
-if(is.null(system.config$poloniex.margin.value)){try(system.config$poloniex.margin.value <- accountValue())}
+if(is.null(system.config$poloniex.margin.value)){system.config$poloniex.margin.value <- try(accountValue())}
+if(inherits(system.config$poloniex.margin.value, "try-error")){
+  margin_account_value <- readRDS("data/clean/margin_account_value.RDS")
+  system.config$poloniex.margin.value <- tail(margin_account_value$btc_value,1)}
 
 base <- "BTC"
 exchange.rate.prices.path <- paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv")
-if(!file.exists(exchange.rate.prices.path)){refreshPricing()}
+if(!file.exists(exchange.rate.prices.path)){refreshPortfolioPricing()}
 exchange.rate.prices <- read.csv(exchange.rate.prices.path, stringsAsFactors = FALSE) # instrument currency / account value currency (USD)
 
 system.config$five.exchange.rate <- xts(x=exchange.rate.prices[,"close"]
@@ -46,6 +49,5 @@ system.config$first.exchange.rate <- index(head(system.config$five.exchange.rate
 system.config$last.exchange.rate <- index(tail(system.config$five.exchange.rate,1)) - minutes(10)
 system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.rate[system.config$last.exchange.rate])
 
-if (!exists('.instrument')) .instrument <- new.env()
-if (!exists('.blotter')) .blotter <- new.env()
-if (!exists('.strategy')) .strategy <- new.env()
+system.config$volatility.benchmark <- 0.001 # hourly vol (emaVolatility)
+system.config$volume.benchmark <- 50 #BTC per volatility lookback period

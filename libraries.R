@@ -8,14 +8,14 @@ libraries <- c("xts",
                "httr",
                "plyr",
                "digest",
+               "jsonlite",
                "RCurl",
                "stringr",
                "slackr",
                "httr",
                "quantstrat",
-               # "IKTrading",  
-               "lattice",
-               "doParallel"
+               "ROI",  
+               "lattice"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
