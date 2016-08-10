@@ -195,7 +195,7 @@ filterPairs <- function(){
   investment.universe <- loadInvestmentUniverse()
   
   investment.universe$passes.filter <- apply(investment.universe, 1, assetFilterRules)
-  saveInvesmentUniverse(investment.universe)
+  saveInvestmentUniverse(investment.universe)
   return()
 }
 
