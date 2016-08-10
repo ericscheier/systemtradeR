@@ -15,66 +15,128 @@ accountValue <- function(){
   # account.value <- 0.1 # in BTC
   return(account.value)
 }
-calculateSubsystemForecasts <- function(pairs=system.config$portfolio.pairs){
+
+updateInstrumentForecasts <- function(pairs=system.config$portfolio.pairs){
   portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
-  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemForecast)
-  return(portfolio)
+  portfolio$instrument.forecast <- apply(portfolio, 1, productionSubsystemForecast)
+  
+  investment.universe <- updateInvestmentUniverse(portfolio)
+  
+  return()
 }
 
-calculateInstrumentVolatilities <- function(pairs=system.config$portfolio.pairs){
+updateInstrumentVolatilities <- function(pairs=system.config$portfolio.pairs){
   portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
-  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemForecast)
-  return(portfolio)
+  portfolio$instrument.volatility <- apply(portfolio, 1, productionInstrumentVolatility)
+  
+  investment.universe <- updateInvestmentUniverse(portfolio)
+  
+  return()
 }
 
-
-calculateSubsystemPositions <- function(pairs=system.config$portfolio.pairs){
-  # really need to speed this function up
-  # recordAccountValue()
-  portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
-  portfolio$subsystem.position <- apply(portfolio, 1, productionSubsystemPosition)
-  # want to save these to an RDS every 5 minutes when running live
-  return(portfolio)
-}
-
-calculateOptimalPortfolio <- function(){
-  print("Calculating the optimal portfolio")
-  portfolio <- calculateSubsystemPositions()
+updateInstrumentWeights <- function(pairs=system.config$portfolio.pairs){
+  
   iw <- tail(readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS")),1)
-  instrument.weights <- data.frame(asset=portfolio$asset, instrument.weight=t(iw)[portfolio$asset,], row.names = NULL)
+  portfolio <- data.frame(asset=pairs, instrument.weight=t(iw)[pairs,], row.names=NULL, stringsAsFactors=F)
+  
+  investment.universe <- updateInvestmentUniverse(portfolio)
+  
+  return()
+}
+
+updateSubsystemPositions <- function(){
+  
+  investment.universe <- loadInvestmentUniverse()
+  investment.universe[,"subsystem.position"] <- apply(investment.universe, 1,
+                                                      function(x) subsystemPosition(ref.price=x["ref.price"],
+                                                                                    instrument.volatility=x["instrument.volatility"],
+                                                                                    instrument.forecast=x["instrument.forecast"]))
+  
+  saveInvestmentUniverse(investment.universe)
+  
+  return()
+}
+
+updateRefPrices <- function(pairs=system.config$portfolio.pairs){
+  portfolio <- data.frame(asset=pairs, stringsAsFactors = F)
+  portfolio$ref.price <- apply(portfolio, 1, getExchangeRate)
+  
+  updateInvestmentUniverse(portfolio)
+  
+  return()
+}
+
+updateOptimalPositions <- function(){
+  print("Calculating the optimal portfolio")
+  investment.universe <- loadInvestmentUniverse()
+  
   instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
-  portfolio <- merge(portfolio, instrument.weights)
   
-  portfolio$optimal.position <- with(portfolio, instrument.weight * subsystem.position * instrument.diversification.multiplier)
-  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  within(investment.universe, {optimal.position = instrument.weight * subsystem.position * instrument.diversification.multiplier})
   
-  investment.universe$optimal.position[match(portfolio$asset, investment.universe$asset)] <- portfolio$optimal.position
-  investment.universe$optimal.position[is.na(match(investment.universe$asset, portfolio$asset))] <- 0
-  saveRDS(investment.universe, file="data/clean/investment_universe.RDS")
+  investment.universe <- saveInvestmentUniverse(investment.universe)
+  
   return(investment.universe)
 }
 
-calculateCurrentPortfolio <- function(){
+updateCurrentPositions <- function(){
   print("Calculating the current portfolio")
   balances <- getMarginPosition(currency.pair="all")
   portfolio <- data.frame(asset=names(balances), stringsAsFactors = FALSE)
   portfolio$current.position <- apply(portfolio["asset"], 1, function(x) as.numeric(balances[[x]]$amount))
   
-  investment.universe <- readRDS(relativePath("data/clean/investment_universe.RDS"))
+  investment.universe <- updateInvestmentUniverse(portfolio)
   
-  investment.universe$current.position[match(portfolio$asset, investment.universe$asset)] <- portfolio$current.position
-  investment.universe$current.position[is.na(match(investment.universe$asset, portfolio$asset))] <- 0
-  
-  saveRDS(investment.universe, file=relativePath("data/clean/investment_universe.RDS"))
   return(investment.universe)
 }
 
-refreshPortfolio <- function(){
-  calculateOptimalPortfolio()
-  calculateCurrentPortfolio()
+updateOpenOrders <- function(){
   
-  investment.universe <- readRDS(relativePath("data/clean/investment_universe.RDS"))
+  open.orders <- ldply(returnOpenOrders(), data.frame)
+  return(open.orders)
+}
+
+refreshVolatility <- function(){
+  updateInstrumentVolatilities()
+  updateOptimalPortfolio()
+  updateCurrentPortfolio()
+  
+  investment.universe <- loadInvestmentUniverse()
   return(investment.universe[investment.universe$passes.filter,])
+}
+
+refreshPortfolio <- function(){
+  updateInstrumentForecasts()
+  updateInstrumentVolatilities()
+  updateOptimalPortfolio()
+  updateCurrentPortfolio()
+  
+  investment.universe <- loadInvestmentUniverse()
+  return(investment.universe[investment.universe$passes.filter,])
+}
+
+refreshInvestmentUniverse <- function(){
+  updateInstrumentForecasts()
+  updateInstrumentVolatilities()
+  updateInstrumentWeights()
+  updateSubsystemPositions()
+  updateRefPrices()
+  updateOptimalPositions()
+  updateCurrentPositions()
+  updateOpenOrders()
+}
+
+updateInvestmentUniverse <- function(portfolio){
+  # portfolio object must have "asset" column and column matching desired investment universe column
+  update.columns <- names(portfolio)[names(portfolio)!="asset"]
+  
+  investment.universe <- loadInvestmentUniverse()
+  
+  investment.universe[match(portfolio$asset, investment.universe$asset),update.columns] <- portfolio[,update.columns]
+  investment.universe[is.na(match(investment.universe$asset, portfolio$asset)),update.columns] <- 0
+  
+  saveInvestmentUniverse(investment.universe)
+  return(investment.universe)
 }
 
 # maxPosition <- function(pair=NULL, account.value){
@@ -130,25 +192,33 @@ filterPairs <- function(){
   # update universe of pairs I am interested in
   
   # right now only want BTC pairs with leverage available
-  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  investment.universe <- loadInvestmentUniverse()
   
   investment.universe$passes.filter <- apply(investment.universe, 1, assetFilterRules)
-  saveRDS(investment.universe, "data/clean/investment_universe.RDS")
+  saveInvesmentUniverse(investment.universe)
   return()
 }
 
 refreshPortfolioPairs <- function(){
   filterPairs()
   system.config$portfolio.pairs <- getPortfolioPairs()
-  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  investment.universe <- loadInvestmentUniverse()
   return(investment.universe[!investment.universe$is.restricted,])
 }
 
 getPortfolioPairs <- function(){
   if(!file.exists("data/clean/investment_universe.RDS")){initializeInvestmentUniverse()}
-  investment.universe <- readRDS("data/clean/investment_universe.RDS")
+  investment.universe <- loadInvestmentUniverse()
   portfolio.pairs <- investment.universe$asset[investment.universe$passes.filter]
   return(portfolio.pairs)
+}
+
+loadInvestmentUniverse <- function(){
+  return(readRDS(relativePath("/data/clean/investment_universe.RDS")))
+}
+
+saveInvestmentUniverse <- function(new.investment.universe){
+  saveRDS(new.investment.universe, file=relativePath("data/clean/investment_universe.RDS"))
 }
 
 initializeInvestmentUniverse <- function(){
@@ -163,5 +233,5 @@ initializeInvestmentUniverse <- function(){
                               optimal.position=0, is.locked=FALSE)
   investment.universe <- rbind(investment.universe, base.currency)
   
-  saveRDS(investment.universe, file="data/clean/investment_universe.RDS")
+  saveInvestmentUniverse()
 }

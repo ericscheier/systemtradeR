@@ -103,8 +103,9 @@ productionSubsystemForecast <- function(pair=NULL, five.minute.price.xts=NULL){
 }
 
 productionSubsystemPosition <- function(pair=NULL, subsystem.forecast=NULL, 
-                                        instrument.volatility=NULL, five.minute.price.xts=NULL){
-  if(is.null(five.minute.price.xts)){
+                                        instrument.volatility=NULL, ref.price=NULL,
+                                        five.minute.price.xts=NULL){
+  if(any(is.null(c(subsystem.forecast, instrument.volatility, ref.price)))){
     five.minute.price.xts <- getPairData(pair)
   }
   if(is.null(subsystem.forecast)){
@@ -120,8 +121,9 @@ productionSubsystemPosition <- function(pair=NULL, subsystem.forecast=NULL,
   # combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
   # system.forecast.average = 10 # by design this should be 10
   # subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
-  ref.price <- as.numeric(tail(five.minute.price.xts,1))
-  
+  if(is.null(ref.price)){
+    ref.price <- as.numeric(tail(five.minute.price.xts,1))
+  }
   
   
   subsystem.position <- subsystemPosition(ref.price=ref.price
@@ -133,11 +135,16 @@ productionSubsystemPosition <- function(pair=NULL, subsystem.forecast=NULL,
   return(subsystem.position)
 }
 
-subsystemPosition <- function(ref.price, total.equity
-                              , volatility.target
-                              , exchange.rate
-                              , instrument.volatility
-                              , instrument.forecast){
+subsystemPosition <- function(ref.price=NULL
+                              , total.equity=system.config$poloniex.margin.value
+                              , volatility.target=system.config$volatility.target
+                              , exchange.rate=system.config$current.exchange.rate
+                              , instrument.volatility=NULL
+                              , instrument.forecast=NULL){
+  
+  ref.price <- max(0,as.numeric(ref.price))
+  instrument.volatility <- as.numeric(instrument.volatility)
+  instrument.forecast <- as.numeric(instrument.forecast)
   
   block.value <- ref.price * .01
   cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
@@ -148,6 +155,7 @@ subsystemPosition <- function(ref.price, total.equity
   subsystem.position <- (volatility.scalar * instrument.forecast)/system.forecast.average
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
+  subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   return(subsystem.position)
 }
 

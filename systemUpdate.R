@@ -54,7 +54,8 @@ minutesFunction <- function(){
   # update & note account value
   account.value <- recordAccountValue()
   # check in on open orders and adjust accordingly
-  open.orders <- ldply(returnOpenOrders(), data.frame)
+  open.orders <- updateOpenOrders()
+  updateCurrentPositions()
   return(list(account.value,
               open.orders))
 }
@@ -66,14 +67,19 @@ hoursFunction <- function(){
   # make trades
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
-  # refreshed.volatility <- refreshVolatility()
-  refreshed.portfolio <- refreshPortfolio()
+  
+  refreshed.pricing <- refreshPortfolioPricing()
+  updateCurrentPositions()
+  updateRefPrices()
+  updateInstrumentVolatilities()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  
   trades.to.make <- tradesToMake()
   trades.made <- NULL
   if(system.config$live){trades.made <- makeTrades()}
   return(list(refreshed.pricing,
               canceling.orders,
-              refreshed.portfolio,
               trades.to.make,
               trades.made))
 }
@@ -82,20 +88,24 @@ daysFunction <- function(){
   # volatilityTargetChecking()
   # reporting
   # update pricing
-  refreshed.pricing <- refreshPortfolioPricing()
   # cancel open trades
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
   # refresh forecasts and volatility
-  # refreshed.forecasts <- refreshForecasts()
-  # refreshed.volatility <- refreshVolatility()
-  refreshed.portfolio <- refreshPortfolio()
+  refreshed.pricing <- refreshPortfolioPricing()
+  refreshed.pricing <- refreshPortfolioPricing()
+  updateCurrentPositions()
+  updateRefPrices()
+  updateInstrumentVolatilities()
+  updateInstrumentForecasts()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  
   trades.to.make <- tradesToMake()
   trades.made <- NULL
   if(system.config$live){trades.made <- makeTrades()}
   return(list(refreshed.pricing,
               canceling.orders,
-              refreshed.portfolio,
               trades.to.make,
               trades.made))
 }
@@ -109,6 +119,9 @@ weeksFunction <- function(){
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
+  
+  updateInstrumentWeights()
+  
   return(list(refreshed.pricing,
               refreshed.pairs,
               simulated.forecasts,
