@@ -233,5 +233,8 @@ initializeInvestmentUniverse <- function(){
                               optimal.position=0, is.locked=FALSE)
   investment.universe <- rbind(investment.universe, base.currency)
   
-  saveInvestmentUniverse()
+  investment.universe[,c("ref.price","instrument.volatility","instrument.weight"
+                         ,"instrument.forecast","subsystem.position")] <- 0
+  
+  saveInvestmentUniverse(investment.universe)
 }
