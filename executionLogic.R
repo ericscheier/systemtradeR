@@ -38,7 +38,7 @@ getMid <- function(ticker, pair){
 
 transactPair <- function(transactions.row){
   pair <- transactions.row["asset"]
-  transaction.size <- transactions.row["to.make"]
+  transaction.size <- as.numeric(transactions.row["to.make"])
   # for margin trading only
   ticker <- returnTicker()
   mid.point <- getMid(ticker=ticker, pair=pair)
