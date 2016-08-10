@@ -93,7 +93,6 @@ daysFunction <- function(){
   if(system.config$live){canceling.orders <- cancelAllOrders()}
   # refresh forecasts and volatility
   refreshed.pricing <- refreshPortfolioPricing()
-  refreshed.pricing <- refreshPortfolioPricing()
   updateCurrentPositions()
   updateRefPrices()
   updateInstrumentVolatilities()
