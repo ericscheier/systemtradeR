@@ -18,7 +18,7 @@ libraries <- c("xts",
                "lattice"
                )
 
-library.repos <- c("http://R-Forge.R-project.org", "http://cran.us.r-project.org")
+library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
 
 library.loaded <- unlist(lapply(libraries, require, character.only = TRUE))
 
