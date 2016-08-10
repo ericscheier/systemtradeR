@@ -100,11 +100,6 @@ daysFunction <- function(){
               trades.made))
 }
 
-monthsFunction <- function(){
-  return.temp <- "Nothing in this function yet"
-  return(return.temp)
-}
-
 weeksFunction <- function(){
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
@@ -122,6 +117,11 @@ weeksFunction <- function(){
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))
+}
+
+monthsFunction <- function(){
+  return.temp <- "Nothing in this function yet"
+  return(return.temp)
 }
 
 quartersFunction <- function(){

@@ -166,8 +166,7 @@ weightedForecasts <- function(price.xts){
   ###~~~!!!~~~###
   forecast.weights <- na.locf(merge(forecast.weights, fw), na.rm = FALSE)
   forecast.diversification.multiplier <- forecastDiversificationMultipler()
-  capped.scaled.forecasts <- xts(x=rbind(sapply(names(fw), cappedScaledForecast, price.xts=price.xts))
-                                 , order.by = index(price.xts))
+  capped.scaled.forecasts <- xts(x=rbind(sapply(names(fw), cappedScaledForecast, price.xts=price.xts)), order.by = index(price.xts))
   
   weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * forecast.diversification.multiplier
   return(weighted.forecasts)

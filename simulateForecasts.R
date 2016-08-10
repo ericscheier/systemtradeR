@@ -1,6 +1,14 @@
 volatilityAdjustedForecast <- function(price.xts, raw.forecast){
   volatility.ema <- emaVolatility(price.xts)
   volatility.adjusted.forecast <- (raw.forecast)/(volatility.ema * price.xts)
+  
+  # Get rid of infinities when there is no volatility etc.
+  volatility.adjusted.forecast <- replace(volatility.adjusted.forecast,
+                                          which(volatility.adjusted.forecast=-Inf),
+                                          c(-100))
+  volatility.adjusted.forecast <- replace(volatility.adjusted.forecast,
+                                          which(volatility.adjusted.forecast=Inf),
+                                          c(100))
   return(volatility.adjusted.forecast)
 }
 
