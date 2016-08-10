@@ -12,6 +12,7 @@ cancelAllOrders <- function(account="margin"){
       }
     }
   }
+  updateOpenOrders()
 }
 
 tradesToMake <- function(){
