@@ -228,7 +228,7 @@ rawWeights <- function(return.path=NULL){
   opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
                                            # training_period=3,
                                            optimize_method="ROI",
-                                           # maxSR=TRUE,
+                                           maxSR=TRUE,
                                            # trace=TRUE,
                                            rebalance_on="days")
   
