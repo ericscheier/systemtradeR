@@ -25,7 +25,8 @@ systemUpdate <- function(is.live=system.config$live){
       intervalFunc <- paste0(update.states[i, "func.label"], "Function")
       running.alert <- paste0("Running ",intervalFunc)
       actionNotify(running.alert)
-      func.successful <- try(do.call(intervalFunc, args=list()))
+      
+      func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       actionNotify(func.successful)
       if(!inherits(func.successful, "try-error")){update.states[i, "last.updated"] <- current.time}
       update.states[i, "locked"] <- FALSE
@@ -34,31 +35,51 @@ systemUpdate <- function(is.live=system.config$live){
   }
 }
 
+runParallelFunc <- function(parallel.func.name, args=list()){
+  cl <- makeCluster(detectCores())
+  registerDoParallel(cl)
+  clusterEvalQ(cl,source("sources.R"))
+  clusterExport(cl, c("system.config"))
+  
+  func.successful <- try(do.call(parallel.func.name, args=args))
+  
+  stopCluster(cl)
+  registerDoSEQ()
+  return(func.successful)
+}
+
 testFunction <- function(){return("Test Successful")}
 
 minutesFunction <- function(){
   # update & note account value
   account.value <- recordAccountValue()
   # check in on open orders and adjust accordingly
-  open.orders <- ldply(returnOpenOrders(), data.frame)
+  open.orders <- updateOpenOrders()
+  updateCurrentPositions()
   return(list(account.value,
               open.orders))
 }
 
 hoursFunction <- function(){
-  # update pricing
-  refreshed.pricing <- refreshPricing()
-  # cancel open trades
+  # cancel open orders
+  # refreshVolatility (not forecasts or anything else)
+  # determine trades to make
+  # make trades
   canceling.orders <- NULL
   if(system.config$live){canceling.orders <- cancelAllOrders()}
-  # update portfolio & make trades
-  refreshed.portfolio <- refreshPortfolio()
+  
+  refreshed.pricing <- refreshPortfolioPricing()
+  updateCurrentPositions()
+  updateRefPrices()
+  updateInstrumentVolatilities()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  
   trades.to.make <- tradesToMake()
   trades.made <- NULL
   if(system.config$live){trades.made <- makeTrades()}
   return(list(refreshed.pricing,
               canceling.orders,
-              refreshed.portfolio,
               trades.to.make,
               trades.made))
 }
@@ -66,22 +87,45 @@ hoursFunction <- function(){
 daysFunction <- function(){
   # volatilityTargetChecking()
   # reporting
-  # recalculate forecast scalars?
-  # recalculate forecast weights?
-  return.temp <- "Nothing in this function yet"
-  return(list(return.temp))
+  # update pricing
+  # cancel open trades
+  canceling.orders <- NULL
+  if(system.config$live){canceling.orders <- cancelAllOrders()}
+  # refresh forecasts and volatility
+  refreshed.pricing <- refreshPortfolioPricing()
+  updateCurrentPositions()
+  updateRefPrices()
+  updateInstrumentVolatilities()
+  updateInstrumentForecasts()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  
+  trades.to.make <- tradesToMake()
+  trades.made <- NULL
+  if(system.config$live){trades.made <- makeTrades()}
+  return(list(refreshed.pricing,
+              canceling.orders,
+              trades.to.make,
+              trades.made))
 }
 
 weeksFunction <- function(){
-  # refreshPairs()
-  refreshed.pricing <- refreshPricing()
+  refreshed.pricing <- refreshAllPricing()
+  refreshed.pairs <- refreshPortfolioPairs()
+  simulated.forecasts <- simulateForecasts()
+  raw.forecast.weights <- rawForecastWeights()
+  smoothed.forecast.weights <- smoothedForecastWeights()
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
-  # subsystem.returns <- readRDS(paste0(getwd(), "/data/clean/subsystem_returns.RDS"))
-  # charts.PerformanceSummary(subsystem.returns, main="Subsystem Backtested Performance")
-  # charts.PerformanceSummary(na.omit(subsystem.returns), main="NA-Removed Subsystem Backtested Performance")
+  
+  updateInstrumentWeights()
+  
   return(list(refreshed.pricing,
+              refreshed.pairs,
+              simulated.forecasts,
+              raw.forecast.weights,
+              smoothed.forecast.weights,
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))
@@ -89,7 +133,7 @@ weeksFunction <- function(){
 
 monthsFunction <- function(){
   return.temp <- "Nothing in this function yet"
-  return(list(return.temp))
+  return(return.temp)
 }
 
 quartersFunction <- function(){
