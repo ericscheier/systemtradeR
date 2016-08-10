@@ -4,10 +4,10 @@ volatilityAdjustedForecast <- function(price.xts, raw.forecast){
   
   # Get rid of infinities when there is no volatility etc.
   volatility.adjusted.forecast <- replace(volatility.adjusted.forecast,
-                                          which(volatility.adjusted.forecast=-Inf),
+                                          which(volatility.adjusted.forecast==-Inf),
                                           c(-100))
   volatility.adjusted.forecast <- replace(volatility.adjusted.forecast,
-                                          which(volatility.adjusted.forecast=Inf),
+                                          which(volatility.adjusted.forecast==Inf),
                                           c(100))
   return(volatility.adjusted.forecast)
 }
