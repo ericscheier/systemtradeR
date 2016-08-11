@@ -9,3 +9,8 @@ for(forecast.name in system.config$portfolio.forecasts){
   chart.TimeSeries(unpooled.forecast.returns, legend.loc = "topleft", colorset=tol11qualitative,
                    main=paste0("Unpooled ",forecast.name," Returns by Asset"))
 }
+
+
+investment.universe <- loadInvestmentUniverse()
+investment.universe[!investment.universe$is.restricted,]
+
