@@ -25,118 +25,117 @@ getExchangeRate <- function(pair="USDT_BTC"){
 }
 
 
-
-combinedInstrumentForecast <- function(pair=NULL, five.minute.price.xts=NULL){
-  # five.price.xts <- getPairData(pair)
-  # returns <- diff(log(ohlc.prices[,"weightedAverage"]))
-  combined.instrument.forecast <- 10
-  
-  # Apply range bounds on forecasts
-  forecast.max <- 20
-  forecast.min <- (-1)*forecast.max
-  combined.instrument.forecast <- max(min(combined.instrument.forecast,forecast.max),forecast.min)
-  return(combined.instrument.forecast)
-}
+# 
+# combinedInstrumentForecast <- function(pair=NULL, five.minute.price.xts=NULL){
+#   # five.price.xts <- getPairData(pair)
+#   # returns <- diff(log(ohlc.prices[,"weightedAverage"]))
+#   combined.instrument.forecast <- 10
+#   
+#   # Apply range bounds on forecasts
+#   forecast.max <- 20
+#   forecast.min <- (-1)*forecast.max
+#   combined.instrument.forecast <- max(min(combined.instrument.forecast,forecast.max),forecast.min)
+#   return(combined.instrument.forecast)
+# }
 
 # need to add volatility calculations, volatility adjutment, and combining forecasts for staunch systems trader
-calculateVolatility <- function(pair=NULL, hour.price.xts=NULL){
-  if(is.null(hour.price.xts)){
-    hour.price.xts <- getHourlyPairData(pair)
-  }
-  volatility.lookback <- system.config$volatility.lookback
-  
-  # we want hourly vol looking back x hours
-  percentage.change <- na.omit(tail(CalculateReturns(hour.price.xts), volatility.lookback)^2)
-  calculated.volatility <- sqrt(EMA(percentage.change, n=36))
-  return(na.omit(calculated.volatility))
-}
+# # calculateVolatility <- function(pair=NULL, hour.price.xts=NULL){
+# #   if(is.null(hour.price.xts)){
+# #     hour.price.xts <- getHourlyPairData(pair)
+# #   }
+# #   volatility.lookback <- system.config$volatility.lookback
+# #   
+# #   # we want hourly vol looking back x hours
+# #   percentage.change <- na.omit(tail(CalculateReturns(hour.price.xts), volatility.lookback)^2)
+# #   calculated.volatility <- sqrt(EMA(percentage.change, n=36))
+# #   return(na.omit(calculated.volatility))
+# # }
+# 
+# cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
+#   account.value=system.config$poloniex.margin.value
+#   # returns the cash volatility target in USDT
+#   volatility.target <- system.config$volatility.target
+#   cash.volatility.target <- account.value * volatility.target * exchange.rate
+#   return(cash.volatility.target)
+# }
+# 
+# instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL, hour.price.xts=NULL){
+#   if(is.null(hour.price.xts)){
+#     block.size <- getExchangeRate(pair=pair)     # minimum.order.size <- system.config$minimum.order.size
+#   }
+#   else {
+#     block.size <- as.numeric(tail(hour.price.xts,1))
+#   }
+#   volatility.lookback <- system.config$volatility.lookback
+#   # hour.price.xts <- getHourlyPairData(pair)
+#   block.value <- block.size * .01 # change in price when block moves 1%, BTC/XRP
+#   price.volatility <- 100*as.numeric(tail(calculateVolatility(pair, hour.price.xts=hour.price.xts),1)) # ewma of 36 trading periods
+#   instrument.currency.volatility <- block.value * price.volatility # expected hourly profit/loss in instrument units
+#   ## ^^ can be simplified to block.size * price.volatility when there is one asset per block (i.e. equities, raw FX)
+#   ## However, framework adapts to futures, etc.
+#   ## We are calculating the impact a % price move in the asset has on our bottom line per [hour], then
+#   ## How many % price moves we should expect per [hour]
+#   instrument.value.volatility <- instrument.currency.volatility * exchange.rate # instrument.currency.volatility converted to account value currency
+#   return(instrument.value.volatility)
+# }
+# volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
+#   cash.volatility.target=cashVolatilityTarget()
+#   instrument.value.volatility=instrumentValueVolatility(pair=pair, hour.price.xts = hour.price.xts)
+#   volatility.scalar <- cash.volatility.target/instrument.value.volatility # unitless
+#   return(volatility.scalar)
+# }
 
-cashVolatilityTarget <- function(exchange.rate=getExchangeRate()){
-  account.value=system.config$poloniex.margin.value
-  # returns the cash volatility target in USDT
-  volatility.target <- system.config$volatility.target
-  cash.volatility.target <- account.value * volatility.target * exchange.rate
-  return(cash.volatility.target)
-}
-
-instrumentValueVolatility <- function(exchange.rate=getExchangeRate(), pair=NULL, hour.price.xts=NULL){
-  if(is.null(hour.price.xts)){
-    block.size <- getExchangeRate(pair=pair)     # minimum.order.size <- system.config$minimum.order.size
+productionInstrumentVolatility <- function(pair=NULL, hourly.price.xts=NULL){
+  if(is.null(hourly.price.xts)){
+    hourly.price.xts <- getHourlyPairData(pair)
   }
-  else {
-    block.size <- as.numeric(tail(hour.price.xts,1))
-  }
-  volatility.lookback <- system.config$volatility.lookback
-  # hour.price.xts <- getHourlyPairData(pair)
-  block.value <- block.size * .01 # change in price when block moves 1%, BTC/XRP
-  price.volatility <- 100*as.numeric(tail(calculateVolatility(pair, hour.price.xts=hour.price.xts),1)) # ewma of 36 trading periods
-  instrument.currency.volatility <- block.value * price.volatility # expected hourly profit/loss in instrument units
-  ## ^^ can be simplified to block.size * price.volatility when there is one asset per block (i.e. equities, raw FX)
-  ## However, framework adapts to futures, etc.
-  ## We are calculating the impact a % price move in the asset has on our bottom line per [hour], then
-  ## How many % price moves we should expect per [hour]
-  instrument.value.volatility <- instrument.currency.volatility * exchange.rate # instrument.currency.volatility converted to account value currency
-  return(instrument.value.volatility)
-}
-
-volatilityScalar <- function(pair=NULL, hour.price.xts=NULL){
-  cash.volatility.target=cashVolatilityTarget()
-  instrument.value.volatility=instrumentValueVolatility(pair=pair, hour.price.xts = hour.price.xts)
-  volatility.scalar <- cash.volatility.target/instrument.value.volatility # unitless
-  return(volatility.scalar)
-}
-
-productionInstrumentVolatility <- function(pair=NULL, five.minute.price.xts=NULL){
-  if(is.null(five.minute.price.xts)){
-    five.minute.price.xts <- getPairData(pair)
-  }
-  instrument.volatility <- as.numeric(tail(emaVolatility(five.minute.price.xts),1))
+  instrument.volatility <- as.numeric(tail(emaVolatility(hourly.price.xts),1))
   return(instrument.volatility)
 }
 
-productionSubsystemForecast <- function(pair=NULL, five.minute.price.xts=NULL){
-  if(is.null(five.minute.price.xts)){
-    five.minute.price.xts <- getPairData(pair)
+productionSubsystemForecast <- function(pair=NULL, hourly.price.xts=NULL){
+  if(is.null(hourly.price.xts)){
+    hourly.price.xts <- getHourlyPairData(pair)
   }
-  subsystem.forecast <- as.numeric(tail(combinedForecast(five.minute.price.xts),1))
+  subsystem.forecast <- as.numeric(tail(combinedForecast(hourly.price.xts),1))
   return(subsystem.forecast)
 }
 
-productionSubsystemPosition <- function(pair=NULL, subsystem.forecast=NULL, 
+productionSubsystemPosition <- function(pair=NULL, instrument.forecast=NULL, 
                                         instrument.volatility=NULL, ref.price=NULL,
-                                        five.minute.price.xts=NULL){
+                                        hourly.price.xts=NULL){
   if(any(is.null(c(subsystem.forecast, instrument.volatility, ref.price)))){
-    five.minute.price.xts <- getPairData(pair)
+    hourly.price.xts <- getHourlyPairData(pair)
   }
-  if(is.null(subsystem.forecast)){
-    subsystem.forecast <- productionSubsystemForecast(pair=pair,
-                                                       five.minute.price.xts=five.minute.price.xts)
+  if(is.null(instrument.forecast)){
+    instrument.forecast <- productionSubsystemForecast(pair=pair,
+                                                       hourly.price.xts=hourly.price.xts)
   }
   if(is.null(instrument.volatility)){
     instrument.volatility <- productionInstrumentVolatility(pair=pair,
-                                                       five.minute.price.xts=five.minute.price.xts)
+                                                       hourly.price.xts=hourly.price.xts)
   }
-  # hour.price.xts <- to.hourly(five.minute.price.xts, OHLC=FALSE, indexAt="endof")
+  # hour.price.xts <- to.hourly(hourly.price.xts, OHLC=FALSE, indexAt="endof")
   # volatility.scalar=volatilityScalar(pair=pair, hour.price.xts=hour.price.xts)
-  # combined.instrument.forecast=combinedInstrumentForecast(pair=pair, five.minute.price.xts=five.minute.price.xts)
+  # combined.instrument.forecast=combinedInstrumentForecast(pair=pair, hourly.price.xts=hourly.price.xts)
   # system.forecast.average = 10 # by design this should be 10
   # subsystem.position <- (volatility.scalar * combined.instrument.forecast)/system.forecast.average
   if(is.null(ref.price)){
-    ref.price <- as.numeric(tail(five.minute.price.xts,1))
+    ref.price <- as.numeric(tail(hourly.price.xts,1))
   }
   
   
   subsystem.position <- subsystemPosition(ref.price=ref.price
-                                          , total.equity=system.config$poloniex.margin.value
+                                          , total.equity=system.config$poloniex.margin.value * system.config$current.exchange.rate
                                           , volatility.target=system.config$volatility.target
                                           , exchange.rate=system.config$current.exchange.rate
                                           , instrument.volatility=instrument.volatility
-                                          , instrument.forecast=subsystem.forecast)
+                                          , instrument.forecast=instrument.forecast)
   return(subsystem.position)
 }
 
 subsystemPosition <- function(ref.price=NULL
-                              , total.equity=system.config$poloniex.margin.value
+                              , total.equity=(system.config$poloniex.margin.value * system.config$current.exchange.rate)
                               , volatility.target=system.config$volatility.target
                               , exchange.rate=system.config$current.exchange.rate
                               , instrument.volatility=NULL
@@ -145,6 +144,8 @@ subsystemPosition <- function(ref.price=NULL
   ref.price <- max(0,as.numeric(ref.price))
   instrument.volatility <- as.numeric(instrument.volatility)
   instrument.forecast <- as.numeric(instrument.forecast)
+  exchange.rate <- as.numeric(exchange.rate)
+  volatility.target <- as.numeric(volatility.target)
   
   block.value <- ref.price * .01
   cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
@@ -161,7 +162,7 @@ subsystemPosition <- function(ref.price=NULL
 
 emaVolatility <- function(price.xts){
   # expects 5-min close of price data
-  ema.volatility <- EMA(sqrt(CalculateReturns(price.xts)^2), n=36*(60/5)) * sqrt(60/5)
+  ema.volatility <- EMA(sqrt(CalculateReturns(price.xts)^2), n=36)
   colnames(ema.volatility) <- NULL
   return(ema.volatility)
 }
@@ -187,16 +188,6 @@ combinedForecast <- function(price.xts){
   combined.forecast <- cappedForecast(combined.forecast)
   colnames(combined.forecast) <- NULL
   return(combined.forecast)
-}
-
-xtsIdentity <- function(price.xts, exchange.rate){
-  xts.identity <- exchange.rate[index(price.xts),]
-  colnames(xts.identity) <- NULL
-  return(xts.identity)
-}
-
-percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
-  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
 }
 
 smoothedWeights <- function(raw.weights.path=NULL){
@@ -262,10 +253,21 @@ rawWeights <- function(return.path=NULL){
   return(raw.weights)
 }
 
-diversificationMultiplier <- function(returns.path=NULL, weights.path=NULL){
+instrumentWeight <- function(instrument.name, price.xts){
+  instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
   
-  returns <- readRDS(relativePath(returns.path))
-  weights <- readRDS(relativePath(weights.path))
+  instrument.weight <- instrument.weights[,instrument.name]
+  return(xtsIdentity(price.xts = price.xts, to.merge = instrument.weight))
+}
+
+productionDiversificationMultiplier <- function(returns=NULL, weights=NULL, end.date=NULL){
+  if(is.null(end.date)){
+    end.date <- min(c(max(index(weights)),max(index(returns))))
+  }
+
+  date.subset <- paste0("::",end.date)
+  returns <- returns[date.subset,]
+  weights <- returns[date.subset,]
   
   # check that instrument weights sum to 1
   returns <- na.omit(returns)
@@ -278,19 +280,54 @@ diversificationMultiplier <- function(returns.path=NULL, weights.path=NULL){
   
   diversification.multiplier.max <- 2.5
   diversification.multiplier <- min(as.numeric(diversification.multiplier)
-                                               ,diversification.multiplier.max)
+                                    ,diversification.multiplier.max)
   
   return(diversification.multiplier)
 }
 
+xtsDiversificationMultiplier <- function(returns=NULL, weights=NULL){
+  start.date <-  max(c(min(index(weights)),min(index(returns))))
+  end.date <- min(c(max(index(weights)),max(index(returns))))
+  # end.date <- start.date + days(20)
+  date.subset <- paste0(start.date,"::",end.date)
+  date.index <- index(weights[date.subset,])
+  
+  dm.s <- sapply(date.index, productionDiversificationMultiplier,returns=returns, weights=weights)
+  
+  xts.diversification.multiplier <- xts(x=dm.s, order.by=date.index)
+  return(xts.diversification.multiplier)
+}
+
+instrumentDiversificationMultiplier <- function(price.xts){
+  subsystem.returns <- readRDS(relativePath("/data/clean/subsystem_returns.RDS"))
+  instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
+  
+  
+  instrument.diversification.multiplier <- xtsDiversificationMultiplier(returns=subsystem.returns,
+                                                                               weights=instrument.weights)
+  
+  return(xtsIdentity(price.xts = price.xts, to.merge = instrument.diversification.multiplier))
+}
+
+forecastDiversificationMultipler <- function(){
+  forecast.returns <- readRDS(relativePath("/data/clean/forecast_returns.RDS"))
+  forecast.weights <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
+  
+  
+  forecast.diversification.multiplier <- productionDiversificationMultiplier(returns=forecast.returns,
+                                                                   weights=forecast.weights)
+  
+  return(forecast.diversification.multiplier)
+}
+
 # generalize to diversificationMultipler function to help building forecastDiversificationMultiplier later
-instrumentDiversificationMultiplier <- function(){
-  subsystem.returns.path <- "/data/clean/subsystem_returns.RDS"
-  instrument.weights.path <- "/data/clean/smoothed_instrument_weights.RDS"
+productionInstrumentDiversificationMultiplier <- function(){
+  subsystem.returns <- readRDS(relativePath("/data/clean/subsystem_returns.RDS"))
+  instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
   
   
-  instrument.diversification.multiplier <- diversificationMultiplier(returns.path=subsystem.returns.path,
-                                                                     weights.path=instrument.weights.path)
+  instrument.diversification.multiplier <- productionDiversificationMultiplier(returns=subsystem.returns,
+                                                                     weights=instrument.weights)
   
   return(instrument.diversification.multiplier)
 }
