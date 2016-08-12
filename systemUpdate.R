@@ -36,7 +36,7 @@ systemUpdate <- function(is.live=system.config$live){
 }
 
 runParallelFunc <- function(parallel.func.name, args=list()){
-  cl <- makeCluster(detectCores())
+  cl <- makeCluster(detectCores()) # -!system.config$live
   registerDoParallel(cl)
   clusterEvalQ(cl,source("sources.R"))
   clusterExport(cl, c("system.config"))
