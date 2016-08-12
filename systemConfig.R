@@ -13,14 +13,16 @@ if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.
 #~~~~~!!!!!~~~~#
 system.config$live = is.live.machine
 #~~~~!!!!!~~~~#
+system.config$debug <- FALSE
 
+system.config$forecast.cap <- 20
 system.config$volatility.lookback <- 36 #101 #hours
 system.config$lookback.hours <- 450*24
 system.config$volatility.target <- .005 # hourly target volatility in % terms 
 # started at 0.0005
 # bumped up 10x to reflect vol of market & underinvestment
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
-system.config$minimum.position.change <- .1 # % position should change before transacting
+system.config$minimum.position.change <- .2 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
 
 system.config$portfolio.pairs <- getPortfolioPairs()
@@ -49,5 +51,6 @@ system.config$first.exchange.rate <- index(head(system.config$five.exchange.rate
 system.config$last.exchange.rate <- index(tail(system.config$five.exchange.rate,1)) - minutes(10)
 system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.rate[system.config$last.exchange.rate])
 
-system.config$volatility.benchmark <- 0.001 # hourly vol (emaVolatility)
-system.config$volume.benchmark <- 50 #BTC per volatility lookback period
+system.config$volatility.benchmark <- 0.002 # hourly vol (emaVolatility)
+system.config$volume.benchmark <- 10 * system.config$poloniex.margin.value #BTC per volatility lookback period
+

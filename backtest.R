@@ -3,6 +3,8 @@ systematicRebalance <- function (...,
                                  exchange.rate.col=NULL,
                                  instrument.volatility.col=NULL,
                                  instrument.forecast.col=NULL,
+                                 instrument.weight.col=NULL,
+                                 instrument.diversification.multiplier.col=NULL,
                                  initEq=NULL,
                                  volatility.target=NULL,
                                  minimum.order.size=NULL,
@@ -11,52 +13,66 @@ systematicRebalance <- function (...,
                                  symbol,
                                  timestamp)
 {
+  date.subset <- paste0('::',timestamp)
   mktdata.row <- mktdata[timestamp,]
-  ref.price <- mktdata.row[,ref.price.col]
-  exchange.rate <- mktdata.row[,exchange.rate.col]
-  instrument.volatility <- mktdata.row[,instrument.volatility.col]
-  instrument.forecast <- mktdata.row[,instrument.forecast.col]
+  ref.price <- as.numeric(mktdata.row[,ref.price.col])
+  exchange.rate <- as.numeric(mktdata.row[,exchange.rate.col])
+  instrument.volatility <- as.numeric(mktdata.row[,instrument.volatility.col])
+  instrument.forecast <- as.numeric(mktdata.row[,instrument.forecast.col])
+  instrument.weight <- as.numeric(mktdata.row[,instrument.weight.col])
+  instrument.diversification.multiplier <- as.numeric(mktdata.row[,instrument.diversification.multiplier.col])
   # print(timestamp)
   dummy.port <- updatePortf(Portfolio=portfolio,
-                            Dates=paste('::',timestamp,sep=''))
-  trading.pl <- sum(.getPortfolio(portfolio)$summary$Net.Trading.PL)
+                            Dates=date.subset)
+  trading.pl <- sum(getPortfolio(portfolio)$summary$Net.Trading.PL)#  * mktdata[date.subset, exchange.rate.col])
   # updateAcct(account.name)
   # print(trading.pl)
-  total.equity <- max(initEq + trading.pl * exchange.rate,0)
+  total.equity <- max(initEq + trading.pl,0)
+  
+  # print(paste0("calculated equity: ",total.equity))
+  
+  total.equity.inputs <- data.frame(initEq=initEq,
+                                    trading.pl=trading.pl,
+                                    exchange.rate=exchange.rate)
+  # print(total.equity.inputs)
   # print(paste(timestamp, total.equity, sep=": "))
   # print(paste(timestamp, trading.pl * exchange.rate, sep=": "))
   # tradeSize <- total.equity * trade.percent
   # if(length(refprice)>1) refprice <- refprice[,1]
   # if(!is.null(refprice)) tradeSize <- tradeSize/refprice
   # if(!is.null(digits)) tradeSize<-round(tradeSize,digits)
+  # subsystem.inputs <- data.frame(ref.price=ref.price,
+  #                                total.equity=total.equity,
+  #                                volatility.target=volatility.target,
+  #                                exchange.rate=exchange.rate,
+  #                                instrument.volatility=instrument.volatility,
+  #                                instrument.forecast=instrument.forecast)
+  # print(subsystem.inputs)
   
-  subsystem.position <- subsystemPosition(ref.price,
-                                          total.equity,
-                                          volatility.target,
-                                          exchange.rate,
-                                          instrument.volatility,
-                                          instrument.forecast)
   
-  # position.calcs <- data.frame(block.value=as.numeric(block.value),
-  #                              instrument.volatility=as.numeric(instrument.volatility),
-  #                              exchange.rate=as.numeric(exchange.rate),
-  #                              cash.volatility.target=as.numeric(cash.volatility.target),
-  #                              instrument.currency.volatility=as.numeric(instrument.currency.volatility),
-  #                              instrument.value.volatility=as.numeric(instrument.value.volatility),
-  #                              volatility.scalar=as.numeric(volatility.scalar),
-  #                              instrument.forecast=as.numeric(instrument.forecast),
-  #                              system.forecast.average=as.numeric(system.forecast.average),
-  #                              subsystem.position=as.numeric(subsystem.position))
-  # print(position.calcs)
+  subsystem.position <- subsystemPosition(ref.price=ref.price,
+                                          total.equity=total.equity,
+                                          volatility.target=volatility.target,
+                                          exchange.rate=exchange.rate,
+                                          instrument.volatility=instrument.volatility,
+                                          instrument.forecast=instrument.forecast)
+  
   # print(paste(timestamp, subsystem.position * ref.price, sep=": "))
+  
+  optimal.position <- subsystem.position * instrument.weight * instrument.diversification.multiplier
   
   current.position <- getPosQty(portfolio, symbol, timestamp)
   # print(paste(timestamp, current.position, sep=": "))
   
-  transaction.size <- subsystem.position - current.position
+  transaction.size <- optimal.position - current.position
   transaction.size <- transaction.size * (abs(ref.price * transaction.size) > minimum.order.size)
   transaction.size <- transaction.size * (abs(transaction.size/current.position) > minimum.position.change)
   transaction.size <- ifelse(is.na(transaction.size), 0, transaction.size)
+  
+  position.calcs <- data.frame(subsystem.position=as.numeric(subsystem.position),
+                               optimal.position=as.numeric(optimal.position),
+                               transaction.size=as.numeric(transaction.size))
+  # print(position.calcs)
   # print(paste0(timestamp,": wants ", round(subsystem.position,3),
   #              ", has ", round(current.position,3),
   #              ", transacting ", round(transaction.size,3)))
@@ -67,18 +83,61 @@ systematicRebalance <- function (...,
     
     addOrder(portfolio=portfolio, symbol=symbol, timestamp=timestamp,
              qty=transaction.size, price=ref.price, ordertype="market", side=transaction.side,
-             threshold = NULL, orderset = "", status = "open",
+             threshold = NULL, orderset = "open.orders", status = "open",
              statustimestamp = "", prefer = prefer.side, delay = 60*5, tmult = FALSE,
              replace = TRUE, return = FALSE, ..., TxnFees = "percentFee",
              time.in.force = "GTC")
   }
 }
 
-adjustedForecast <- function(forecast.name, price.xts){
+xtsIdentity <- function(price.xts, to.merge){
+  names(price.xts) <- NULL
+  names(to.merge) <- NULL
+  
+  xts.identity <- merge(price.xts, to.merge)
+  xts.identity[,"to.merge"] <- na.locf(xts.identity[,"to.merge"],na.rm = FALSE)
+  xts.identity <- xts.identity[index(price.xts),"to.merge"]
+  colnames(xts.identity) <- NULL
+  return(xts.identity)
+}
+
+percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
+  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
+}
+
+singleValue <- function(value=1, price.xts=NULL){
+  xts.index <- index(price.xts)
+  single.value <- xts(x=rep(value, length(xts.index)), order.by=xts.index)
+  return(single.value)
+}
+
+adjustedForecast <- function(price.xts, forecast.name, ...){
+  
+  price.xts <- if (is.OHLC(price.xts)) {
+    Cl(price.xts)
+    }
+  else price.xts
+  
   if(forecast.name != "combinedForecast"){
     return(cappedScaledForecast(price.xts=price.xts, forecast.name=forecast.name))
   } else {
     return(combinedForecast(price.xts=price.xts))
+  }
+}
+
+adjustedWeight <- function(forecast.name, instrument.name, price.xts){
+  if(forecast.name == "fullSystem"){
+    return(instrumentWeight(instrument.name=asset, price.xts=price.xts))
+  } else {
+    return(singleValue(value=1, price.xts=price.xts))
+  }
+}
+
+adjustedDiversificationMultiplier <- function(forecast.name, price.xts){
+  if(forecast.name == "fullSystem"){
+    return(instrumentDiversificationMultiplier(price.xts=price.xts))
+  } else {
+    return(singleValue(value=1, price.xts=price.xts))
   }
 }
 
@@ -94,6 +153,8 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   if (!exists('.strategy')) .strategy <- new.env()
   
   forecast.adjusted.name <- "adjustedForecast"
+  weight.adjusted.name <- "adjustedWeight"
+  diversification.multiplier.adjusted.name <- "adjustedDiversificationMultiplier"
   
   split.pair <- unlist(strsplit(pair, "_"))
   base <- split.pair[1]
@@ -119,8 +180,10 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   # Rebuild empty environments if RStudio's "Clear All" has been used:
   
   ## Subsetting: components of mktdata must be same length
-  trade.target.data <- getPairData(pair=pair, ohlc=TRUE, volume=TRUE)
-  fx.rate.data <- getPairData(pair=e.rate, ohlc=FALSE, volume=FALSE)
+  # trade.target.data <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE)
+  # fx.rate.data <- getHourlyPairData(pair=e.rate, ohlc=FALSE, volume=FALSE)
+  trade.target.data <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE)
+  fx.rate.data <- getHourlyPairData(pair=e.rate, ohlc=FALSE, volume=FALSE)
   # first.hour <- as.POSIXlt(index(head(trade.target.data,1)))
   # first.hour <- ceiling_date(max(c(first.hour, system.config$first.exchange.rate)), unit="hour")
   # trading.start.hour <- first.hour + hours(system.config$volatility.lookback)
@@ -166,20 +229,13 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   strategy.name <- "asset_allocation"
   symbols <- c(trade.target) #, "BTCUSD")
   
-  # specificForecast <- function(price.xts){
-  #   return(cappedScaledForecast(forecast.name=forecast.name, price.xts=price.xts))
-  # }
-  
-  # addForecast <- newTA(FUN=specificForecast, preFUN=closeOfXts)
-  # chartSeries(x=trade.target.data, subset=date.subset, TA='addForecast()')
-  
   ## To rerun
   rm.strat(portfolio.name)
   rm.strat(account.name)
   rm.strat(strategy.name)
   
   ## Initialize Portfolio, Account, and Orderbook initDate = initDate,
-  initPortf(name = portfolio.name, symbols = symbols, initPosQty = init.target,  initDate = initDate, currency = "BTC")  # getPortfolio(portfolio.name)
+  initPortf(name = portfolio.name, symbols = symbols, initPosQty = init.target,  initDate = initDate, currency = "USD")  # getPortfolio(portfolio.name)
   initAcct(name = account.name, portfolios = portfolio.name, initEq = initEq, initDate = initDate, currency = "USD")  # getAccount(account.name)
   initOrders(portfolio = portfolio.name, initDate = initDate, symbols = symbols)  # getOrderBook(portfolio.name)
   strategy(strategy.name, store = TRUE)  # summary(getStrategy(strategy.name))
@@ -194,9 +250,17 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   add.indicator(strategy.name, name= "emaVolatility", arguments = list(price.xts=quote(Cl(mktdata))), label='instrument.volatility')
   add.indicator(strategy.name, name="adjustedForecast", arguments = list(forecast.name=forecast.name, price.xts=quote(Cl(mktdata))), label='instrument.forecast')
   add.indicator(strategy.name, name="xtsIdentity", arguments = list(price.xts=quote(Cl(mktdata))
-                                                                    ,exchange.rate=quote(Cl(get(fx.rate
+                                                                    ,to.merge=quote(Cl(get(fx.rate
                                                                                                 , envir=.GlobalEnv
                                                                     )))), label="exchange.rate")
+  add.indicator(strategy.name, name= "adjustedWeight", arguments = list(forecast.name=forecast.name,
+                                                                        instrument.name=trade.target,
+                                                                        price.xts=quote(Cl(mktdata))),
+                label='instrument.weight')
+  add.indicator(strategy.name, name= "adjustedDiversificationMultiplier",
+                arguments = list(forecast.name=forecast.name,
+                                 price.xts=quote(Cl(mktdata))),
+                label='instrument.diversification.multiplier')
   
   assign("mktdata", applyIndicators(strategy.name, mktdata=get(trade.target
                                                                , envir=.GlobalEnv
@@ -301,6 +365,8 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
                           exchange.rate.col="X1.exchange.rate",
                           instrument.volatility.col="X1.instrument.volatility",
                           instrument.forecast.col="X1.instrument.forecast",
+                          instrument.weight.col="X1.instrument.weight",
+                          instrument.diversification.multiplier.col="X1.instrument.diversification.multiplier",
                           initEq=initEq,
                           volatility.target=volatility.target,
                           minimum.order.size=minimum.order.size,
@@ -308,6 +374,22 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
            ),
            type='rebalance',
            label='rebalance')
+  
+  # add.rule(strategy.name, 'volatilityRebalance',
+  #          arguments=list(rebalance_on='hours',
+  #                         ref.price.col="close",
+  #                         exchange.rate.col="X1.exchange.rate",
+  #                         instrument.volatility.col="X1.instrument.volatility",
+  #                         instrument.forecast.col="X1.instrument.forecast",
+  #                         instrument.weight.col="X1.instrument.weight",
+  #                         instrument.diversification.multiplier.col="X1.instrument.diversification.multiplier",
+  #                         initEq=initEq,
+  #                         volatility.target=volatility.target,
+  #                         minimum.order.size=minimum.order.size,
+  #                         minimum.position.change=minimum.position.change
+  #          ),
+  #          type='rebalance',
+  #          label='rebalance')
   # # Entry
   # add.rule(strategy.name,name='ruleSignal',
   #          arguments = list(sigcol="longEntry",
@@ -339,7 +421,7 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
                                         , envir=.GlobalEnv
                             ),
                             parameters=list(),
-                            verbose=TRUE
+                            verbose=system.config$debug
                             ,envir=.GlobalEnv
   )
   
@@ -351,9 +433,24 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   # t(tradeStats(portfolio.name, inclZeroDays = TRUE))
   getTxns(portfolio.name, Symbol = trade.target)
   perTradeStats(portfolio.name, trade.target)
+  
+  specificForecast <- function(price.xts, forecast.name=get(forecast.name)){
+    return(adjustedForecast(price.xts=price.xts, forecast.name=forecast.name))
+  }
+  #adjustedForecast
+  #cappedScaledForecast
+  
+  
   pdf.name <- paste0("figures/final/",pair,"_",forecast.name,"_ForecastSimulation.pdf")
+  
+  addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
+  
   pdf(pdf.name)
-  chart.Posn(Portfolio=portfolio.name,Symbol=symbols, type = "line", log.scale = F)
+  chart.Posn(Portfolio=portfolio.name, type = "line", log.scale = F)
+  # plot(addForecast())  # nFast = 60, nSlow = 180, nSig = 40, maType = 'EMA'
+  
+  # charts.TimeSeries()
+  
   # par(.pardefault)
   p <- getPortfolio(portfolio.name)
   a <- getAccount(account.name)
@@ -365,14 +462,18 @@ simulateBacktest <- function(pair=NULL, forecast.name="combinedForecast"){
   ret <- na.omit(Return.calculate(equity))
   ret <- ret[is.finite(ret)]
   
+  
+  # chartSeries(x=trade.target.data, subset=date.subset, theme=chartTheme("wsj"),
+  #             TA=paste('addForecast(forecast.name=',forecast.name,')', sep="'"))
+  
   charts.PerformanceSummary(ret, colorset = bluefocus,
                             main=paste0(trade.target,"_",forecast.name," Forecast Performance"))
   dev.off()
+  
   # par(.pardefault)
   # try(slackr_upload(pdf.name, channels = "reports"))
   # plot(add_Vo())
-  # plot(add_MACD(fast=.nFast, slow=.nSlow, signal=.nSig,maType="EMA"))  # nFast = 60, nSlow = 180, nSig = 40, maType = 'EMA'
-  
+  #   
   # ## Parameter distribution testing
   # add.distribution(strategy.name,
   #                  paramset.label = 'optEMA',
