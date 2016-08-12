@@ -1,4 +1,10 @@
 volatilityAdjustedForecast <- function(price.xts, raw.forecast){
+  
+  price.xts <- if (is.OHLC(price.xts)) {
+    Cl(price.xts)
+  }
+  else price.xts
+  
   volatility.ema <- emaVolatility(price.xts)
   volatility.adjusted.forecast <- (raw.forecast)/(volatility.ema * price.xts)
   
@@ -22,14 +28,20 @@ scaledForecast <- function(volatility.adjusted.forecast){
 }
 
 cappedForecast <- function(scaled.forecast){
-  forecast.max <- 20
+  forecast.max <- system.config$forecast.cap
   forecast.min <- -1 * forecast.max
   
   capped.forecast <- xts(x=pmax(forecast.min,pmin(forecast.max, scaled.forecast)), order.by = index(scaled.forecast))
   return(capped.forecast)
 }
 
-cappedScaledForecast <- function(forecast.name=NULL, price.xts=NULL){
+cappedScaledForecast <- function(price.xts=NULL, forecast.name=NULL, ...){
+  
+  price.xts <- if (is.OHLC(price.xts)) {
+    Cl(price.xts)
+  }
+  else price.xts
+  
   raw.forecast <- do.call(forecast.name, args=list(price.xts))
   volatility.adjusted.forecast <- volatilityAdjustedForecast(price.xts, raw.forecast)
   scaled.forecast <- scaledForecast(volatility.adjusted.forecast)
@@ -55,17 +67,6 @@ smoothedForecastWeights <- function(){
   
   plotWeights(weights.var=smoothed.forecast.weights, weights.name="smoothed_forecast_weights")
   return(smoothed.forecast.weights)
-}
-
-forecastDiversificationMultipler <- function(){
-  forecast.returns.path <- "/data/clean/forecast_returns.RDS"
-  forecast.weights.path <- "/data/clean/smoothed_forecast_weights.RDS"
-  
-  
-  forecast.diversification.multiplier <- diversificationMultiplier(returns.path=forecast.returns.path,
-                                                                   weights.path=forecast.weights.path)
-  
-  return(forecast.diversification.multiplier)
 }
 
 simulateForecasts <- function(){

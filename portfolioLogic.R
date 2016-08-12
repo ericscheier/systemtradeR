@@ -70,7 +70,7 @@ updateOptimalPositions <- function(){
   print("Calculating the optimal portfolio")
   investment.universe <- loadInvestmentUniverse()
   
-  instrument.diversification.multiplier <- instrumentDiversificationMultiplier()
+  instrument.diversification.multiplier <- productionInstrumentDiversificationMultiplier()
   
   within(investment.universe, {optimal.position = instrument.weight * subsystem.position * instrument.diversification.multiplier})
   
@@ -174,7 +174,8 @@ assetFilterRules <- function(investment.universe.row){
   
   asset.data <- getPairData(pair=asset, ohlc = TRUE, volume = TRUE)
   asset.volatility <- as.numeric(tail(emaVolatility(Cl(asset.data)),1))
-  asset.volume <- sum(as.numeric(tail(asset.data$volume, system.config$volatility.lookback*(60/5))))
+  asset.volume <- sum(as.numeric(tail(asset.data$volume, system.config$volatility.lookback)))
+  print(paste0(asset," volatility ",asset.volatility," volume ",asset.volume))
   if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
   
   # print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
