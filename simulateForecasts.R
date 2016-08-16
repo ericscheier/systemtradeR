@@ -104,6 +104,6 @@ poolForecasts <- function(forecast.name=NULL){
   file.name <- paste0("/data/clean/",forecast.name,"_forecast_returns.RDS")
   saveRDS(pooled.results, file=relativePath(file.name))
   
-  pooled.forecast <- rowSumXts(pooled.results, name=forecast.name)/length(portfolio.pairs)
+  pooled.forecast <- rowSumXts(pooled.results, name=forecast.name)
   return(pooled.forecast)
 }

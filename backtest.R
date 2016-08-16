@@ -118,7 +118,7 @@ adjustedForecast <- function(price.xts, forecast.name, ...){
     }
   else price.xts
   
-  if(forecast.name != "combinedForecast"){
+  if(forecast.name != "combinedForecast" && forecast.name != "fullSystem"){
     return(cappedScaledForecast(price.xts=price.xts, forecast.name=forecast.name))
   } else {
     return(combinedForecast(price.xts=price.xts))
@@ -127,9 +127,9 @@ adjustedForecast <- function(price.xts, forecast.name, ...){
 
 adjustedWeight <- function(forecast.name, instrument.name, price.xts){
   if(forecast.name == "fullSystem"){
-    return(instrumentWeight(instrument.name=asset, price.xts=price.xts))
+    return(instrumentWeight(instrument.name=instrument.name, price.xts=price.xts))
   } else {
-    return(singleValue(value=1, price.xts=price.xts))
+    return(singleValue(value=1/length(system.config$portfolio.pairs), price.xts=price.xts))
   }
 }
 
