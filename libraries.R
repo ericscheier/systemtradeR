@@ -1,6 +1,7 @@
 libraries <- c("xts",
                "lubridate",
                "TTR",
+               "devtools",
                "PerformanceAnalytics",
                "PortfolioAnalytics",
                "DEoptim",
@@ -13,6 +14,7 @@ libraries <- c("xts",
                "stringr",
                "slackr",
                "httr",
+               "rCharts", # install_github("ramnathv/rCharts")
                "quantstrat",
                "ROI",  
                "lattice"

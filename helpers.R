@@ -24,6 +24,19 @@ removeLeadingZeros <- function(returns.xts){
   return(adjusted.xts)
 }
 
+replaceLeadingZeros <- function(returns.xts){
+  
+  columnReplace <- function(column){
+    leading.zeros <- cumsum(abs(column))==0
+    column[leading.zeros] <- NA
+    return(column)
+  }
+  
+  adjusted.xts <- apply(returns.xts, 2, columnReplace)
+  
+  return(as.xts(adjusted.xts))
+}
+
 relativePath <- function(path){
   # path should have a slash in front of it
   path <- gsub("^/?", "/",path)
