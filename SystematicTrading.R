@@ -1,6 +1,6 @@
 getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
   columns <- c("close")
-  if(ohlc){columns <- c("high", "low", "open", columns)}
+  if(ohlc){columns <- c("open", "high", "low", columns)}
   if(volume){columns <- c(columns, "volume")}
   ohlc.prices <- read.csv(paste0(getwd(),"/data/raw/",pair,"_ohlc.csv"), stringsAsFactors = FALSE) # five minute frequency
   five.price.xts <- xts(x=ohlc.prices[,columns]
@@ -139,7 +139,12 @@ subsystemPosition <- function(ref.price=NULL
                               , volatility.target=system.config$volatility.target
                               , exchange.rate=system.config$current.exchange.rate
                               , instrument.volatility=NULL
-                              , instrument.forecast=NULL){
+                              , instrument.forecast=NULL
+                              , instrument.symbol=NULL){
+  
+  if(is.null(exchange.rate)){
+    getInstrument(instrument.symbol)$currency
+  }
   
   ref.price <- max(0,as.numeric(ref.price))
   instrument.volatility <- as.numeric(instrument.volatility)
@@ -155,7 +160,7 @@ subsystemPosition <- function(ref.price=NULL
   system.forecast.average <- 10 # by design, but can make dynamic
   subsystem.position <- (volatility.scalar * instrument.forecast)/system.forecast.average
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
-  subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
+  # subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   return(subsystem.position)
 }
@@ -202,33 +207,70 @@ smoothedWeights <- function(raw.weights.path=NULL){
 }
 
 rawWeights <- function(return.path=NULL){
-  returns <- na.omit(readRDS(relativePath(return.path)))
-  returns <- removeLeadingZeros(returns.xts=returns)
-  instruments <- colnames(returns)
+  start_t <- Sys.time()
+  rebalance_on = "hours"
+  training_period = 1#36
+  
+  returns <- readRDS(relativePath(return.path))
+  returns <- replaceLeadingZeros(returns.xts=returns)
+  returns <- na.trim(returns, sides="left", is.na="all")
+  # returns <- returns[3200:3500,]
+  all.instruments <- colnames(returns)
+  
+  ep.i <- endpoints(returns, on = rebalance_on)[which(endpoints(returns, 
+                                                          on = rebalance_on) >= training_period)]
+  # ep.i.index <- index(returns)
+  
+  # ep <- ep.i[training_period+1]
+  raw.weights <- foreach::foreach(ep = iterators::iter(ep.i), .combine="rbind", .packages = "PortfolioAnalytics") %dopar% 
+                               {
+                                 time.step <- index(returns)[ep]
+                                 R <- returns[1:ep,apply(!is.na(returns[(ep-training_period):ep,]),2,any)]
+                                 R <- na.omit(R)
+                                 
+                                 instruments <- colnames(R)
+                                 ignored.instruments <- all.instruments[!(all.instruments %in% instruments)]
+                                 
+                                 init.portf <- portfolio.spec(assets=instruments)
+                                 init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
+                                 init.portf <- add.constraint(portfolio=init.portf, type="long_only")
+                                 init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
+                                 init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+                                 
+                                 opt.dn <- optimize.portfolio(R, portfolio=init.portf,
+                                                    optimize_method="ROI",
+                                                    maxSR=TRUE #,
+                                                    # search_size = search_size, 
+                                                    # trace = trace,
+                                                    # rp = rp
+                                                    )
+                                 weights.list <- c(opt.dn$weights,
+                                                   setNames(rep(0, length(ignored.instruments)), ignored.instruments))
+                                 
+                                 weights <- as.xts(data.frame(t(weights.list), row.names = time.step))
+                               }
+  
+  
   
   # r.df <- data.frame(replicate(length(instruments),rnorm(nrow(returns), mean=0, sd=.01)))
   # names(r.df) <- instruments
   # 
   # rand.returns <- xts(x=r.df, order.by=index(returns))
   
-  init.portf <- portfolio.spec(assets=instruments)
-  init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
-  init.portf <- add.constraint(portfolio=init.portf, type="long_only")
-  init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
-  init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
   
-  daily.returns <- aggregate(x=returns, by=date, FUN=sum)
+  
+  # daily.returns <- aggregate(x=returns, by=date, FUN=sum)
   
   # maxSR.lo.ROI <- optimize.portfolio(R=returns, portfolio=init.portf,
   #                                  optimize_method="ROI",
   #                                  maxSR=TRUE, trace=TRUE)
   
-  opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
-                                           # training_period=3,
-                                           optimize_method="ROI",
-                                           maxSR=TRUE,
-                                           # trace=TRUE,
-                                           rebalance_on="days")
+  # opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
+  #                                          # training_period=3,
+  #                                          optimize_method="ROI",
+  #                                          maxSR=TRUE,
+  #                                          # trace=TRUE,
+  #                                          rebalance_on="days")
   
   # df.con = portfolio.spec(assets = instruments)
   # df.con = add.constraint(portfolio = df.con, type = "long_only")
@@ -246,11 +288,11 @@ rawWeights <- function(return.path=NULL){
   # opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
   #                                          , optimize_method = "ROI", maxSR=TRUE, trace=FALSE #, rp=rp
   #                                          , rebalance_on="days")
+  end_t <- Sys.time()
+  print(paste0("Weight Optimization time: ",end_t - start_t))
   
-  print(paste0("Weight Optimization time: ",opt.dn$elapsed_time))
-  
-  raw.weights <- na.omit(extractWeights(opt.dn))
-  return(raw.weights)
+  # raw.weights <- na.omit(extractWeights(opt.dn))
+  return(na.omit(raw.weights))
 }
 
 instrumentWeight <- function(instrument.name, price.xts){
