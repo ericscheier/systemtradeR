@@ -155,7 +155,7 @@ subsystemPosition <- function(ref.price=NULL
   block.value <- ref.price * .01
   cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
   instrument.currency.volatility <- block.value * instrument.volatility * 100
-  instrument.value.volatility <- instrument.currency.volatility * exchange.rate
+  instrument.value.volatility <- instrument.currency.volatility / exchange.rate
   volatility.scalar <- cash.volatility.target/instrument.value.volatility
   system.forecast.average <- 10 # by design, but can make dynamic
   subsystem.position <- (volatility.scalar * instrument.forecast)/system.forecast.average
@@ -172,22 +172,22 @@ emaVolatility <- function(price.xts){
   return(ema.volatility)
 }
 
-weightedForecasts <- function(price.xts){
+weightedForecasts <- function(price.xts, instrument.name){
   forecast.weights <- xts(order.by=index(price.xts))
   ###~~~!!!~~~###
   ## Not sure whether weights need to be lagged by a day. Need to evaluate in depth!
-  fw <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
+  fw <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"smoothed_forecast_weights.RDS")))
   ###~~~!!!~~~###
   forecast.weights <- na.locf(merge(forecast.weights, fw), na.rm = FALSE)
-  forecast.diversification.multiplier <- forecastDiversificationMultipler()
+  forecast.diversification.multiplier <- forecastDiversificationMultipler(instrument.name)
   capped.scaled.forecasts <- xts(x=rbind(sapply(names(fw), cappedScaledForecast, price.xts=price.xts)), order.by = index(price.xts))
   
   weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * forecast.diversification.multiplier
   return(weighted.forecasts)
 }
 
-combinedForecast <- function(price.xts){
-  weighted.forecasts <- weightedForecasts(price.xts)
+combinedForecast <- function(price.xts, instrument.name){
+  weighted.forecasts <- weightedForecasts(price.xts, instrument.name)
   combined.forecast <- xts(x=rowSums(weighted.forecasts, na.rm=FALSE), order.by=index(price.xts))
   
   combined.forecast <- cappedForecast(combined.forecast)
@@ -313,7 +313,7 @@ productionDiversificationMultiplier <- function(returns=NULL, weights=NULL, end.
   
   # check that instrument weights sum to 1
   returns <- na.omit(returns)
-  weights <- tail(weights, 1)
+  weights <- tail(weights[,colnames(returns)], 1)
   weights <- array(weights/sum(weights))
   # print(sum(instrument.weights==1))
   correlation.matrix <- cor(returns)
@@ -341,7 +341,7 @@ xtsDiversificationMultiplier <- function(returns=NULL, weights=NULL){
 }
 
 instrumentDiversificationMultiplier <- function(price.xts){
-  subsystem.returns <- readRDS(relativePath("/data/clean/subsystem_returns.RDS"))
+  subsystem.returns <- readRDS(relativePath("/data/clean/instrument_returns.RDS"))
   instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
   
   
@@ -351,9 +351,9 @@ instrumentDiversificationMultiplier <- function(price.xts){
   return(xtsIdentity(price.xts = price.xts, to.merge = instrument.diversification.multiplier))
 }
 
-forecastDiversificationMultipler <- function(){
-  forecast.returns <- readRDS(relativePath("/data/clean/forecast_returns.RDS"))
-  forecast.weights <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
+forecastDiversificationMultipler <- function(instrument.name){
+  forecast.returns <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_forecast_returns.RDS")))
+  forecast.weights <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_smoothed_forecast_weights.RDS")))
   
   
   forecast.diversification.multiplier <- productionDiversificationMultiplier(returns=forecast.returns,

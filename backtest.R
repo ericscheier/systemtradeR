@@ -3,9 +3,10 @@ systematicRebalance <- function (...,
                                  exchange.rate.col=NULL,
                                  instrument.volatility.col=NULL,
                                  instrument.forecast.col=NULL,
-                                 instrument.weight.col=NULL,
                                  instrument.diversification.multiplier.col=NULL,
+                                 forecast.name=NULL,
                                  initEq=NULL,
+                                 adjusted.weights=NULL,
                                  volatility.target=NULL,
                                  minimum.order.size=NULL,
                                  minimum.position.change=NULL,
@@ -13,70 +14,45 @@ systematicRebalance <- function (...,
                                  symbol,
                                  timestamp)
 {
-  print(tail(mktdata))
+  # print(symbol)
   date.subset <- paste0('::',timestamp)
+  active.symbols <- colnames(adjusted.weights[timestamp,which(adjusted.weights[timestamp,]!=0)])
+  # print(active.symbols)
   mktdata.row <- mktdata[timestamp,]
-  ref.price <- as.numeric(mktdata.row[,ref.price.col])
+  # print(mktdata.row)
   exchange.rate <- 1
-  instrument.volatility <- as.numeric(mktdata.row[,instrument.volatility.col])
-  instrument.forecast <- as.numeric(mktdata.row[,instrument.forecast.col])
-  instrument.weight <- as.numeric(mktdata.row[,instrument.weight.col])
-  instrument.diversification.multiplier <- as.numeric(mktdata.row[,instrument.diversification.multiplier.col])
-  print(date.subset)
-  Portfolio <- updatePortf(Portfolio=portfolio,
-                            Dates=date.subset, env=.instrument)
-  trading.pl <- sum(Portfolio$summary$Net.Trading.PL)#  * mktdata[date.subset, exchange.rate.col])
   
-  s.ccy.str <- getInstrument(symbol)$currency
+  # need to rethink how to account for newly 'available' assets correctly
   
-  if (!is.null(attr(Portfolio, "currency"))) {
-    p.ccy.str <- attr(Portfolio, "currency")
-  }
-  psummary = Portfolio$summary[date.subset]
-  if (s.ccy.str != p.ccy.str) {
-    CcyMult <- NA
-    port_currency <- try(getInstrument(p.ccy.str), silent = TRUE)
-    if (inherits(port_currency, "try-error") | !is.instrument(port_currency)) {
-      warning("Currency", p.ccy.str, " not found, using currency multiplier of 1")
-      CcyMult <- 1
-    }
-    else {
-      FXrate.str <- paste(p.ccy.str, s.ccy.str, sep = "")
-      FXrate <- try(get(FXrate.str), silent = TRUE)
-      invert = FALSE
-      if (inherits(FXrate, "try-error")) {
-        FXrate.str <- paste(s.ccy.str, p.ccy.str, 
-                            sep = "")
-        FXrate <- try(get(FXrate.str), silent = TRUE)
-        if (inherits(FXrate, "try-error")) {
-          warning("Exchange Rate", FXrate.str, " not found for symbol,',Symbol,' using currency multiplier of 1")
-          CcyMult <- 1
-        }
-        else {
-          invert = TRUE
-        }
-      }
-    }
-    if (is.na(CcyMult) && !is.na(FXrate)) {
-      if (inherits(FXrate, "xts")) {
-        CcyMult <- FXrate[date.subset]
-        CcyMult <- na.locf(merge(CcyMult, index(psummary)))
-        CcyMult <- drop(CcyMult[index(psummary)])
-      }
-      else {
-        CcyMult <- as.numeric(FXrate)
-      }
-    }
-    else {
-      CcyMult <- 1
-    }
-    if (isTRUE(invert)) {
-      CcyMult <- 1/CcyMult
-    }
-    exchange.rate <- as.numeric(CcyMult[timestamp])
+  if(nrow(mktdata.row)==0){
+    return()
+    # ref.price <- NA
+    # instrument.volatility <- NA
+    # instrument.forecast <- NA
+    # instrument.weight <- 0
+    # instrument.diversification.multiplier <- NA
+  } else {
+    dummy.portfolio <- updatePortf(Portfolio=portfolio
+                                   ,Dates=date.subset,
+                                   Symbols=active.symbols
+                                   # , env=.instrument
+    )
+    
+    ref.price <- as.numeric(Cl(mktdata.row))
+    instrument.volatility <- as.numeric(mktdata.row[,instrument.volatility.col])
+    instrument.forecast <- as.numeric(mktdata.row[,instrument.forecast.col])
+    instrument.weight <- as.numeric(adjusted.weights[timestamp,symbol])
+    instrument.diversification.multiplier <- as.numeric(mktdata.row[,instrument.diversification.multiplier.col])
+    exchange.rate <- as.numeric(mktdata.row[,exchange.rate.col])
+    # print(exchange.rate)
   }
   
-  print(exchange.rate)
+  updated.portfolio <- .getPortfolio(portfolio)
+  trading.pl <- sum(updated.portfolio$summary$Net.Trading.PL)#  * mktdata[date.subset, exchange.rate.col])
+  
+  # print(paste0(symbol," instrument.weight ",instrument.weight))
+  
+  # print(exchange.rate)
   # updateAcct(account.name)
   # print(trading.pl)
   total.equity <- max(initEq + trading.pl,0)
@@ -100,6 +76,12 @@ systematicRebalance <- function (...,
   #                                instrument.volatility=instrument.volatility,
   #                                instrument.forecast=instrument.forecast)
   # print(subsystem.inputs)
+  # print(ref.price)
+  # print(total.equity)
+  # print(volatility.target)
+  # print(exchange.rate)
+  # print(instrument.volatility)
+  # print(instrument.forecast)
   
   
   subsystem.position <- subsystemPosition(ref.price=ref.price,
@@ -173,15 +155,20 @@ adjustedForecast <- function(price.xts, forecast.name, ...){
   if(forecast.name != "combinedForecast" && forecast.name != "fullSystem"){
     return(cappedScaledForecast(price.xts=price.xts, forecast.name=forecast.name))
   } else {
-    return(combinedForecast(price.xts=price.xts))
+    return(combinedForecast(price.xts=price.xts, instrument.name))
   }
 }
 
-adjustedWeight <- function(forecast.name, instrument.name, price.xts, num.pairs=length(system.config$portfolio.pairs)){
+adjustedWeight <- function(instrument.name, forecast.name, price.xts, num.pairs.xts=NULL){
+  # print(paste0("adjusting weight: ",instrument.name,". Num.pairs: ",num.pairs.xts))
   if(forecast.name == "fullSystem"){
     return(instrumentWeight(instrument.name=instrument.name, price.xts=price.xts))
   } else {
-    return(singleValue(value=1/num.pairs, price.xts=price.xts))
+    if(is.null(num.pairs.xts)){
+      return(singleValue(value=1/length(system.config$portfolio.pairs), price.xts=price.xts))
+    } else {
+      return(xtsIdentity(price.xts = price.xts, to.merge = 1/num.pairs.xts))
+    }
   }
 }
 
@@ -194,25 +181,34 @@ adjustedDiversificationMultiplier <- function(forecast.name, price.xts){
 }
 
 simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
-  # if(!is.null(dev.list())){dev.off(which=dev.list())}
-  # .pardefault <- par(no.readonly = T)
-  
   
   print(paste0("Simulating forecast returns for ",paste0(pairs, collapse = ", "),". Forecast: ",forecast.name))
   
-  # if (!exists('.instrument')) 
-  .instrument <- new.env(parent=.GlobalEnv)
-  .blotter <- new.env(parent=.GlobalEnv)
-  .strategy <- new.env(parent=.GlobalEnv)
+  if (!exists('.instrument')) .instrument <- new.env()
+  if (!exists('.blotter')) .blotter <- new.env()
+  if (!exists('.strategy')) .strategy <- new.env()
   
-  setSymbolLookup(BTC_BTS=list(src='custom', dir='data/raw'))
-  setSymbolLookup(BTC_ETH=list(src='custom', dir='data/raw'))
-  setSymbolLookup(USD_BTC=list(src='custom', dir='data/raw'))
+  account.currency <- "USD"
+  account.currencies <- account.currency
   
-  symbols <- getSymbols(Symbols = c(pairs, "USD_BTC"), env=.instrument, auto.assign = TRUE
-                        ,verbose = TRUE, reload.Symbols = TRUE)
+  # setSymbolLookup(BTC_BTS=list(src='custom', dir='data/raw'))
+  # setSymbolLookup(BTC_ETH=list(src='custom', dir='data/raw'))
+  # setSymbolLookup(USD_BTC=list(src='custom', dir='data/raw'))
+  exchange.rate.pairs <- c("USD_BTC") # getMatchingFxRates(symbols=symbols, account.currencies=account.currencies)
+  e.rates <- getSymbols(Symbols = exchange.rate.pairs, env=.GlobalEnv, auto.assign = TRUE, src="custom", dir='data/raw'
+                        ,verbose = TRUE
+                        # , reload.Symbols = FALSE
+  )
   
-  # symbols <- alignSymbols(Symbols = symbols, env=.instrument)
+  symbols <- getSymbols(Symbols = c(pairs), env=.GlobalEnv, auto.assign = TRUE, src="custom", dir='data/raw'
+                        ,verbose = TRUE
+                        # , reload.Symbols = FALSE
+                        )
+  
+  
+  aligned.list <- alignSymbols(Symbols = symbols, forecast.name=forecast.name)# symbols <- alignSymbols(Symbols = symbols, env=.instrument)
+  symbols <- aligned.list$ordered.symbols
+  # plot.xts(aligned.list$adjusted.weights)
   # currency(symbols)
   
   forecast.adjusted.name <- "adjustedForecast"
@@ -223,8 +219,6 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   volatility.target <- system.config$volatility.target
   minimum.order.size <- system.config$minimum.order.size
   minimum.position.change <- system.config$minimum.position.change
-  
-  account.currency <- "USD"
   
   # symbols <- c()
   
@@ -266,7 +260,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   # initDate = as.character(as.Date(min(index(get(trade.target
   #                                               , envir=parent.frame() #.GlobalEnv
   # )))-days(1))) # '2015-09-01'
-  initDate = "2014-05-21"
+  initDate = aligned.list$init.date #"2014-05-21" # should be before start of trading data
   initBTC <- .5
   init.target <- 0
   initUSD <- system.config$poloniex.margin.value * system.config$current.exchange.rate
@@ -300,11 +294,11 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   #                                                                   ,to.merge=quote(Cl(get(fx.rate
   #                                                                                               , envir=parent.frame() #.GlobalEnv
   #                                                                   )))), label="exchange.rate")
-  add.indicator(strategy.name, name= "adjustedWeight", arguments = list(forecast.name=forecast.name,
-                                                                        instrument.name=pair, #trade.target,
-                                                                        price.xts=quote(Cl(mktdata)),
-                                                                        num.pairs <- length(pairs)),
-                label='instrument.weight')
+  # add.indicator(strategy.name, name= "adjustedWeight", arguments = list(forecast.name=forecast.name,
+  #                                                                       instrument.name=quote(eval(current.symbol)), #trade.target,
+  #                                                                       price.xts=quote(Cl(mktdata)),
+  #                                                                       # num.pairs=num.pairs),
+  # label='instrument.weight')
   add.indicator(strategy.name, name= "adjustedDiversificationMultiplier",
                 arguments = list(forecast.name=forecast.name,
                                  price.xts=quote(Cl(mktdata))),
@@ -321,12 +315,13 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   add.rule(strategy.name, 'systematicRebalance',
            arguments=list(rebalance_on='days',#'hours',
                           ref.price.col="close",
-                          exchange.rate.col=NULL,
+                          exchange.rate.col="Exchange.Rate",
                           instrument.volatility.col="X1.instrument.volatility",
                           instrument.forecast.col="X1.instrument.forecast",
-                          instrument.weight.col="X1.instrument.weight",
                           instrument.diversification.multiplier.col="X1.instrument.diversification.multiplier",
+                          forecast.name=forecast.name,
                           initEq=initEq,
+                          adjusted.weights=aligned.list$adjusted.weights,
                           volatility.target=volatility.target,
                           minimum.order.size=minimum.order.size,
                           minimum.position.change=minimum.position.change
@@ -358,7 +353,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
                             #             , envir=.GlobalEnv
                             # ),
                             parameters=list(),
-                            verbose=system.config$debug#,
+                            verbose=system.config$debug
                             # env=.strategy #.GlobalEnv
   )
   
@@ -368,7 +363,6 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   
   ## Evaluate
   # t(tradeStats(portfolio.name, inclZeroDays = TRUE))
-  txns <- getTxns(portfolio.name, Symbol = trade.target)
   # perTradeStats(portfolio.name, trade.target) # need to adapt for if no transactions are made
   
   specificForecast <- function(price.xts, forecast.name=get(forecast.name)){
@@ -376,59 +370,46 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   }
   #adjustedForecast
   #cappedScaledForecast
-  
-  if(sum(txns$Txn.Qty) != 0){
-    pdf.name <- paste0("figures/final/",paste0(pairs, collapse = "_"),"_",forecast.name,"_ForecastSimulation.pdf")
+  simulation.name <- paste0(paste0(symbols, collapse = "_"),"_",forecast.name,"_ForecastSimulation")
+  pdf.name <- paste0("figures/final/",simulation.name,".pdf")
+  pdf(pdf.name)
+  for(symbol in symbols){
+    txns <- getTxns(portfolio.name, Symbol = symbol)
     
-    addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
-    
-    pdf(pdf.name)
-    chart.Posn(Portfolio=portfolio.name, type = "line", log.scale = F)
-    # plot(addForecast())  # nFast = 60, nSlow = 180, nSig = 40, maType = 'EMA'
-    
-    # charts.TimeSeries()
-    
-    # par(.pardefault)
-    p <- getPortfolio(portfolio.name)
-    a <- getAccount(account.name)
-    xyplot(a$summary,type="h",col=4)
-    # par(.pardefault)
-    equity <- a$summary$End.Eq
-    plot(equity,main="Forecast Equity Curve")
-    # par(.pardefault)
-    ret <- na.omit(Return.calculate(equity))
-    ret <- ret[is.finite(ret)]
-    
-    
-    # chartSeries(x=trade.target.data, subset=date.subset, theme=chartTheme("wsj"),
-    #             TA=paste('addForecast(forecast.name=',forecast.name,')', sep="'"))
-    
-    charts.PerformanceSummary(ret, colorset = bluefocus,
-                              main=paste0(trade.target,"_",forecast.name," Forecast Performance"))
-    dev.off()
-  } else {
-    print(paste0("No transactions made under ",pair,"_",forecast.name," simulation"))
+    if(sum(txns$Txn.Qty) != 0){
+      
+      addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
+      
+      chart.Posn(Portfolio=portfolio.name, Symbol=symbol, type = "line", log.scale = F)
+      
+      # plot(addForecast())  # nFast = 60, nSlow = 180, nSig = 40, maType = 'EMA'
+      
+      # charts.TimeSeries()
+      
+      # par(.pardefault)
+      
+    } else {
+      print(paste0("No transactions made under ",symbol,"_",forecast.name," simulation"))
+    }
   }
   
+  p <- getPortfolio(portfolio.name)
+  a <- getAccount(account.name)
+  xyplot(a$summary,type="h",col=4)
   # par(.pardefault)
-  # try(slackr_upload(pdf.name, channels = "reports"))
-  # plot(add_Vo())
-  #   
-  # ## Parameter distribution testing
-  # add.distribution(strategy.name,
-  #                  paramset.label = 'optEMA',
-  #                  component.type = 'indicator',
-  #                  component.label = 'MACD',
-  #                  variable = list(nFast = 60:80),
-  #                  label = 'NFAST')
-  # 
-  # add.distribution(strategy.name,
-  #                  paramset.label = 'optEMA',
-  #                  component.type = 'indicator',
-  #                  component.label = 'MACD',
-  #                  variable = list(nSlow = 180:200),
-  #                  label = 'NSLOW')
-  # 
-  # results <- apply.paramset(strategy.name, paramset.label = "optEMA", portfolio=portfolio.name, account=account.name, nsamples=0)
+  equity <- a$summary$End.Eq
+  plot(equity,main="Forecast Equity Curve")
+  # par(.pardefault)
+  ret <- na.omit(Return.calculate(equity))
+  ret <- ret[is.finite(ret)]
+  
+  
+  # chartSeries(x=trade.target.data, subset=date.subset, theme=chartTheme("wsj"),
+  #             TA=paste('addForecast(forecast.name=',forecast.name,')', sep="'"))
+  
+  charts.PerformanceSummary(ret, colorset = bluefocus,
+                            main=simulation.name)
+  dev.off()
+  
   return(equity)
 }
