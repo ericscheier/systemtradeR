@@ -1,5 +1,5 @@
 getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", extension = "csv", 
-          col.names = c("Open", "High", "Low", "Close", "Volume"), account.currency="USD", ...) 
+          col.names = c("Open", "High", "Low", "Close", "Volume"), account.currency="USD", forecast.name="fullSystem",...) 
 {
   importDefaults("getSymbols.custom")
   this.env <- environment()
@@ -13,6 +13,10 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     verbose <- FALSE
   if (!hasArg(auto.assign)) 
     auto.assign <- TRUE
+  
+  # instrument.diversification.multiplier <- adjustedDiversificationMultiplier()
+  
+  
   for (i in 1:length(Symbols)) {
     return.class <- getSymbolLookup()[[Symbols[[i]]]]$return.class
     return.class <- ifelse(is.null(return.class), default.return.class, 
@@ -43,9 +47,6 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     symbol <- pairToSymbol(pair=Symbols[[i]])
     currencies <- pairToCurrencies(Symbols[[i]])
     
-    
-    if (verbose) 
-      cat("done.\n")
     asDateArgs <- list(x = as.character(fr[, 1]))
     if (hasArg("format")) 
       asDateArgs$format <- format
@@ -119,6 +120,92 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
       fr$Exchange.Rate <- as.numeric(CcyMult)
     }
     
+    if (verbose) 
+      cat(" applying indicators .....")
+    fr$Instrument.Forecast <- adjustedForecast(price.xts=OHLC(fr), forecast.name=forecast.name, instrument.name=symbol)
+    # fr$Instrument.Diversification.Multiplier <- xtsIdentity(price.xts=Cl(fr), to.merge = instrument.diversification.multiplier)
+    
+    if (verbose) 
+      cat(" done.\n")
+    
+    if (auto.assign) 
+      assign(symbol, fr, env) #Symbols[[i]], fr, env)
+    
+  }
+  
+  if (auto.assign) 
+    return(Symbols)
+  return(fr)
+}
+
+getSymbols.currencies <- function (Symbols, env, dir = "", return.class = "xts", extension = "csv", 
+                               col.names = c("Open", "High", "Low", "Close", "Volume"),...) 
+{
+  importDefaults("getSymbols.currencies")
+  this.env <- environment()
+  for (var in names(list(...))) {
+    assign(var, list(...)[[var]], this.env)
+  }
+  default.return.class <- return.class
+  default.dir <- dir
+  default.extension <- extension
+  if (!hasArg(verbose)) 
+    verbose <- FALSE
+  if (!hasArg(auto.assign)) 
+    auto.assign <- TRUE
+  for (i in 1:length(Symbols)) {
+    return.class <- getSymbolLookup()[[Symbols[[i]]]]$return.class
+    return.class <- ifelse(is.null(return.class), default.return.class, 
+                           return.class)
+    dir <- getSymbolLookup()[[Symbols[[i]]]]$dir
+    dir <- ifelse(is.null(dir), default.dir, dir)
+    extension <- getSymbolLookup()[[Symbols[[i]]]]$extension
+    extension <- ifelse(is.null(extension), default.extension, 
+                        extension)
+    if (verbose) 
+      cat("loading ", Symbols[[i]], ".....")
+    # if (dir == "") {
+    #   sym.file <- paste(Symbols[[i]], extension, sep = ".")
+    # }
+    # else {
+    #   sym.file <- file.path(dir, paste(Symbols[[i]], extension, 
+    #                                    sep = "."))
+    # }
+    # if (!file.exists(sym.file)) {
+    #   cat("\nfile ", paste(Symbols[[i]], "csv", sep = "."), 
+    #       " does not exist ", "in ", dir, "....skipping\n")
+    #   next
+    # }
+    # fr <- read.csv(sym.file)
+    
+    fr <- getHourlyPairData(pair=Symbols[[i]], ohlc=TRUE, volume=TRUE)
+    
+    symbol <- pairToSymbol(pair=Symbols[[i]])
+    currencies <- pairToCurrencies(Symbols[[i]])
+    
+    
+    asDateArgs <- list(x = as.character(fr[, 1]))
+    if (hasArg("format")) 
+      asDateArgs$format <- format
+    if (!is.null(getSymbolLookup()[[Symbols[[i]]]]$format)) 
+      asDateArgs$format <- getSymbolLookup()[[Symbols[[i]]]]$format
+    # fr <- xts(fr[, -1], do.call("as.Date", asDateArgs), 
+    #           src = "csv", updated = Sys.time())
+    colnames(fr) <- paste(toupper(gsub("\\^", "", symbol)), #Symbols[[i]])), 
+                          col.names, sep = ".")
+    
+    indexClass(fr) <- c("POSIXt", "POSIXct")
+    # fr <- convert.time.series(fr = fr, return.class = return.class)
+    Symbols[[i]] <- toupper(gsub("\\^", "", symbol)) #Symbols[[i]]))
+    
+    min.tick <- max(nchar(gsub("(.*\\.)|([0]*$)", "", as.character(OHLC(fr)))))
+    currency(unlist(currencies))
+    # currency(c("BTC", "BTS", "USD"), assign_i = FALSE)
+    exchange_rate(symbol, currency = currencies$base, counter_currency = currencies$asset, tick_size = 10^-min.tick)
+    
+    if (verbose) 
+      cat(" done.\n")
+    
     if (auto.assign) 
       assign(symbol, fr, env) #Symbols[[i]], fr, env)
     
@@ -168,17 +255,20 @@ alignSymbols <- function(Symbols, forecast.name=NULL, env=.GlobalEnv) {
   ff <- ff[,names(sort(leading.nas))]
   
   applyAdjusted <- function(instrument.name, price.matrix, forecast.name){
-    adjustedWeight(instrument.name=instrument.name,
+    a.w <- adjustedWeight(instrument.name=instrument.name,
                    forecast.name=forecast.name,
                    price.xts=price.matrix[,instrument.name],
                    num.pairs.xts = xts(rowSums(!is.na(na.locf(price.matrix))), index(price.matrix)))
+    return(a.w)
   }
   
   adjusted.weights <- xts(rbind(sapply(names(ff), applyAdjusted, price.matrix=ff, forecast.name=forecast.name)) * !is.na(ff)
                           , order.by = index(ff))
+  adjusted.weights <- na.fill(na.locf(adjusted.weights, na.rm=FALSE), 0)
   
   return.list <- list(ordered.symbols = colnames(ff),
-                      init.date = min(index(ff)) - minutes(5),
+                      init.date = min(index(adjusted.weights)) - minutes(5),
+                      final.date = max(index(adjusted.weights)),
                       adjusted.weights = adjusted.weights)
   
   return(return.list)

@@ -69,25 +69,6 @@ smoothedForecastWeights <- function(){
   return()
 }
 
-rawComboWeights <- function(){
-  combo.return.path <- "data/clean/combo_returns.RDS"
-  raw.combo.weights <- rawWeights(return.path=combo.return.path)
-  saveRDS(raw.combo.weights, relativePath("/data/clean/raw_combo_weights.RDS"))
-  
-  # plotWeights(weights.var=raw.combo.weights, weights.name="raw_combo_weights")
-  return()
-}
-
-smoothedComboWeights <- function(){
-  raw.combo.weights.path <- "/data/clean/raw_combo_weights.RDS"
-  smoothed.combo.weights <- smoothedWeights(raw.weights.path=raw.combo.weights.path)
-  
-  saveRDS(smoothed.combo.weights, relativePath("/data/clean/smoothed_combo_weights.RDS"))
-  
-  # plotWeights(weights.var=smoothed.combo.weights, weights.name="smoothed_combo_weights")
-  return()
-}
-
 simulateForecasts <- function(){
   start.time <- Sys.time()
   portfolio.forecasts <- system.config$portfolio.forecasts
@@ -105,30 +86,6 @@ simulateForecasts <- function(){
   results.matrix <- na.omit(results.matrix)
   forecast.returns <- Return.calculate(results.matrix)[2:nrow(results.matrix),]
   saveRDS(forecast.returns, file=relativePath("/data/clean/forecast_returns.RDS"))
-  
-  execution.time <- round(difftime(Sys.time(), start.time, units="mins"),2)
-  print(paste0("Finished simulating forecast returns in ",execution.time," mins."))
-}
-
-simulateAllCombos <- function(){
-  start.time <- Sys.time()
-  portfolio.forecasts <- system.config$portfolio.forecasts
-  portfolio.pairs <- system.config$portfolio.pairs
-  
-  results.matrix <- 
-    foreach(forecast.name=portfolio.forecasts, .combine='merge') %:%
-      foreach(pair=portfolio.pairs, .combine = 'merge') %dopar% {
-        combo.returns <- simulateBacktest(pairs=pair, forecast.name=forecast.name)
-        combo.name <- paste(pairToSymbol(pair),forecast.name,sep="_")
-        file.name <- paste0("/data/clean/",combo.name,"_forecast_returns.RDS")
-        colnames(combo.returns) <- combo.name
-        saveRDS(combo.returns, file=relativePath(file.name))
-        return(combo.returns)
-      }
-  
-  results.matrix <- na.omit(results.matrix)
-  forecast.returns <- Return.calculate(results.matrix)[2:nrow(results.matrix),]
-  saveRDS(forecast.returns, file=relativePath("/data/clean/combo_returns.RDS"))
   
   execution.time <- round(difftime(Sys.time(), start.time, units="mins"),2)
   print(paste0("Finished simulating forecast returns in ",execution.time," mins."))
