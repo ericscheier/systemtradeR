@@ -9,3 +9,25 @@ for(forecast.name in system.config$portfolio.forecasts){
   chart.TimeSeries(unpooled.forecast.returns, legend.loc = "topleft", colorset=tol11qualitative,
                    main=paste0("Unpooled ",forecast.name," Returns by Asset"))
 }
+
+
+all.colors = sample(grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)],
+                    length(system.config$portfolio.pairs) * length(system.config$portfolio.forecasts))
+
+combo.returns <- readRDS(relativePath(paste0("data/clean/","combo_returns",".RDS")))
+chart.CumReturns(combo.returns, legend.loc = "topleft", colorset=all.colors,
+                 main=paste0("Unpooled ",forecast.name," Returns by Asset"))
+
+
+raw.combo.weights <- readRDS(relativePath(paste0("data/clean/","raw_combo_weights",".RDS")))
+chart.StackedBar(last(raw.combo.weights,24*30), colorset=all.colors  #rainbow12equal
+                 , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
+                 , cex.legend = .2
+                 , main="raw_combo_weights")
+
+smoothed.combo.weights <- readRDS(relativePath(paste0("data/clean/","smoothed_combo_weights",".RDS")))
+chart.StackedBar(smoothed.combo.weights[.indexwday(smoothed.combo.weights)==1], colorset=all.colors #rainbow12equal
+                 , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
+                 , main="smoothed_combo_weights")
+
+
