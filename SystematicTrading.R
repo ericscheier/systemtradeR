@@ -1,6 +1,6 @@
 getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
   columns <- c("close")
-  if(ohlc){columns <- c("open", "high", "low", columns)}
+  if(ohlc){columns <- c("high", "low", "open", columns)}
   if(volume){columns <- c(columns, "volume")}
   ohlc.prices <- read.csv(paste0(getwd(),"/data/raw/",pair,"_ohlc.csv"), stringsAsFactors = FALSE) # five minute frequency
   five.price.xts <- xts(x=ohlc.prices[,columns]
@@ -139,12 +139,7 @@ subsystemPosition <- function(ref.price=NULL
                               , volatility.target=system.config$volatility.target
                               , exchange.rate=system.config$current.exchange.rate
                               , instrument.volatility=NULL
-                              , instrument.forecast=NULL
-                              , instrument.symbol=NULL){
-  
-  if(is.null(exchange.rate)){
-    getInstrument(instrument.symbol)$currency
-  }
+                              , instrument.forecast=NULL){
   
   ref.price <- max(0,as.numeric(ref.price))
   instrument.volatility <- as.numeric(instrument.volatility)
@@ -155,12 +150,12 @@ subsystemPosition <- function(ref.price=NULL
   block.value <- ref.price * .01
   cash.volatility.target <- total.equity * volatility.target # * (1/exchange.rate)
   instrument.currency.volatility <- block.value * instrument.volatility * 100
-  instrument.value.volatility <- instrument.currency.volatility / exchange.rate
+  instrument.value.volatility <- instrument.currency.volatility * exchange.rate
   volatility.scalar <- cash.volatility.target/instrument.value.volatility
   system.forecast.average <- 10 # by design, but can make dynamic
   subsystem.position <- (volatility.scalar * instrument.forecast)/system.forecast.average
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
-  # subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
+  subsystem.position <- ifelse(subsystem.position * ref.price * exchange.rate > total.equity, total.equity/(ref.price * exchange.rate), subsystem.position)
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   return(subsystem.position)
 }
@@ -172,24 +167,23 @@ emaVolatility <- function(price.xts){
   return(ema.volatility)
 }
 
-weightedForecasts <- function(price.xts, instrument.name){
-  price.index <- xts(order.by=index(price.xts))
+weightedForecasts <- function(price.xts){
+  forecast.weights <- xts(order.by=index(price.xts))
   ###~~~!!!~~~###
   ## Not sure whether weights need to be lagged by a day. Need to evaluate in depth!
-  fw <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_smoothed_forecast_weights.RDS")))
+  fw <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
   ###~~~!!!~~~###
-  forecast.weights <- na.locf(merge(price.index, fw), na.rm = FALSE)
-  fdm <- forecastDiversificationMultipler(instrument.name)
-  forecast.diversification.multiplier <- na.locf(merge(price.index, fdm), na.rm = FALSE)
+  forecast.weights <- na.locf(merge(forecast.weights, fw), na.rm = FALSE)
+  forecast.diversification.multiplier <- forecastDiversificationMultipler()
   capped.scaled.forecasts <- xts(x=rbind(sapply(names(fw), cappedScaledForecast, price.xts=price.xts)), order.by = index(price.xts))
   
-  weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * c(coredata(forecast.diversification.multiplier))
+  weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * forecast.diversification.multiplier
   return(weighted.forecasts)
 }
 
-combinedForecast <- function(price.xts, instrument.name){
-  combined.forecast <- rowSumXts(weightedForecasts(price.xts, instrument.name))
-  # combined.forecast <- xts(x=rowSums(weighted.forecasts, na.rm=FALSE), order.by=index(price.xts))
+combinedForecast <- function(price.xts){
+  weighted.forecasts <- weightedForecasts(price.xts)
+  combined.forecast <- xts(x=rowSums(weighted.forecasts, na.rm=FALSE), order.by=index(price.xts))
   
   combined.forecast <- cappedForecast(combined.forecast)
   colnames(combined.forecast) <- NULL
@@ -208,76 +202,33 @@ smoothedWeights <- function(raw.weights.path=NULL){
 }
 
 rawWeights <- function(return.path=NULL){
-  start_t <- Sys.time()
-  rebalance_on = "hours"
-  training_period = 1#36
-  
-  returns <- readRDS(relativePath(return.path))
-  returns <- replaceLeadingZeros(returns.xts=returns)
-  returns <- na.trim(returns, sides="left", is.na="all")
-  # returns <- returns[3200:3500,]
-  all.instruments <- colnames(returns)
-  
-  ep.i <- endpoints(returns, on = rebalance_on)[which(endpoints(returns, 
-                                                          on = rebalance_on) >= training_period)]
-  # ep.i.index <- index(returns)
-  
-  # ep <- ep.i[training_period+1]
-  raw.weights <- foreach::foreach(ep = iterators::iter(ep.i), .combine="rbind", .packages = "PortfolioAnalytics") %dopar% 
-                               {
-                                 time.step <- index(returns)[ep]
-                                 R <- returns[1:ep,apply(!is.na(returns[(ep-training_period):ep,]),2,any)]
-                                 R <- na.omit(R)
-                                 
-                                 instruments <- colnames(R)
-                                 ignored.instruments <- all.instruments[!(all.instruments %in% instruments)]
-                                 
-                                 init.portf <- portfolio.spec(assets=instruments)
-                                 # init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
-                                 init.portf <- add.constraint(portfolio=init.portf, type="weight_sum",
-                                                              min_sum=0.99, max_sum=1.01)
-                                 init.portf <- add.constraint(portfolio=init.portf, type="long_only")
-                                 init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
-                                 init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
-                                 # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="mean")
-                                 # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="StdDev")
-                                 
-                                 opt.dn <- optimize.portfolio(R, portfolio=init.portf,
-                                                              optimize_method="DEoptim",
-                                                              search_size=2000,
-                                                              # optimize_method="ROI",
-                                                              # maxSR=TRUE,
-                                                              # search_size = search_size, 
-                                                              trace = TRUE#,
-                                                              # rp = rp
-                                 )
-                                 weights.list <- c(opt.dn$weights,
-                                                   setNames(rep(0, length(ignored.instruments)), ignored.instruments))
-                                 
-                                 weights <- as.xts(data.frame(t(weights.list), row.names = time.step))
-                               }
-  
-  
+  returns <- na.omit(readRDS(relativePath(return.path)))
+  returns <- removeLeadingZeros(returns.xts=returns)
+  instruments <- colnames(returns)
   
   # r.df <- data.frame(replicate(length(instruments),rnorm(nrow(returns), mean=0, sd=.01)))
   # names(r.df) <- instruments
   # 
   # rand.returns <- xts(x=r.df, order.by=index(returns))
   
+  init.portf <- portfolio.spec(assets=instruments)
+  init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
+  init.portf <- add.constraint(portfolio=init.portf, type="long_only")
+  init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
+  init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
   
-  
-  # daily.returns <- aggregate(x=returns, by=date, FUN=sum)
+  daily.returns <- aggregate(x=returns, by=date, FUN=sum)
   
   # maxSR.lo.ROI <- optimize.portfolio(R=returns, portfolio=init.portf,
   #                                  optimize_method="ROI",
   #                                  maxSR=TRUE, trace=TRUE)
   
-  # opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
-  #                                          # training_period=3,
-  #                                          optimize_method="ROI",
-  #                                          maxSR=TRUE,
-  #                                          # trace=TRUE,
-  #                                          rebalance_on="days")
+  opt.dn <- optimize.portfolio.rebalancing(R=daily.returns, portfolio=init.portf,
+                                           # training_period=3,
+                                           optimize_method="ROI",
+                                           maxSR=TRUE,
+                                           # trace=TRUE,
+                                           rebalance_on="days")
   
   # df.con = portfolio.spec(assets = instruments)
   # df.con = add.constraint(portfolio = df.con, type = "long_only")
@@ -295,11 +246,11 @@ rawWeights <- function(return.path=NULL){
   # opt.dn <- optimize.portfolio.rebalancing(R = daily.returns, portfolio = df.con
   #                                          , optimize_method = "ROI", maxSR=TRUE, trace=FALSE #, rp=rp
   #                                          , rebalance_on="days")
-  end_t <- Sys.time()
-  print(paste0("Weight Optimization time: ",end_t - start_t))
   
-  # raw.weights <- na.omit(extractWeights(opt.dn))
-  return(na.omit(raw.weights))
+  print(paste0("Weight Optimization time: ",opt.dn$elapsed_time))
+  
+  raw.weights <- na.omit(extractWeights(opt.dn))
+  return(raw.weights)
 }
 
 instrumentWeight <- function(instrument.name, price.xts){
@@ -316,17 +267,15 @@ productionDiversificationMultiplier <- function(returns=NULL, weights=NULL, end.
 
   date.subset <- paste0("::",end.date)
   returns <- returns[date.subset,]
-  weights <- weights[date.subset,]
+  weights <- returns[date.subset,]
   
   # check that instrument weights sum to 1
-  # returns <- na.omit(returns)
-  weights <- tail(weights[,colnames(returns)], 1)
+  returns <- na.omit(returns)
+  weights <- tail(weights, 1)
   weights <- array(weights/sum(weights))
   # print(sum(instrument.weights==1))
-  correlation.matrix <- na.fill(cor(returns, use="pairwise.complete.obs"),1)
-  correlation.matrix[correlation.matrix < 0] <- 0
+  correlation.matrix <- cor(returns)
   # floor negative correlations to 0
-  
   diversification.multiplier <- 1/sqrt(tcrossprod(crossprod(weights, correlation.matrix), weights))
   
   diversification.multiplier.max <- 2.5
@@ -343,16 +292,14 @@ xtsDiversificationMultiplier <- function(returns=NULL, weights=NULL){
   date.subset <- paste0(start.date,"::",end.date)
   date.index <- index(weights[date.subset,])
   
-  returns.na <- replaceLeadingZeros(returns)
-  
-  dm.s <- sapply(date.index, productionDiversificationMultiplier,returns=returns.na, weights=weights)
+  dm.s <- sapply(date.index, productionDiversificationMultiplier,returns=returns, weights=weights)
   
   xts.diversification.multiplier <- xts(x=dm.s, order.by=date.index)
   return(xts.diversification.multiplier)
 }
 
 instrumentDiversificationMultiplier <- function(price.xts){
-  subsystem.returns <- readRDS(relativePath("/data/clean/instrument_returns.RDS"))
+  subsystem.returns <- readRDS(relativePath("/data/clean/subsystem_returns.RDS"))
   instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
   
   
@@ -362,24 +309,13 @@ instrumentDiversificationMultiplier <- function(price.xts){
   return(xtsIdentity(price.xts = price.xts, to.merge = instrument.diversification.multiplier))
 }
 
-forecastDiversificationMultipler <- function(instrument.name){
-  forecast.returns <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_forecast_returns.RDS")))
-  forecast.weights <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_smoothed_forecast_weights.RDS")))
-  
-  
-  forecast.diversification.multiplier <- xtsDiversificationMultiplier(returns=forecast.returns,
-                                                                   weights=forecast.weights)
-  
-  return(forecast.diversification.multiplier)
-}
-
-productionForecastDiversificationMultipler <- function(instrument.name){
-  forecast.returns <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_forecast_returns.RDS")))
-  forecast.weights <- readRDS(relativePath(paste0("/data/clean/",instrument.name,"_smoothed_forecast_weights.RDS")))
+forecastDiversificationMultipler <- function(){
+  forecast.returns <- readRDS(relativePath("/data/clean/forecast_returns.RDS"))
+  forecast.weights <- readRDS(relativePath("/data/clean/smoothed_forecast_weights.RDS"))
   
   
   forecast.diversification.multiplier <- productionDiversificationMultiplier(returns=forecast.returns,
-                                                                      weights=forecast.weights)
+                                                                   weights=forecast.weights)
   
   return(forecast.diversification.multiplier)
 }

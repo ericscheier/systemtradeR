@@ -13,7 +13,7 @@ if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.
 #~~~~~!!!!!~~~~#
 system.config$live = is.live.machine
 #~~~~!!!!!~~~~#
-system.config$debug <- TRUE
+system.config$debug <- FALSE
 
 system.config$forecast.cap <- 20
 system.config$volatility.lookback <- 36 #101 #hours
