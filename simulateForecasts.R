@@ -55,7 +55,7 @@ rawForecastWeights <- function(){
   raw.forecast.weights <- rawWeights(return.path=forecast.return.path)
   saveRDS(raw.forecast.weights, relativePath("/data/clean/raw_forecast_weights.RDS"))
   
-  plotWeights(weights.var=raw.forecast.weights, weights.name="raw_forecast_weights")
+  # plotWeights(weights.var=raw.forecast.weights, weights.name="raw_forecast_weights")
   return()
 }
 
@@ -65,8 +65,8 @@ smoothedForecastWeights <- function(){
   
   saveRDS(smoothed.forecast.weights, relativePath("/data/clean/smoothed_forecast_weights.RDS"))
   
-  plotWeights(weights.var=smoothed.forecast.weights, weights.name="smoothed_forecast_weights")
-  return(smoothed.forecast.weights)
+  # plotWeights(weights.var=smoothed.forecast.weights, weights.name="smoothed_forecast_weights")
+  return()
 }
 
 simulateForecasts <- function(){
@@ -76,7 +76,11 @@ simulateForecasts <- function(){
   
   results.matrix <- 
     foreach(forecast.name=portfolio.forecasts, .combine='merge') %dopar% {
-      poolForecasts(forecast.name=forecast.name)
+      forecast.returns <- simulateBacktest(pairs=portfolio.pairs, forecast.name=forecast.name)
+      file.name <- paste0("/data/clean/",forecast.name,"_forecast_returns.RDS")
+      colnames(forecast.returns) <- forecast.name
+      saveRDS(forecast.returns, file=relativePath(file.name))
+      return(forecast.returns)
     }
   
   results.matrix <- na.omit(results.matrix)
@@ -104,6 +108,6 @@ poolForecasts <- function(forecast.name=NULL){
   file.name <- paste0("/data/clean/",forecast.name,"_forecast_returns.RDS")
   saveRDS(pooled.results, file=relativePath(file.name))
   
-  pooled.forecast <- rowSumXts(pooled.results, name=forecast.name)/length(portfolio.pairs)
+  pooled.forecast <- rowSumXts(pooled.results, name=forecast.name)
   return(pooled.forecast)
 }
