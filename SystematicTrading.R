@@ -233,18 +233,24 @@ rawWeights <- function(return.path=NULL){
                                  ignored.instruments <- all.instruments[!(all.instruments %in% instruments)]
                                  
                                  init.portf <- portfolio.spec(assets=instruments)
-                                 init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
+                                 # init.portf <- add.constraint(portfolio=init.portf, type="full_investment")
+                                 init.portf <- add.constraint(portfolio=init.portf, type="weight_sum",
+                                                              min_sum=0.99, max_sum=1.01)
                                  init.portf <- add.constraint(portfolio=init.portf, type="long_only")
                                  init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
                                  init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+                                 # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="mean")
+                                 # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="StdDev")
                                  
                                  opt.dn <- optimize.portfolio(R, portfolio=init.portf,
-                                                    optimize_method="ROI",
-                                                    maxSR=TRUE #,
-                                                    # search_size = search_size, 
-                                                    # trace = trace,
-                                                    # rp = rp
-                                                    )
+                                                              optimize_method="DEoptim",
+                                                              search_size=2000,
+                                                              # optimize_method="ROI",
+                                                              # maxSR=TRUE,
+                                                              # search_size = search_size, 
+                                                              trace = TRUE#,
+                                                              # rp = rp
+                                 )
                                  weights.list <- c(opt.dn$weights,
                                                    setNames(rep(0, length(ignored.instruments)), ignored.instruments))
                                  

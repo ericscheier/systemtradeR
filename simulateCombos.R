@@ -20,7 +20,9 @@ simulateAllCombos <- function(){
       return(combo.returns)
     }
   
-  results.matrix <- na.trim(results.matrix, sides = "left", is.na = "all")
+  results.matrix <- na.locf(na.trim(results.matrix, sides = "left", is.na = "all"), na.rm=FALSE)
+  results.matrx <- results.matrix[!duplicated(index(results.matrix)),]
+  
   saveRDS(results.matrix, file=relativePath("/data/clean/raw_combo_account_values.RDS"))
   forecast.returns <- replaceLeadingZeros(Return.calculate(results.matrix)[2:nrow(results.matrix),])
   saveRDS(forecast.returns, file=relativePath("/data/clean/combo_returns.RDS"))
