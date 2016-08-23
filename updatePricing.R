@@ -19,22 +19,14 @@ refreshAllPricing <- function(){
   refreshPricing(all.pairs)
 }
 
-getPoloniexPrices <- function(pair, start.time){
-  start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
-  new.data.raw <- content(GET(paste0("https://poloniex.com/public?command=returnChartData&currencyPair=",pair,"&start=",start.seconds,"&end=9999999999&period=300")))  # https://poloniex.com/support/api/
-  new.data <- ldply(new.data.raw, data.frame)
-  new.data$date <- as.character(as.POSIXct(new.data$date, origin = "1970-01-01"))
-  return(new.data)
-}
-
-updatePricing <- function(pair)
-  {
+updatePricing <- function(pair){
+  investment.universe <- readRDS(relativePath("/data/clean/investment_universe.RDS"))
+  pair.exchange <- investment.universe[investment.universe$asset==pair,"exchange"]
+  
   print(paste0("Updating ",pair))
   file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
   if(!file.exists(file.name)){
-    print(paste0("Initializing ",pair))
-    earliest.date <- "1992-04-25 07:40:00"
-    initialized.data <- getPoloniexPrices(pair=pair, start.time=earliest.date)
+    initialized.data <- initializePricing(pair=pair, pair.exchange=pair.exchange)
     write.csv(x = initialized.data, file = file.name, row.names = FALSE)
   }
   existing.data <- read.csv(file.name, stringsAsFactors = FALSE)
@@ -42,7 +34,7 @@ updatePricing <- function(pair)
   start.time <- tail(existing.data$date,1)
   # stop.seconds <- as.numeric(seconds(as.POSICct(end.time, origin = "1970-01-01"))))
   
-  new.data <- getPoloniexPrices(pair=pair, start.time=start.time)
+  new.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=start.time, interval=5)
   new.data <- new.data[names(existing.data)]
   
   existing.data[nrow(existing.data),] <- new.data[1,]
@@ -67,4 +59,25 @@ updatePricing <- function(pair)
   print(paste0(pair," successfully updated"))
   
   return(paste0(pair," successfully updated"))
+}
+
+initializePricing <- function(pair, pair.exchange){
+  print(paste0("Initializing ",pair))
+  earliest.date <- "1992-04-25 07:40:00"
+  initialize.interval <- switch (pair.exchange,
+    "poloniex" = 5,
+    "kraken" = 24 * 60
+  )
+  
+  initialized.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=earliest.date,
+                                interval=initialize.interval)
+  
+  return(initialized.data)
+}
+
+getPrices <- function(pair=NULL, pair.exchange=NULL, start.time=NULL, interval=NULL){
+  web.prices <- do.call(paste0("getPairOHLC.",pair.exchange),
+                        args=list(pair=pair, start.time=start.time, interval=interval))
+  
+  return(web.prices)
 }

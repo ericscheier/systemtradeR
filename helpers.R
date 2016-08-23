@@ -14,6 +14,18 @@ pairToCurrencies <- function(pair){
   return(currencies)
 }
 
+pairToISO <- function(pair){
+  pair <- gsub("BTC", "XBT", pair)
+  split.pair <- unlist(strsplit(pair, "_"))
+  base <- split.pair[1]
+  asset <- split.pair[2]
+  
+  
+  iso <- paste0("X",asset,"Z",base)
+  
+  return(iso)
+}
+
 massInstall <- function(x, library.repos){
   print(paste0("Needing to install package: ",x))
   install.packages(x, repos=library.repos, dependencies=TRUE)

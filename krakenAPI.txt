@@ -1,0 +1,1129 @@
+Warning: Please read our blog post about ongoing phishing attempts targeting Kraken customers. Read more.
+Bitcoin and ethereum trading, leveraged margin trading, and dark pool. Now serving most US states.
+LOG INSIGN UPABOUT CHARTSHELP
+API
+Learn about our API
+
+API
+General Usage
+Public market data
+Private user data
+Private user trading
+Example API clients
+Private user funding
+General Usage
+NOTE: All API URLs should use the domain api.kraken.com.
+
+Public methods can use either GET or POST.
+
+Private methods must use POST and be set up as follows:
+
+HTTP header:
+
+API-Key = API key
+API-Sign = Message signature using HMAC-SHA512 of (URI path + SHA256(nonce + POST data)) and base64 decoded secret API key
+POST data:
+
+nonce = always increasing unsigned 64 bit integer
+otp = two-factor password (if two-factor enabled, otherwise not required)
+Note: There is no way to reset the nonce to a lower value so be sure to use a nonce generation method that won't generate numbers less than the previous nonce. A persistent counter or the current time in hundredths of a second precision or higher is suggested. Too many requests with nonces below the last valid nonce (EAPI:Invalid nonce) can result in temporary bans.
+
+Note: Sometimes requests can arrive out of order or NTP can cause your clock to rewind, resulting in nonce issues. If you encounter this issue, you can change the nonce window in your account API settings page. The amount to set it to depends upon how you increment the nonce. Depending on your connectivity, a setting that would accomodate 3-15 seconds of network issues is suggested.
+
+API calls that require currency assets can be referenced using their ISO4217-A3 names in the case of ISO registered names, their 3 letter commonly used names in the case of unregistered names, or their X-ISO4217-A3 code (see http://www.ifex-project.org/).
+
+Responses are JSON encoded in the form of:
+
+error = array of error messages in the format of:
+    <char-severity code><string-error category>:<string-error type>[:<string-extra info>]
+    severity code can be E for error or W for warning
+result = result of API call (may not be present if errors occur)
+Note: Care should be taken when handling any numbers represented as strings, as these may overflow standard data types.
+
+API call rate limit
+We have safeguards in place to protect against abuse/DoS attacks as well as order book manipulation caused by the rapid placing and canceling of orders.
+
+Every user of our API has a "call counter" which starts at 0.
+
+Ledger/trade history calls increase the counter by 2.
+
+Place/cancel order calls do not affect the counter.
+
+All other API calls increase the counter by 1.
+
+The user's counter is reduced every couple of seconds, and if the counter exceeds the user's maximum API access is suspended for 15 minutes. Tier 2 users have a maximum of 15 and their count gets reduced by 1 every 3 seconds. Tier 3 and 4 users have a maximum of 20; the count is reduced by 1 every 2 seconds for tier 3 users, and is reduced by 1 every 1 second for tier 4 users.
+
+Although placing and cancelling orders does not increase the counter, there are separate limits in place to prevent order book manipulation. Only placing orders you intend to fill and keeping the rate down to 1 per second is generally enough to not hit this limit.
+
+Public market data
+
+Get asset info
+URL: https://api.kraken.com/0/public/Assets
+
+Input:
+
+info = info to retrieve (optional):
+    info = all info (default)
+aclass = asset class (optional):
+    currency (default)
+asset = comma delimited list of assets to get info on (optional.  default = all for given asset class)
+Result: array of asset names and their info
+
+<asset_name> = asset name
+    altname = alternate name
+    aclass = asset class
+    decimals = scaling decimal places for record keeping
+    display_decimals = scaling decimal places for output display
+
+
+Get ticker information
+URL: https://api.kraken.com/0/public/Ticker
+
+Input:
+
+pair = comma delimited list of asset pairs to get info on
+Result: array of pair names and their ticker info
+
+<pair_name> = pair name
+    a = ask array(<price>, <whole lot volume>, <lot volume>),
+    b = bid array(<price>, <whole lot volume>, <lot volume>),
+    c = last trade closed array(<price>, <lot volume>),
+    v = volume array(<today>, <last 24 hours>),
+    p = volume weighted average price array(<today>, <last 24 hours>),
+    t = number of trades array(<today>, <last 24 hours>),
+    l = low array(<today>, <last 24 hours>),
+    h = high array(<today>, <last 24 hours>),
+    o = today's opening price
+Note: Today's prices start at 00:00:00 UTC
+
+Get order book
+URL: https://api.kraken.com/0/public/Depth
+
+Input:
+
+pair = asset pair to get market depth for
+count = maximum number of asks/bids (optional)
+Result: array of pair name and market depth
+
+<pair_name> = pair name
+    asks = ask side array of array entries(<price>, <volume>, <timestamp>)
+    bids = bid side array of array entries(<price>, <volume>, <timestamp>)
+Get recent trades
+URL: https://api.kraken.com/0/public/Trades
+
+Input:
+
+pair = asset pair to get trade data for
+since = return trade data since given id (optional.  exclusive)
+Result: array of pair name and recent trade data
+
+<pair_name> = pair name
+    array of array entries(<price>, <volume>, <time>, <buy/sell>, <market/limit>, <miscellaneous>)
+last = id to be used as since when polling for new trade data
+Get recent spread data
+URL: https://api.kraken.com/0/public/Spread
+
+Input:
+
+pair = asset pair to get spread data for
+since = return spread data since given id (optional.  inclusive)
+Result: array of pair name and recent spread data
+
+<pair_name> = pair name
+    array of array entries(<time>, <bid>, <ask>)
+last = id to be used as since when polling for new spread data
+Note: "since" is inclusive so any returned data with the same time as the previous set should overwrite all of the previous set's entries at that time
+
+Private user data
+Get account balance
+URL: https://api.kraken.com/0/private/Balance
+
+Result: array of asset names and balance amount
+
+Get trade balance
+URL: https://api.kraken.com/0/private/TradeBalance
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = base asset used to determine balance (default = ZUSD)
+Result: array of trade balance info
+
+eb = equivalent balance (combined balance of all currencies)
+tb = trade balance (combined balance of all equity currencies)
+m = margin amount of open positions
+n = unrealized net profit/loss of open positions
+c = cost basis of open positions
+v = current floating valuation of open positions
+e = equity = trade balance + unrealized net profit/loss
+mf = free margin = equity - initial margin (maximum margin available to open new positions)
+ml = margin level = (equity / initial margin) * 100
+Note: Rates used for the floating valuation is the midpoint of the best bid and ask prices
+
+Get open orders
+URL: https://api.kraken.com/0/private/OpenOrders
+
+Input:
+
+trades = whether or not to include trades in output (optional.  default = false)
+userref = restrict results to given user reference id (optional)
+Result: array of order info in open array with txid as the key
+
+refid = Referral order transaction id that created this order
+userref = user reference id
+status = status of order:
+    pending = order pending book entry
+    open = open order
+    closed = closed order
+    canceled = order canceled
+    expired = order expired
+opentm = unix timestamp of when order was placed
+starttm = unix timestamp of order start time (or 0 if not set)
+expiretm = unix timestamp of order end time (or 0 if not set)
+descr = order description info
+    pair = asset pair
+    type = type of order (buy/sell)
+    ordertype = order type (See Add standard order)
+    price = primary price
+    price2 = secondary price
+    leverage = amount of leverage
+    order = order description
+    close = conditional close order description (if conditional close set)
+vol = volume of order (base currency unless viqc set in oflags)
+vol_exec = volume executed (base currency unless viqc set in oflags)
+cost = total cost (quote currency unless unless viqc set in oflags)
+fee = total fee (quote currency)
+price = average price (quote currency unless viqc set in oflags)
+stopprice = stop price (quote currency, for trailing stops)
+limitprice = triggered limit price (quote currency, when limit based order type triggered)
+misc = comma delimited list of miscellaneous info
+    stopped = triggered by stop price
+    touched = triggered by touch price
+    liquidated = liquidation
+    partial = partial fill
+oflags = comma delimited list of order flags
+    viqc = volume in quote currency
+    fcib = prefer fee in base currency (default if selling)
+    fciq = prefer fee in quote currency (default if buying)
+    nompp = no market price protection
+trades = array of trade ids related to order (if trades info requested and data available)
+Note: Unless otherwise stated, costs, fees, prices, and volumes are in the asset pair's scale, not the currency's scale. For example, if the asset pair uses a lot size that has a scale of 8, the volume will use a scale of 8, even if the currency it represents only has a scale of 2. Similarly, if the asset pair's pricing scale is 5, the scale will remain as 5, even if the underlying currency has a scale of 8.
+
+Get closed orders
+URL: https://api.kraken.com/0/private/ClosedOrders
+
+Input:
+
+trades = whether or not to include trades in output (optional.  default = false)
+userref = restrict results to given user reference id (optional)
+start = starting unix timestamp or order tx id of results (optional.  exclusive)
+end = ending unix timestamp or order tx id of results (optional.  inclusive)
+ofs = result offset
+closetime = which time to use (optional)
+    open
+    close
+    both (default)
+Result: array of order info
+
+closed = array of order info.  See Get open orders.  Additional fields:
+    closetm = unix timestamp of when order was closed
+    reason = additional info on status (if any)
+count = amount of available order info matching criteria
+Note: Times given by order tx ids are more accurate than unix timestamps. If an order tx id is given for the time, the order's open time is used
+
+Query orders info
+URL: https://api.kraken.com/0/private/QueryOrders
+
+Input:
+
+trades = whether or not to include trades in output (optional.  default = false)
+userref = restrict results to given user reference id (optional)
+txid = comma delimited list of transaction ids to query info about (20 maximum)
+Result: associative array of orders info
+
+<order_txid> = order info.  See Get open orders/Get closed orders
+Get trades history
+URL: https://api.kraken.com/0/private/TradesHistory
+
+Input:
+
+type = type of trade (optional)
+    all = all types (default)
+    any position = any position (open or closed)
+    closed position = positions that have been closed
+    closing position = any trade closing all or part of a position
+    no position = non-positional trades
+trades = whether or not to include trades related to position in output (optional.  default = false)
+start = starting unix timestamp or trade tx id of results (optional.  exclusive)
+end = ending unix timestamp or trade tx id of results (optional.  inclusive)
+ofs = result offset
+Result: array of trade info
+
+trades = array of trade info with txid as the key
+    ordertxid = order responsible for execution of trade
+    pair = asset pair
+    time = unix timestamp of trade
+    type = type of order (buy/sell)
+    ordertype = order type
+    price = average price order was executed at (quote currency)
+    cost = total cost of order (quote currency)
+    fee = total fee (quote currency)
+    vol = volume (base currency)
+    margin = initial margin (quote currency)
+    misc = comma delimited list of miscellaneous info
+        closing = trade closes all or part of a position
+count = amount of available trades info matching criteria
+If the trade opened a position, the follow fields are also present in the trade info:
+
+    posstatus = position status (open/closed)
+    cprice = average price of closed portion of position (quote currency)
+    ccost = total cost of closed portion of position (quote currency)
+    cfee = total fee of closed portion of position (quote currency)
+    cvol = total fee of closed portion of position (quote currency)
+    cmargin = total margin freed in closed portion of position (quote currency)
+    net = net profit/loss of closed portion of position (quote currency, quote currency scale)
+    trades = list of closing trades for position (if available)
+Note:
+
+Unless otherwise stated, costs, fees, prices, and volumes are in the asset pair's scale, not the currency's scale.
+Times given by trade tx ids are more accurate than unix timestamps.
+Query trades info
+URL: https://api.kraken.com/0/private/QueryTrades
+
+Input:
+
+txid = comma delimited list of transaction ids to query info about (20 maximum)
+trades = whether or not to include trades related to position in output (optional.  default = false)
+Result: associative array of trades info
+
+<trade_txid> = trade info.  See Get trades history
+Get open positions
+URL: https://api.kraken.com/0/private/OpenPositions
+
+Input:
+
+txid = comma delimited list of transaction ids to restrict output to
+docalcs = whether or not to include profit/loss calculations (optional.  default = false)
+Result: associative array of open position info
+
+<position_txid> = open position info
+    ordertxid = order responsible for execution of trade
+    pair = asset pair
+    time = unix timestamp of trade
+    type = type of order used to open position (buy/sell)
+    ordertype = order type used to open position
+    cost = opening cost of position (quote currency unless viqc set in oflags)
+    fee = opening fee of position (quote currency)
+    vol = position volume (base currency unless viqc set in oflags)
+    vol_closed = position volume closed (base currency unless viqc set in oflags)
+    margin = initial margin (quote currency)
+    value = current value of remaining position (if docalcs requested.  quote currency)
+    net = unrealized profit/loss of remaining position (if docalcs requested.  quote currency, quote currency scale)
+    misc = comma delimited list of miscellaneous info
+    oflags = comma delimited list of order flags
+        viqc = volume in quote currency
+Note: Unless otherwise stated, costs, fees, prices, and volumes are in the asset pair's scale, not the currency's scale.
+
+Get ledgers info
+URL: https://api.kraken.com/0/private/Ledgers
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = comma delimited list of assets to restrict output to (optional.  default = all)
+type = type of ledger to retrieve (optional):
+    all (default)
+    deposit
+    withdrawal
+    trade
+    margin
+start = starting unix timestamp or ledger id of results (optional.  exclusive)
+end = ending unix timestamp or ledger id of results (optional.  inclusive)
+ofs = result offset
+Result: associative array of ledgers info
+
+<ledger_id> = ledger info
+    refid = reference id
+    time = unx timestamp of ledger
+    type = type of ledger entry
+    aclass = asset class
+    asset = asset
+    amount = transaction amount
+    fee = transaction fee
+    balance = resulting balance
+Note: Times given by ledger ids are more accurate than unix timestamps.
+
+Query ledgers
+URL: https://api.kraken.com/0/private/QueryLedgers
+
+Input:
+
+id = comma delimited list of ledger ids to query info about (20 maximum)
+Result: associative array of ledgers info
+
+<ledger_id> = ledger info.  See Get ledgers info
+Get trade volume
+URL: https://api.kraken.com/0/private/TradeVolume
+
+Input:
+
+pair = comma delimited list of asset pairs to get fee info on (optional)
+fee-info = whether or not to include fee info in results (optional)
+Result: associative array
+
+currency = volume currency
+volume = current discount volume
+fees = array of asset pairs and fee tier info (if requested)
+    fee = current fee in percent
+    minfee = minimum fee for pair (if not fixed fee)
+    maxfee = maximum fee for pair (if not fixed fee)
+    nextfee = next tier's fee for pair (if not fixed fee.  nil if at lowest fee tier)
+    nextvolume = volume level of next tier (if not fixed fee.  nil if at lowest fee tier)
+    tiervolume = volume level of current tier (if not fixed fee.  nil if at lowest fee tier)
+fees_maker = array of asset pairs and maker fee tier info (if requested) for any pairs on maker/taker schedule
+    fee = current fee in percent
+    minfee = minimum fee for pair (if not fixed fee)
+    maxfee = maximum fee for pair (if not fixed fee)
+    nextfee = next tier's fee for pair (if not fixed fee.  nil if at lowest fee tier)
+    nextvolume = volume level of next tier (if not fixed fee.  nil if at lowest fee tier)
+    tiervolume = volume level of current tier (if not fixed fee.  nil if at lowest fee tier)
+Note: If an asset pair is on a maker/taker fee schedule, the taker side is given in "fees" and maker side in "fees_maker". For pairs not on maker/taker, they will only be given in "fees".
+
+Private user trading
+Add standard order
+URL: https://api.kraken.com/0/private/AddOrder
+
+Input:
+
+pair = asset pair
+type = type of order (buy/sell)
+ordertype = order type:
+    market
+    limit (price = limit price)
+    stop-loss (price = stop loss price)
+    take-profit (price = take profit price)
+    stop-loss-profit (price = stop loss price, price2 = take profit price)
+    stop-loss-profit-limit (price = stop loss price, price2 = take profit price)
+    stop-loss-limit (price = stop loss trigger price, price2 = triggered limit price)
+    take-profit-limit (price = take profit trigger price, price2 = triggered limit price)
+    trailing-stop (price = trailing stop offset)
+    trailing-stop-limit (price = trailing stop offset, price2 = triggered limit offset)
+    stop-loss-and-limit (price = stop loss price, price2 = limit price)
+    settle-position
+price = price (optional.  dependent upon ordertype)
+price2 = secondary price (optional.  dependent upon ordertype)
+volume = order volume in lots
+leverage = amount of leverage desired (optional.  default = none)
+oflags = comma delimited list of order flags (optional):
+    viqc = volume in quote currency (not available for leveraged orders)
+    fcib = prefer fee in base currency
+    fciq = prefer fee in quote currency
+    nompp = no market price protection
+    post = post only order (available when ordertype = limit)
+starttm = scheduled start time (optional):
+    0 = now (default)
+    +<n> = schedule start time <n> seconds from now
+    <n> = unix timestamp of start time
+expiretm = expiration time (optional):
+    0 = no expiration (default)
+    +<n> = expire <n> seconds from now
+    <n> = unix timestamp of expiration time
+userref = user reference id.  32-bit signed number.  (optional)
+validate = validate inputs only.  do not submit order (optional)
+
+optional closing order to add to system when order gets filled:
+    close[ordertype] = order type
+    close[price] = price
+    close[price2] = secondary price
+Result:
+
+descr = order description info
+    order = order description
+    close = conditional close order description (if conditional close set)
+txid = array of transaction ids for order (if order was added successfully)
+Errors: errors include (but are not limited to):
+
+EGeneral:Invalid arguments
+EService:Unavailable
+ETrade:Invalid request
+EOrder:Cannot open position
+EOrder:Cannot open opposing position
+EOrder:Margin allowance exceeded
+EOrder:Margin level too low
+EOrder:Insufficient margin (exchange does not have sufficient funds to allow margin trading)
+EOrder:Insufficient funds (insufficient user funds)
+EOrder:Order minimum not met (volume too low)
+EOrder:Orders limit exceeded
+EOrder:Positions limit exceeded
+EOrder:Rate limit exceeded
+EOrder:Scheduled orders limit exceeded
+EOrder:Unknown position
+Note:
+
+See Get tradable asset pairs for specifications on asset pair prices, lots, and leverage.
+Prices can be preceded by +, -, or # to signify the price as a relative amount (with the exception of trailing stops, which are always relative). + adds the amount to the current offered price. - subtracts the amount from the current offered price. # will either add or subtract the amount to the current offered price, depending on the type and order type used. Relative prices can be suffixed with a % to signify the relative amount as a percentage of the offered price.
+For orders using leverage, 0 can be used for the volume to auto-fill the volume needed to close out your position.
+If you receive the error "EOrder:Trading agreement required", refer to your API key management page for further details.
+Cancel open order
+URL: https://api.kraken.com/0/private/CancelOrder
+
+Input:
+
+txid = transaction id
+Result:
+
+count = number of orders canceled
+pending = if set, order(s) is/are pending cancellation
+Note: txid may be a user reference id.
+
+Example API clients
+Below are sample API client code libraries that can be used when writing your own API client. Please keep in mind that Payward nor the third party authors are responsible for losses due to bugs or improper use of the APIs. Payward has performed an initial review of the safety of the third party code before listing them but cannot vouch for any changes added since then. If you have concerns, please contact support.
+
+C#
+See the third party authored https://bitbucket.org/arrivets/krakenapi.
+
+C++
+See the third party authored https://github.com/voidloop/krakenapi.
+
+GO
+See the third party authored https://github.com/Beldur/kraken-go-api-client.
+
+Node.JS
+See the third party authored https://github.com/nothingisdead/npm-kraken-api.
+
+PERL
+See the third party authored http://search.cpan.org/~philippe/Finance-Bank-Kraken-0.1/.
+
+Python 3
+See the third party authored https://github.com/veox/python3-krakenex.
+
+Python 2
+See the third party authored https://github.com/veox/python2-krakenex.
+
+Ruby
+See the third party authored https://github.com/leishman/kraken_ruby.
+
+PHP
+The Kraken team has provided a basic PHP library for interfacing with the Kraken REST API. The source and usage examples are also available on Payward's kraken-api-client github repository and is MIT licensed.
+
+Library
+Use this library class to make calls to the Kraken REST API with a PHP client. It automatically determines the API method's correct URL path, generates a nonce for each request, and adds a signed header using your API secret and the generated nonce.
+
+<?php
+/**
+ * Reference implementation for Kraken's REST API.
+ *
+ * See https://www.kraken.com/help/api for more info.
+ *
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2013 Payward, Inc
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+class KrakenAPIException extends ErrorException {};
+
+class KrakenAPI
+{
+    protected $key;     // API key
+    protected $secret;  // API secret
+    protected $url;     // API base URL
+    protected $version; // API version
+    protected $curl;    // curl handle
+
+    /**
+     * Constructor for KrakenAPI
+     *
+     * @param string $key API key
+     * @param string $secret API secret
+     * @param string $url base URL for Kraken API
+     * @param string $version API version
+     * @param bool $sslverify enable/disable SSL peer verification.  disable if using beta.api.kraken.com
+     */
+    function __construct($key, $secret, $url='https://api.kraken.com', $version='0', $sslverify=true)
+    {
+        $this->key = $key;
+        $this->secret = $secret;
+        $this->url = $url;
+        $this->version = $version;
+        $this->curl = curl_init();
+
+        curl_setopt_array($this->curl, array(
+            CURLOPT_SSL_VERIFYPEER => $sslverify,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT => 'Kraken PHP API Agent',
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true)
+        );
+    }
+
+    function __destruct()
+    {
+        curl_close($this->curl);
+    }
+
+    /**
+     * Query public methods
+     *
+     * @param string $method method name
+     * @param array $request request parameters
+     * @return array request result on success
+     * @throws KrakenAPIException
+     */
+    function QueryPublic($method, array $request = array())
+    {
+        // build the POST data string
+        $postdata = http_build_query($request, '', '&');
+
+        // make request
+        curl_setopt($this->curl, CURLOPT_URL, $this->url . '/' . $this->version . '/public/' . $method);
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $postdata);
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, array());
+        $result = curl_exec($this->curl);
+        if($result===false)
+            throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
+
+        // decode results
+        $result = json_decode($result, true);
+        if(!is_array($result))
+            throw new KrakenAPIException('JSON decode error');
+
+        return $result;
+    }
+
+    /**
+     * Query private methods
+     *
+     * @param string $path method path
+     * @param array $request request parameters
+     * @return array request result on success
+     * @throws KrakenAPIException
+     */
+    function QueryPrivate($method, array $request = array())
+    {
+        if(!isset($request['nonce'])) {
+            // generate a 64 bit nonce using a timestamp at microsecond resolution
+            // string functions are used to avoid problems on 32 bit systems
+            $nonce = explode(' ', microtime());
+            $request['nonce'] = $nonce[1] . str_pad(substr($nonce[0], 2, 6), 6, '0');
+        }
+
+        // build the POST data string
+        $postdata = http_build_query($request, '', '&');
+
+        // set API key and sign the message
+        $path = '/' . $this->version . '/private/' . $method;
+        $sign = hash_hmac('sha512', $path . hash('sha256', $request['nonce'] . $postdata, true), base64_decode($this->secret), true);
+        $headers = array(
+            'API-Key: ' . $this->key,
+            'API-Sign: ' . base64_encode($sign)
+        );
+
+        // make request
+        curl_setopt($this->curl, CURLOPT_URL, $this->url . $path);
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $postdata);
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($this->curl);
+        if($result===false)
+            throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
+
+        // decode results
+        $result = json_decode($result, true);
+        if(!is_array($result))
+            throw new KrakenAPIException('JSON decode error');
+
+        return $result;
+    }
+}
+
+Example usage
+
+Below are the steps involved in initializing the KrakenAPI library class, as well a number of example API method calls. Formatted result sets are shown beneath each respective API call snippet.
+
+Initialization
+
+Include the library file and supply your API key and secret when instantiating a KrakenAPI object.
+
+<?php
+
+require_once 'KrakenAPIClient.php';
+$kraken = new KrakenAPI('YOUR API KEY', 'YOUR API SECRET');
+Method calls
+
+Query a public list of active assets and their properties:
+
+$res = $kraken->QueryPublic('Assets');
+print_r($res);
+Returned assets are keyed by their ISO-4217-A3-X names, example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [XXBT] => Array
+                (
+                    [aclass] => currency
+                    [altname] => XBT
+                    [decimals] => 10
+                    [display_decimals] => 5
+                )
+
+            [XLTC] => Array
+                (
+                    [aclass] => currency
+                    [altname] => LTC
+                    [decimals] => 10
+                    [display_decimals] => 5
+                )
+
+            [XXRP] => Array
+                (
+                    [aclass] => currency
+                    [altname] => XRP
+                    [decimals] => 8
+                    [display_decimals] => 5
+                )
+
+            [ZEUR] => Array
+                (
+                    [aclass] => currency
+                    [altname] => EUR
+                    [decimals] => 4
+                    [display_decimals] => 2
+                )
+            ...
+)
+Query public ticker info for XBT/USD pair:
+
+$res = $kraken->QueryPublic('Ticker', array('pair' => 'XXBTZUSD'));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [XXBTZUSD] => Array
+                (
+                    [a] => Array
+                        (
+                            [0] => 106.09583
+                            [1] => 111
+                        )
+
+                    [b] => Array
+                        (
+                            [0] => 105.53966
+                            [1] => 4
+                        )
+
+                    [c] => Array
+                        (
+                            [0] => 105.98984
+                            [1] => 0.13910102
+                        )
+
+                    ...
+        )
+)
+Query public recent trades for XBT/EUR pair since 2013-08-07T18:20:42+00:00:
+
+NOTE: the 'since' parameter is subject to change in the future: it's precision may be modified, and it may no longer be representative of a timestamp. The best practice is to base it on the 'last' value returned in the result set.
+
+$res = $kraken->QueryPublic('Trades', array('pair' => 'XXBTZEUR', 'since' => '137589964200000000'));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [XXBTZEUR] => Array
+                (
+                    [0] => Array
+                        (
+                            [0] => 78.60500
+                            [1] => 2.03990000
+                            [2] => 1375897934.1176
+                            [3] => s
+                            [4] => m
+                            [5] =>
+                        )
+
+                    [1] => Array
+                        (
+                            [0] => 79.41809
+                            [1] => 2.02203000
+                            [2] => 1375898123.0771
+                            [3] => b
+                            [4] => m
+                            [5] =>
+                        )
+
+                    [2] => Array
+                        (
+                            [0] => 79.86999
+                            [1] => 7.00000000
+                            [2] => 1375898123.2587
+                            [3] => b
+                            [4] => m
+                            [5] =>
+                        )
+                    ...
+            )
+            [last] => 137589925237491170
+        )
+)
+Query private asset balances:
+
+$res = $kraken->QueryPrivate('Balance');
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [ZUSD] => 3415.8014
+            [ZEUR] => 155.5649
+            [XXBT] => 149.9688412800
+            [XXRP] => 499889.51600000
+        )
+
+)
+Query private open orders and included related trades:
+
+$res = $kraken->QueryPrivate('OpenOrders', array('trades' => true));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [open] => Array
+                (
+                    [O7ICPO-F4CLJ-MVBLHC] => Array
+                        (
+                            [refid] =>
+                            [userref] =>
+                            [status] => open
+                            [opentm] => 1373750306.9819
+                            [starttm] => 0
+                            [expiretm] => 0
+                            [descr] => Array
+                                (
+                                    [order] => sell 3.00000000 XBTUSD @ limit 500.00000
+                                )
+
+                            [vol] => 3.00000000
+                            [vol_exec] => 0.00000000
+                            [cost] => 0.00000
+                            [fee] => 0.00000
+                            [price] => 0.00000
+                            [misc] =>
+                            [oflags] =>
+                        )
+                    ...
+                )
+        )
+)
+Add a standard order: sell 1.123 XBT/USD @ limit $120
+
+$res = $kraken->QueryPrivate('AddOrder', array(
+    'pair' => 'XXBTZUSD',
+    'type' => 'sell',
+    'ordertype' => 'limit',
+    'price' => '120',
+    'volume' => '1.123'
+));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [descr] => Array
+                (
+                    [order] => sell 1.12300000 XBTUSD @ limit 120.00000
+                )
+
+            [txid] => Array
+                (
+                    [0] => OAVY7T-MV5VK-KHDF5X
+                )
+
+        )
+
+)
+Add a standard order: buy €300 worth of XBT at market at 2013-08-12T09:27:22+0000
+
+$res = $kraken->QueryPrivate('AddOrder', array(
+    'pair' => 'XXBTZEUR',
+    'type' => 'buy',
+    'ordertype' => 'market',
+    'oflags' => 'viqc',
+    'volume' => '300',
+    'starttm' => '1376299642'
+));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [descr] => Array
+                (
+                    [order] => buy 300.00000000 XBTEUR @ market
+                )
+
+            [txid] => Array
+                (
+                    [0] => ONQN65-L2GNR-HWJLF5
+                )
+
+        )
+
+)
+Add a standard order: buy 2.12345678 XBTUSD @ limit $101.9901 with 2:1 leverage, with a follow up stop loss, take profit sell order: stop at -5% loss, take profit at +$10 price increase (signed stop/loss prices determined automatically using # notation):
+
+$res = $kraken->QueryPrivate('AddOrder', array(
+    'pair' => 'XXBTZUSD',
+    'type' => 'buy',
+    'ordertype' => 'limit',
+    'price' => '101.9901',
+    'volume' => '2.12345678',
+    'leverage' => '2:1',
+    'close' => array(
+        'ordertype' => 'stop-loss-profit',
+        'price' => '#5%',  // stop loss price (relative percentage delta)
+        'price2' => '#10'  // take profit price (relative delta)
+    )
+));
+print_r($res);
+Example output:
+
+Array
+(
+    [error] => Array
+        (
+        )
+
+    [result] => Array
+        (
+            [descr] => Array
+                (
+                    [order] => buy 2.12345678 XBTUSD @ limit 101.99010 with 2:1 leverage
+                    [close] => close position @ stop loss -5.0000%, take profit +10.00000
+                )
+
+            [txid] => Array
+                (
+                    [0] => OFMYYE-POAPQ-63IMWL
+                )
+
+        )
+
+)
+Private user funding
+NOTE:This is a tentative funding API and may be updated in the future. Please refer to the main API page for more information on using the API.
+
+Get deposit methods
+URL: https://api.kraken.com/0/private/DepositMethods
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being deposited
+Result: associative array of deposit methods:
+
+method = name of deposit method
+limit = maximum net amount that can be deposited right now, or false if no limit
+fee = amount of fees that will be paid
+address-setup-fee = whether or not method has an address setup fee (optional)
+Get deposit addresses
+URL: https://api.kraken.com/0/private/DepositAddresses
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being deposited
+method = name of the deposit method
+new = whether or not to generate a new address (optional.  default = false)
+Result: associative array of deposit addresses:
+
+address = deposit address
+expiretm = expiration time in unix timestamp, or 0 if not expiring
+new = whether or not address has ever been used
+Get status of recent deposits
+URL: https://api.kraken.com/0/private/DepositStatus
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being deposited
+method = name of the deposit method
+Result: array of array deposit status information:
+
+method = name of the deposit method used
+aclass = asset class
+asset = asset X-ISO4217-A3 code
+refid = reference id
+txid = method transaction id
+info = method transaction information
+amount = amount deposited
+fee = fees paid
+time = unix timestamp when request was made
+status = status of deposit
+status-prop = additional status properties (if available)
+    return = a return transaction initiated by Kraken
+    onhold = deposit is on hold pending review
+For information about the status, please refer to the IFEX financial transaction states.
+Get withdrawal information
+URL: https://api.kraken.com/0/private/WithdrawInfo
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being withdrawn
+key = withdrawal key name, as set up on your account
+amount = amount to withdraw
+Result: associative array of withdrawal info:
+
+method = name of the withdrawal method that will be used
+limit = maximum net amount that can be withdrawn right now
+fee = amount of fees that will be paid
+Withdraw funds
+URL: https://api.kraken.com/0/private/Withdraw
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being withdrawn
+key = withdrawal key name, as set up on your account
+amount = amount to withdraw, including fees
+Result: associative array of withdrawal transaction:
+
+refid = reference id
+Get status of recent withdrawals
+URL: https://api.kraken.com/0/private/WithdrawStatus
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being withdrawn
+method = withdrawal method name (optional)
+Result: array of array withdrawal status information:
+
+method = name of the withdrawal method used
+aclass = asset class
+asset = asset X-ISO4217-A3 code
+refid = reference id
+txid = method transaction id
+info = method transaction information
+amount = amount withdrawn
+fee = fees paid
+time = unix timestamp when request was made
+status = status of withdrawal
+status-prop = additional status properties (if available)
+    cancel-pending = cancelation requested
+    canceled = canceled
+    cancel-denied = cancelation requested but was denied
+    return = a return transaction initiated by Kraken; it cannot be canceled
+    onhold = withdrawal is on hold pending review
+For information about the status, please refer to the IFEX financial transaction states.
+Request withdrawal cancelation
+URL: https://api.kraken.com/0/private/WithdrawCancel
+
+Input:
+
+aclass = asset class (optional):
+    currency (default)
+asset = asset being withdrawn
+refid = withdrawal reference id
+Result: true on success
+
+Note: Cancelation cannot be guaranteed. This will put in a cancelation request. Depending upon how far along the withdrawal process is, it may not be possible to cancel the withdrawal.
+
+be legendary
+© 2012 - 2016 Payward, Inc.
+
+ACCOUNT
+Log In
+Sign Up
+ABOUT
+About Us
+Careers
+Press
+Contact
+Legal & Privacy
+Security
+RESOURCES
+FAQ
+Charts
+Blog
+Fees
+Support
+Trading Guide
+API
+PGP Key
+Audit
+Bug Bounty
+LANGUAGE
+
