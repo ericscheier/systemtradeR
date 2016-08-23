@@ -189,6 +189,16 @@ adjustedDiversificationMultiplier <- function(forecast.name, price.xts){
   }
 }
 
+getMatchingFxRates <- function(symbols=NULL, account.currencies="USD"){
+  bases <- unique(sapply(symbols, function(x) pairToCurrencies(x)$base))
+  bases <- bases[!(bases %in% account.currencies)]
+  fx.pairs <- NULL
+  if(length(bases)>0){
+    fx.pairs <- apply(expand.grid(account.currencies, bases, stringsAsFactors = FALSE),1,function(x) paste(x[["Var1"]],x[["Var2"]],sep="_"))
+  }
+  return(fx.pairs)
+}
+
 simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   
   print(paste0("Simulating forecast returns for ",paste0(pairs, collapse = ", "),". Forecast: ",forecast.name))
@@ -197,17 +207,19 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   if (!exists('.blotter')) .blotter <- new.env()
   if (!exists('.strategy')) .strategy <- new.env()
   
-  account.currency <- "USD"
+  account.currency <- "USD" #"BTC"
   account.currencies <- account.currency
   
   # setSymbolLookup(BTC_BTS=list(src='custom', dir='data/raw'))
   # setSymbolLookup(BTC_ETH=list(src='custom', dir='data/raw'))
   # setSymbolLookup(USD_BTC=list(src='custom', dir='data/raw'))
-  exchange.rate.pairs <- c("USD_BTC") # getMatchingFxRates(symbols=symbols, account.currencies=account.currencies)
-  e.rates <- getSymbols(Symbols = exchange.rate.pairs, env=.GlobalEnv, auto.assign = TRUE, src="currencies", dir='data/raw'
-                        ,verbose = TRUE
-                        # , reload.Symbols = FALSE
-  )
+  exchange.rate.pairs <- getMatchingFxRates(symbols=pairs, account.currencies=account.currencies)
+  if(!is.null(exchange.rate.pairs)){
+    e.rates <- getSymbols(Symbols = exchange.rate.pairs, env=.GlobalEnv, auto.assign = TRUE, src="currencies", dir='data/raw'
+                          ,verbose = TRUE
+                          # , reload.Symbols = FALSE
+    )
+  }
   
   symbols <- getSymbols(Symbols = c(pairs), env=.GlobalEnv, auto.assign = TRUE, src="custom", dir='data/raw'
                         ,verbose = TRUE, account.currency=account.currencies, forecast.name=forecast.name

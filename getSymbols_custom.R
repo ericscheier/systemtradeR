@@ -44,6 +44,9 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     
     fr <- getHourlyPairData(pair=Symbols[[i]], ohlc=TRUE, volume=TRUE)
     
+    new.fr <- xts(NULL, order.by = seq(from=min(index(fr)), to=max(index(fr)), by=60*60))
+    fr <- na.locf(merge(new.fr, fr), na.omit=FALSE)
+    
     symbol <- pairToSymbol(pair=Symbols[[i]])
     currencies <- pairToCurrencies(Symbols[[i]])
     
