@@ -169,6 +169,7 @@ assetFilterRules <- function(investment.universe.row){
   asset <- investment.universe.row["asset"]
   # print(investment.universe.row)
   if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
+  if(strsplit(asset, "_")[1] %in% c("USD")){return(TRUE)}
   # print(investment.universe.row["is.restricted"])
   if(trimws(investment.universe.row["is.restricted"])){return(FALSE)}
   
