@@ -23,6 +23,7 @@ tradesToMake <- function(){
                                           (optimal.position - current.position) *
                                             (abs(optimal.position - current.position) >= abs(system.config$minimum.position.change * current.position)) *
                                             !is.locked)
+                             # add minimum order size column to investment universe table
   )
   
   transactions.to.make <- transactions[transactions$to.make!=0,]
@@ -39,6 +40,11 @@ getMid <- function(ticker, pair){
 transactPair <- function(transactions.row){
   pair <- transactions.row["asset"]
   transaction.size <- as.numeric(transactions.row["to.make"])
+  
+  if(pair=="USD_BTC"){
+    return()
+  }
+  
   # for margin trading only
   ticker <- returnTicker()
   mid.point <- getMid(ticker=ticker, pair=pair)

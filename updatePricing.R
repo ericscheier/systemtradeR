@@ -3,7 +3,7 @@
 
 # parallelize this
 refreshPricing <- function(pairs){
-  pairs <- c(pairs, "USDT_BTC")
+  pairs <- c(pairs) #, "USDT_BTC"
   sapply(pairs, updatePricing)
   return()
 }
@@ -64,6 +64,13 @@ updatePricing <- function(pair){
 initializePricing <- function(pair, pair.exchange){
   print(paste0("Initializing ",pair))
   earliest.date <- "1992-04-25 07:40:00"
+  
+  if(pair=="USD_BTC"){
+    pair.swap <- TRUE
+    pair <- "USDT_BTC"
+    pair.exchange <- "poloniex"
+  }
+  
   initialize.interval <- switch (pair.exchange,
     "poloniex" = 5,
     "kraken" = 24 * 60
@@ -71,6 +78,13 @@ initializePricing <- function(pair, pair.exchange){
   
   initialized.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=earliest.date,
                                 interval=initialize.interval)
+  
+  if(pair.swap){
+    initialized.data$vwap <- NA
+    initialized.data$count <- NA
+    initialized.data$quoteVolume <- NULL
+    initialized.data$weightedAverage <- NULL
+  }
   
   return(initialized.data)
 }
