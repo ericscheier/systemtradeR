@@ -17,7 +17,8 @@ libraries <- c("xts",
                "rCharts", # install_github("ramnathv/rCharts")
                "quantstrat",
                "ROI",  
-               "lattice"
+               "lattice",
+               "data.table"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")

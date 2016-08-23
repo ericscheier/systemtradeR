@@ -97,7 +97,7 @@ productionSubsystemForecast <- function(pair=NULL, hourly.price.xts=NULL){
   if(is.null(hourly.price.xts)){
     hourly.price.xts <- getHourlyPairData(pair)
   }
-  subsystem.forecast <- as.numeric(tail(combinedForecast(hourly.price.xts),1))
+  subsystem.forecast <- as.numeric(tail(productionCombinedForecast(pair=pair, hourly.price.xts=hourly.price.xts),1))
   return(subsystem.forecast)
 }
 
@@ -185,6 +185,26 @@ weightedForecasts <- function(price.xts, instrument.name){
   
   weighted.forecasts <- forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * c(coredata(forecast.diversification.multiplier))
   return(weighted.forecasts)
+}
+
+productionWeightedForecasts <- function(pair, hourly.price.xts){
+  # price.xts <- getHourlyPairData(pair)
+  forecast.weights <- tail(readRDS(relativePath(paste0("/data/clean/",pairToSymbol(pair),"_smoothed_forecast_weights.RDS"))),1)
+  ###~~~!!!~~~###
+  # forecast.weights <- na.locf(merge(price.index, fw), na.rm = FALSE)
+  forecast.diversification.multiplier <- productionForecastDiversificationMultipler(pairToSymbol(pair))
+  capped.scaled.forecasts <- tail(sapply(names(forecast.weights), cappedScaledForecast, price.xts=hourly.price.xts),1)
+  
+  weighted.forecasts <- as.xts(forecast.weights * capped.scaled.forecasts[,colnames(forecast.weights)] * forecast.diversification.multiplier)
+  return(weighted.forecasts)
+}
+
+productionCombinedForecast <- function(pair, hourly.price.xts){
+  combined.forecast <- rowSumXts(productionWeightedForecasts(pair, hourly.price.xts))
+  
+  combined.forecast <- cappedForecast(combined.forecast)
+  colnames(combined.forecast) <- NULL
+  return(combined.forecast)
 }
 
 combinedForecast <- function(price.xts, instrument.name){
@@ -386,7 +406,7 @@ productionForecastDiversificationMultipler <- function(instrument.name){
 
 # generalize to diversificationMultipler function to help building forecastDiversificationMultiplier later
 productionInstrumentDiversificationMultiplier <- function(){
-  subsystem.returns <- readRDS(relativePath("/data/clean/subsystem_returns.RDS"))
+  subsystem.returns <- readRDS(relativePath("/data/clean/instrument_returns.RDS"))
   instrument.weights <- readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS"))
   
   
