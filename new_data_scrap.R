@@ -7,7 +7,7 @@ getQuandlData <- function(symbol){
 }
 
 
-USDBTC = getQuandlData("BCHARTS/LAKEUSD") #"BCHARTS/BITSTAMPUSD" has missing data around start of 2015 # or  for farther back
+USDBTC = getQuandlData("BAVERAGE/USD") #"BCHARTS/LAKEUSD") #"BCHARTS/BITSTAMPUSD" has missing data around start of 2015 # or  for farther back
 new.usd <- USDBTC[,c("Open", "High", "Low", "Close", "Volume (BTC)")]
 colnames(new.usd) <- c("open", "high", "low", "close", "volume")
 

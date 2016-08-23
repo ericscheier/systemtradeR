@@ -22,6 +22,14 @@ api.poloniex.public <- function(command){
   return(content(ret))
 }
 
+getPairOHLC.poloniex <- function(pair, start.time, interval=5){
+  start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
+  new.data.raw <- content(GET(paste0("https://poloniex.com/public?command=returnChartData&currencyPair=",pair,"&start=",start.seconds,"&end=9999999999&period=",interval*60)))  # https://poloniex.com/support/api/
+  new.data <- ldply(new.data.raw, data.frame)
+  new.data$date <- as.character(as.POSIXct(new.data$date, origin = "1970-01-01"))
+  return(new.data)
+}
+
 returnOpenOrders <- function(currency.pair="all"){
   command <- "returnOpenOrders"
   # Returns your open orders for a given market,
