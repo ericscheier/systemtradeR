@@ -16,11 +16,11 @@ all.colors = sample(grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), in
 
 combo.returns <- readRDS(relativePath(paste0("data/clean/","combo_returns",".RDS")))
 chart.CumReturns(combo.returns, legend.loc = "topleft", colorset=all.colors,
-                 main=paste0("Unpooled ",forecast.name," Returns by Asset"))
+                 main=paste0("Combo Returns by Asset"))
 
 
 raw.combo.weights <- readRDS(relativePath(paste0("data/clean/","raw_combo_weights",".RDS")))
-chart.StackedBar(last(raw.combo.weights,24*30), colorset=all.colors  #rainbow12equal
+chart.StackedBar(raw.combo.weights[.indexwday(raw.combo.weights)==1], colorset=all.colors  #rainbow12equal
                  , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
                  , cex.legend = .2
                  , main="raw_combo_weights")

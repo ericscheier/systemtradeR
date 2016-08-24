@@ -2,6 +2,28 @@
 fullComboSimulation <- function(){
   functions <- c("simulateAllCombos", "rawComboWeights", "smoothedComboWeights", "parseCombos", "fullSystemBacktest")
   sapply(functions, runParallelFunc)
+  backupComboSimulation()
+}
+
+backupCombosSimulation <- function(){
+  # create a folder structure for backups: data, figures
+    # http://stackoverflow.com/questions/4216753/check-existence-of-directory-and-create-if-doesnt-exist
+  # save specs environment as RDS in top level
+  # move all relevant data from data/clean to [backup]/data
+    # combos(portfolio.forecasts, portfolio.pairs)_forecast_returns.RDS
+    # combo_returns.RDS
+    # raw_combo_weights.RDS
+    # smoothed_combo_weights.RDS
+    # (portfolio.pairs)_smoothed_forecast_weights.RDS
+    # smoothed_instrument_weights.RDS
+    # (portfolio.pairs)_forecast_returns.RDS
+    # instrument_returns.RDS
+    # (portfolio.forecasts)_instrument_returns.RDS
+    # forecast_returns.RDS
+  # move all relevant figures from figures/final to [backup]/figures
+    # combos(portfolio.forecasts, portfolio.pairs)_ForecastSimulation.pdf
+    # paste.together(portfolio.pairs)_fullSystem_ForecastSimulation.pdf
+  return()
 }
 
 simulateAllCombos <- function(){
@@ -79,9 +101,9 @@ parseCombos <- function(){
   
   saveRDS(instrument.weights, relativePath(paste0("/data/clean/smoothed_instrument_weights.RDS")))
   
-  chart.StackedBar(instrument.weights[.indexwday(instrument.weights)==1], colorset= tol12qualitative#rainbow12equal
-                   , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
-                   , main="instrument_weights")
+  # chart.StackedBar(instrument.weights[.indexwday(instrument.weights)==1], colorset= tol12qualitative#rainbow12equal
+  #                  , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
+  #                  , main="instrument_weights")
   
   
   raw.combo.returns <- readRDS(relativePath(paste0("data/clean/","combo_returns",".RDS")))

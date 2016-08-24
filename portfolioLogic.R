@@ -168,8 +168,9 @@ updateInvestmentUniverse <- function(portfolio){
 assetFilterRules <- function(investment.universe.row){
   asset <- investment.universe.row["asset"]
   # print(investment.universe.row)
-  if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
-  if(strsplit(asset, "_")[1] %in% c("USD")){return(TRUE)}
+  # print(unlist(strsplit(asset, "_"))[1])
+  if(unlist(strsplit(asset, "_"))[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
+  if(unlist(strsplit(asset, "_"))[1] %in% c("USD")){return(FALSE)}
   # print(investment.universe.row["is.restricted"])
   if(trimws(investment.universe.row["is.restricted"])){return(FALSE)}
   
@@ -177,14 +178,14 @@ assetFilterRules <- function(investment.universe.row){
   asset.volatility <- as.numeric(tail(emaVolatility(Cl(asset.data)),1))
   asset.volume <- sum(as.numeric(tail(asset.data$volume, system.config$volatility.lookback)))
   print(paste0(asset," volatility ",asset.volatility," volume ",asset.volume))
-  if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
+  # if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
   
   # print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
   
-  rule1 <- asset.volatility >= system.config$volatility.benchmark
-  rule2 <- asset.volume >= system.config$volume.benchmark
-  rules <- c(rule1, rule2)
-  
+  # rule1 <- asset.volatility >= system.config$volatility.benchmark
+  # rule2 <- asset.volume >= system.config$volume.benchmark
+  # rules <- c(rule1, rule2)
+  rules <- TRUE
   # print(rules)
   
   return(all(rules))
@@ -231,7 +232,7 @@ initializeInvestmentUniverse <- function(){
   investment.universe <- data.frame(asset=initial.pairs, exchange="poloniex", is.restricted=FALSE, passes.filter=TRUE,
                                     current.position=0,optimal.position=0, is.locked=FALSE,
                                     stringsAsFactors = FALSE)
-  base.currency <- data.frame(asset="USD_BTC", exchange="kraken", is.restricted=FALSE, passes.filter=TRUE, current.position=0,
+  base.currency <- data.frame(asset="USD_BTC", exchange="kraken", is.restricted=FALSE, passes.filter=FALSE, current.position=0,
                               optimal.position=0, is.locked=FALSE)
   investment.universe <- rbind(investment.universe, base.currency)
   

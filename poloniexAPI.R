@@ -15,16 +15,36 @@ api.poloniex <- function(command, args = list()) {
   return(content(ret))
 }
 
-api.poloniex.public <- function(command){
-  req <- paste0("https://poloniex.com/public?command=",command)
+api.poloniex.public <- function(command, args=list()){
+  args <- c("command"=command, args)
+  combined.args <- paste(names(args), args, sep="=",collapse = "&")
+  req <- paste0("https://poloniex.com/public?",combined.args)
   ret <- POST(req)
   stop_for_status(ret)
   return(content(ret))
 }
 
 getPairOHLC.poloniex <- function(pair, start.time, interval=5){
+  
+  # returnChartData
+  # Returns candlestick chart data. Required GET parameters are "currencyPair", "period" (candlestick period in seconds; valid values are 300, 900, 1800, 7200, 14400, and 86400), "start", and "end". "Start" and "end" are given in UNIX timestamp format and used to specify the date range for the data returned. Sample output:
+  #   
+  #   [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00427592,"volume":44.11655644,
+  #     "quoteVolume":10259.29079097,"weightedAverage":0.00430015}, ...]
+  # 
+  # Call: https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
+  
   start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
-  new.data.raw <- content(GET(paste0("https://poloniex.com/public?command=returnChartData&currencyPair=",pair,"&start=",start.seconds,"&end=9999999999&period=",interval*60)))  # https://poloniex.com/support/api/
+  end.seconds <- 9999999999
+  
+  command <- "returnChartData"
+  args <- list(currencyPair=pair,
+               start=start.seconds,
+               end=end.seconds,
+               period=interval*60)
+  
+  new.data.raw <- api.poloniex.public(command=command, args=args)
+  # new.data.raw <- content(GET(paste0("https://poloniex.com/public?command=returnChartData&currencyPair=",pair,"&start=",start.seconds,"&end=",end.seconds"&period=",interval*60)))  # https://poloniex.com/support/api/
   new.data <- ldply(new.data.raw, data.frame)
   new.data$date <- as.character(as.POSIXct(new.data$date, origin = "1970-01-01"))
   return(new.data)
@@ -194,4 +214,150 @@ returnTicker <- function(){
   # Call: https://poloniex.com/public?command=returnTicker
   command.result <- api.poloniex.public(command)
   return(command.result)
+}
+
+returnLoanOrders <- function(currency=NULL){
+  command <- "returnLoanOrders"
+  config.specs <- list(currency=currency)
+  # returnLoanOrders
+  # Returns the list of loan offers and demands for a given currency, specified by the "currency" GET parameter. Sample output:
+  #   
+  # {"offers":[{"rate":"0.00200000","amount":"64.66305732","rangeMin":2,"rangeMax":8}, ... ],"demands":[{"rate":"0.00170000","amount":"26.54848841","rangeMin":2,"rangeMax":2}, ... ]}
+  # 
+  # Call: https://poloniex.com/public?command=returnLoanOrders&currency=BTC
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result) # need to ldply(command.result$offers, data.frame) or $demands
+}
+
+returnAvailableAccountBalances <- function(account=NULL){
+   command <- "returnAvailableAccountBalances"
+  # Returns your balances sorted by account. You may optionally specify the "account" POST parameter if you wish to fetch only the balances of one account. Please note that balances in your margin account may not be accessible if you have any open margin positions or orders. Sample output:
+  #   
+  # {"exchange":{"BTC":"1.19042859","BTM":"386.52379392","CHA":"0.50000000","DASH":"120.00000000","STR":"3205.32958001", "VNL":"9673.22570147"},"margin":{"BTC":"3.90015637","DASH":"250.00238240","XMR":"497.12028113"},"lending":{"DASH":"0.01174765","LTC":"11.99936230"}}
+  config.specs <- list(account=account)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+createLoanOffer <- function(currency=NULL, amount=0, duration=2, autoRenew=0, lendingRate=1){
+  command <- "createLoanOffer"
+  # Creates a loan offer for a given currency. Required POST parameters are "currency", "amount", "duration", "autoRenew" (0 or 1), and "lendingRate". Sample output:
+  #   
+  # {"success":1,"message":"Loan order placed.","orderID":10590}
+  config.specs <- list(currency=currency,
+                       amount=amount,
+                       duration=duration,
+                       autoRenew=autoRenew,
+                       lendingRate=lendingRate)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+cancelLoanOffer <- function(orderNumber=NULL){
+  command <- "cancelLoanOffer"
+  # Cancels a loan offer specified by the "orderNumber" POST parameter. Sample output:
+  #   
+  # {"success":1,"message":"Loan offer canceled."}
+  config.specs <- list(orderNumber=orderNumber)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnOpenLoanOffers <- function(){
+  command <- "returnOpenLoanOffers"
+  # Returns your open loan offers for each currency. Sample output:
+  #   
+  # {"BTC":[{"id":10595,"rate":"0.00020000","amount":"3.00000000","duration":2,"autoRenew":1,"date":"2015-05-10 23:33:50"}],"LTC":[{"id":10598,"rate":"0.00002100","amount":"10.00000000","duration":2,"autoRenew":1,"date":"2015-05-10 23:34:35"}]}
+  
+  command.result <- api.poloniex(command=command)
+  return(command.result)
+}
+
+returnActiveLoans <- function(){
+  command <- "returnActiveLoans"
+  # Returns your active loans for each currency. Sample output:
+  #   
+  # {"provided":[{"id":75073,"currency":"LTC","rate":"0.00020000","amount":"0.72234880","range":2,"autoRenew":0,"date":"2015-05-10 23:45:05","fees":"0.00006000"},{"id":74961,"currency":"LTC","rate":"0.00002000","amount":"4.43860711","range":2,"autoRenew":0,"date":"2015-05-10 23:45:05","fees":"0.00006000"}],"used":[{"id":75238,"currency":"BTC","rate":"0.00020000","amount":"0.04843834","range":2,"date":"2015-05-10 23:51:12","fees":"-0.00000001"}]}
+  
+  command.result <- api.poloniex(command=command)
+  return(command.result)
+}
+
+moveOrder <- function(orderNumber=NULL, rate=NULL, amount=NULL){
+  command <- "moveOrder"
+  # Cancels an order and places a new one of the same type in a single atomic transaction, meaning either both operations will succeed or both will fail.
+  # Required POST parameters are "orderNumber" and "rate"; you may optionally specify "amount" if you wish to change the amount of the new order. Sample output:
+  #   
+  # {"success":1,"orderNumber":"239574176","resultingTrades":{"BTC_BTS":[]}}
+  config.specs <- list(orderNumber=orderNumber,
+                       rate=rate,
+                       amount=amount)
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnOrderTrades <- function(orderNumber=NULL){
+  command <- "returnOrderTrades"
+  # Returns all trades involving a given order, specified by the "orderNumber" POST parameter. If no trades for the order have occurred or you specify an order that does not belong to you, you will receive an error. Sample output:
+  #   
+  #   [{"globalTradeID": 20825863, "tradeID": 147142, "currencyPair": "BTC_XVC", "type": "buy", "rate": "0.00018500", "amount": "455.34206390", "total": "0.08423828", "fee": "0.00200000", "date": "2016-03-14 01:04:36"}, ...]
+  config.specs <- list(orderNumber=orderNumber)
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnTradeableBalances <- function(){
+  command <- "returnTradableBalances"
+  # Returns your current tradable balances for each currency in each market for which margin trading is enabled. Please note that these balances may vary continually with market conditions. Sample output:
+  #   
+  # {"BTC_DASH":{"BTC":"8.50274777","DASH":"654.05752077"},"BTC_LTC":{"BTC":"8.50274777","LTC":"1214.67825290"},"BTC_XMR":{"BTC":"8.50274777","XMR":"3696.84685650"}}
+  
+  command.result <- api.poloniex.public(command=command)
+  return(command.result)
+}
+
+transferBalance <- function(currency=NULL, amount=NULL, fromAccount=NULL, toAccount=NULL){
+  command <- "transferBalance"
+  # Transfers funds from one account to another (e.g. from your exchange account to your margin account).
+  # Required POST parameters are "currency", "amount", "fromAccount", and "toAccount". Sample output:
+  #   
+  # {"success":1,"message":"Transferred 2 BTC from exchange to margin account."}
+  config.specs <- list(currency=currency,
+                       amount=amount,
+                       fromAccount=fromAccount,
+                       toAccount=toAccount)
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnOrderBook <- function(currencyPair="all", depth=10){
+  command <- "returnOrderBook"
+  # Returns the order book for a given market, as well as a sequence number for use with the Push API and an indicator specifying whether the market is frozen.
+  # You may set currencyPair to "all" to get the order books of all markets. Sample output:
+  #   
+  # {"asks":[[0.00007600,1164],[0.00007620,1300], ... ], "bids":[[0.00006901,200],[0.00006900,408], ... ], "isFrozen": 0, "seq": 18849}
+  # 
+  # Or, for all markets:
+  #   
+  # {"BTC_NXT":{"asks":[[0.00007600,1164],[0.00007620,1300], ... ], "bids":[[0.00006901,200],[0.00006900,408], ... ], "isFrozen": 0, "seq": 149},"BTC_XMR":...}
+  # 
+  # Call: https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_NXT&depth=10
+  config.specs <- list(currencyPair=currencyPair,
+                       depth=depth)
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnMarketTradeHistory <- function(start.time, end.time){
+  command <- "returnTradeHistory"
+  # Returns the past 200 trades for a given market
+  # or up to 50,000 trades between a range specified in UNIX timestamps by the "start" and "end" GET parameters.
+  # Sample output:
+  #   
+  #   [{"date":"2014-02-10 04:23:23","type":"buy","rate":"0.00007600","amount":"140","total":"0.01064"},{"date":"2014-02-10 01:19:37","type":"buy","rate":"0.00007600","amount":"655","total":"0.04978"}, ... ]
+  # 
+  # Call: https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_NXT&start=1410158341&end=1410499372
+  start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
+  end.seconds <- as.numeric(seconds(as.POSIXct(end.time, origin = "1970-01-01")))
+  
 }
