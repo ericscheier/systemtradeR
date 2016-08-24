@@ -17,52 +17,53 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
   # instrument.diversification.multiplier <- adjustedDiversificationMultiplier()
   
   
-  for (i in 1:length(Symbols)) {
-    return.class <- getSymbolLookup()[[Symbols[[i]]]]$return.class
+  # for (i in 1:length(Symbols)) {
+  Symbols <- foreach(pair=Symbols, .combine=c, .verbose = TRUE) %do% { # %dopar% {
+    return.class <- getSymbolLookup()[[pair]]$return.class
     return.class <- ifelse(is.null(return.class), default.return.class, 
                            return.class)
-    dir <- getSymbolLookup()[[Symbols[[i]]]]$dir
+    dir <- getSymbolLookup()[[pair]]$dir
     dir <- ifelse(is.null(dir), default.dir, dir)
-    extension <- getSymbolLookup()[[Symbols[[i]]]]$extension
+    extension <- getSymbolLookup()[[pair]]$extension
     extension <- ifelse(is.null(extension), default.extension, 
                         extension)
     if (verbose) 
-      cat("loading ", Symbols[[i]], ".....")
+      cat("loading ", pair, ".....")
     # if (dir == "") {
-    #   sym.file <- paste(Symbols[[i]], extension, sep = ".")
+    #   sym.file <- paste(pair, extension, sep = ".")
     # }
     # else {
-    #   sym.file <- file.path(dir, paste(Symbols[[i]], extension, 
+    #   sym.file <- file.path(dir, paste(pair, extension, 
     #                                    sep = "."))
     # }
     # if (!file.exists(sym.file)) {
-    #   cat("\nfile ", paste(Symbols[[i]], "csv", sep = "."), 
+    #   cat("\nfile ", paste(pair, "csv", sep = "."), 
     #       " does not exist ", "in ", dir, "....skipping\n")
     #   next
     # }
     # fr <- read.csv(sym.file)
     
-    fr <- getHourlyPairData(pair=Symbols[[i]], ohlc=TRUE, volume=TRUE)
+    fr <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE)
     
     new.fr <- xts(NULL, order.by = seq(from=min(index(fr)), to=max(index(fr)), by=60*60))
     fr <- na.locf(merge(new.fr, fr), na.omit=FALSE)
     
-    symbol <- pairToSymbol(pair=Symbols[[i]])
-    currencies <- pairToCurrencies(Symbols[[i]])
+    symbol <- pairToSymbol(pair=pair)
+    currencies <- pairToCurrencies(pair)
     
     asDateArgs <- list(x = as.character(fr[, 1]))
     if (hasArg("format")) 
       asDateArgs$format <- format
-    if (!is.null(getSymbolLookup()[[Symbols[[i]]]]$format)) 
-      asDateArgs$format <- getSymbolLookup()[[Symbols[[i]]]]$format
+    if (!is.null(getSymbolLookup()[[pair]]$format)) 
+      asDateArgs$format <- getSymbolLookup()[[pair]]$format
     # fr <- xts(fr[, -1], do.call("as.Date", asDateArgs), 
     #           src = "csv", updated = Sys.time())
-    colnames(fr) <- paste(toupper(gsub("\\^", "", symbol)), #Symbols[[i]])), 
+    colnames(fr) <- paste(toupper(gsub("\\^", "", symbol)), #pair)), 
                           col.names, sep = ".")
     
     indexClass(fr) <- c("POSIXt", "POSIXct")
     # fr <- convert.time.series(fr = fr, return.class = return.class)
-    Symbols[[i]] <- toupper(gsub("\\^", "", symbol)) #Symbols[[i]]))
+    pair <- toupper(gsub("\\^", "", symbol)) #pair))
     
     min.tick <- max(nchar(gsub("(.*\\.)|([0]*$)", "", as.character(OHLC(fr)))))
     currency(unlist(currencies))
@@ -70,9 +71,9 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     exchange_rate(symbol, currency = currencies$base, counter_currency = currencies$asset, tick_size = 10^-min.tick)
     
     s.ccy.str <- getInstrument(symbol)$currency
-    
+    # print(s.ccy.str)
     p.ccy.str <- account.currency
-    
+    # print(p.ccy.str)
     fr$Exchange.Rate <- 1
     
     # psummary = updated.portfolio$summary[date.subset]
@@ -84,6 +85,7 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
       if (inherits(port_currency, "try-error") | !is.instrument(port_currency)) {
         warning("Currency", p.ccy.str, " not found, using currency multiplier of 1")
         CcyMult <- 1
+        # invert <- FALSE
       }
       else {
         FXrate.str <- paste(p.ccy.str, s.ccy.str, sep = "")
@@ -133,12 +135,12 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     
     if (auto.assign) 
       assign(symbol, fr, env) #Symbols[[i]], fr, env)
-    
+    return(pair)
   }
   
   if (auto.assign) 
     return(Symbols)
-  return(fr)
+  return()
 }
 
 getSymbols.currencies <- function (Symbols, env, dir = "", return.class = "xts", extension = "csv", 

@@ -112,9 +112,9 @@ daysFunction <- function(){
 weeksFunction <- function(){
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
-  simulated.forecasts <- simulateForecasts()
-  raw.forecast.weights <- rawForecastWeights()
-  smoothed.forecast.weights <- smoothedForecastWeights()
+  simulated.combos <- simulateAllCombos()
+  raw.combo.weights <- rawComboWeights()
+  smoothed.forecast.weights <- smoothedComboWeights()
   simulated.subsystems <- simulateSubsystems()
   raw.instrument.weights <- rawInstrumentWeights()
   smoothed.instrument.weights <- smoothedInstrumentWeights()
@@ -123,9 +123,9 @@ weeksFunction <- function(){
   
   return(list(refreshed.pricing,
               refreshed.pairs,
-              simulated.forecasts,
-              raw.forecast.weights,
-              smoothed.forecast.weights,
+              simulated.combos,
+              raw.combo.weights,
+              smoothed.combo.weights,
               simulated.subsystems,
               raw.instrument.weights,
               smoothed.instrument.weights))
