@@ -233,9 +233,11 @@ rawWeights <- function(return.path=NULL){
   training_period = 1#36
   
   returns <- readRDS(relativePath(return.path))
-  returns <- replaceLeadingZeros(returns.xts=returns)
-  returns <- na.trim(returns, sides="left", is.na="all")
-  # returns <- returns[3200:3500,]
+  returns <- na.trim(replaceLeadingZeros(returns.xts=na.fill(returns, 0)), sides="left", is.na="all")
+  # returns.nice <- na.trim(returns, sides="left", is.na="all")
+  # returns <- replaceLeadingZeros(returns.xts=returns)
+  # returns <- na.trim(returns, sides="left", is.na="all")
+  # returns <- returns[1:100,]
   all.instruments <- colnames(returns)
   
   ep.i <- endpoints(returns, on = rebalance_on)[which(endpoints(returns, 
@@ -257,20 +259,24 @@ rawWeights <- function(return.path=NULL){
                                  init.portf <- add.constraint(portfolio=init.portf, type="weight_sum",
                                                               min_sum=0.99, max_sum=1.01)
                                  init.portf <- add.constraint(portfolio=init.portf, type="long_only")
-                                 init.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
-                                 init.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+                                 sharpe.portf <- add.objective(portfolio=init.portf, type="return", name="mean")
+                                 sharpe.portf <- add.objective(portfolio=init.portf, type="risk", name="StdDev")
+                                 starr.portf <- add.objective(portfolio=init.portf, type="risk", name="ES")
+                                 starr.portf <- add.objective(portfolio=starr.portf, type="return", name="mean")
                                  # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="mean")
                                  # init.portf <- add.objective(portfolio=init.portf, type="quadratic_utility", name="StdDev")
                                  
-                                 opt.dn <- optimize.portfolio(R, portfolio=init.portf,
-                                                              optimize_method="DEoptim",
-                                                              search_size=2000,
-                                                              # optimize_method="ROI",
-                                                              # maxSR=TRUE,
-                                                              # search_size = search_size, 
-                                                              trace = TRUE#,
-                                                              # rp = rp
-                                 )
+                                 opt.dn <- optimize.portfolio(R=R, portfolio=starr.portf, optimize_method="ROI", maxSTARR=TRUE)
+                                 
+                                 # opt.dn <- optimize.portfolio(R, portfolio=init.portf,
+                                 #                              # optimize_method="DEoptim",
+                                 #                              # search_size=2000,
+                                 #                              optimize_method="ROI",
+                                 #                              maxSR=TRUE,
+                                 #                              # search_size = search_size, 
+                                 #                              trace = TRUE#,
+                                 #                              # rp = rp
+                                 # )
                                  weights.list <- c(opt.dn$weights,
                                                    setNames(rep(0, length(ignored.instruments)), ignored.instruments))
                                  

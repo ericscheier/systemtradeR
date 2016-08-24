@@ -207,7 +207,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   if (!exists('.blotter')) .blotter <- new.env()
   if (!exists('.strategy')) .strategy <- new.env()
   
-  account.currency <- "USD" #"BTC"
+  account.currency <- "BTC" # "USD"
   account.currencies <- account.currency
   
   # setSymbolLookup(BTC_BTS=list(src='custom', dir='data/raw'))
@@ -283,17 +283,17 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   # )))-days(1))) # '2015-09-01'
   initDate = aligned.list$init.date #"2014-05-21" # should be before start of trading data
   finalDate = aligned.list$final.date
-  initBTC <- .5
+  # initBTC <- .5
   init.target <- 0
-  initUSD <- system.config$poloniex.margin.value * system.config$current.exchange.rate
-  initEq <- initUSD
+  # initUSD <-  * system.config$current.exchange.rate
+  initEq <- system.config$poloniex.margin.value
   
   instrument.diversification.multiplier <- adjustedDiversificationMultiplier(forecast.name = forecast.name,
                                                                              price.xts = xts(order.by = seq.POSIXt(from=aligned.list$init.date, to=aligned.list$final.date, by=5*60)))
   
   portfolio.name <- "bitcoin_margin"
   account.name <- "poloniex"
-  strategy.name <- "asset_allocation"
+  strategy.name <- "systematic_trading"
   
   ## To rerun
   rm.strat(portfolio.name)

@@ -10,45 +10,12 @@ Returns the 24-hour volume for all markets, plus totals for primary currencies. 
 
 Call: https://poloniex.com/public?command=return24hVolume
 
-returnOrderBook
-Returns the order book for a given market, as well as a sequence number for use with the Push API and an indicator specifying whether the market is frozen. You may set currencyPair to "all" to get the order books of all markets. Sample output:
-  
-{"asks":[[0.00007600,1164],[0.00007620,1300], ... ], "bids":[[0.00006901,200],[0.00006900,408], ... ], "isFrozen": 0, "seq": 18849}
-
-Or, for all markets:
-  
-{"BTC_NXT":{"asks":[[0.00007600,1164],[0.00007620,1300], ... ], "bids":[[0.00006901,200],[0.00006900,408], ... ], "isFrozen": 0, "seq": 149},"BTC_XMR":...}
-
-Call: https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_NXT&depth=10
-
-returnTradeHistory
-Returns the past 200 trades for a given market, or up to 50,000 trades between a range specified in UNIX timestamps by the "start" and "end" GET parameters. Sample output:
-  
-  [{"date":"2014-02-10 04:23:23","type":"buy","rate":"0.00007600","amount":"140","total":"0.01064"},{"date":"2014-02-10 01:19:37","type":"buy","rate":"0.00007600","amount":"655","total":"0.04978"}, ... ]
-
-Call: https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_NXT&start=1410158341&end=1410499372
-
-returnChartData
-Returns candlestick chart data. Required GET parameters are "currencyPair", "period" (candlestick period in seconds; valid values are 300, 900, 1800, 7200, 14400, and 86400), "start", and "end". "Start" and "end" are given in UNIX timestamp format and used to specify the date range for the data returned. Sample output:
-  
-  [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00427592,"volume":44.11655644,
-    "quoteVolume":10259.29079097,"weightedAverage":0.00430015}, ...]
-
-Call: https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
-
 returnCurrencies
 Returns information about currencies. Sample output:
   
 {"1CR":{"maxDailyWithdrawal":10000,"txFee":0.01,"minConf":3,"disabled":0},"ABY":{"maxDailyWithdrawal":10000000,"txFee":0.01,"minConf":8,"disabled":0}, ... }
 
 Call: https://poloniex.com/public?command=returnCurrencies
-
-returnLoanOrders
-Returns the list of loan offers and demands for a given currency, specified by the "currency" GET parameter. Sample output:
-  
-{"offers":[{"rate":"0.00200000","amount":"64.66305732","rangeMin":2,"rangeMax":8}, ... ],"demands":[{"rate":"0.00170000","amount":"26.54848841","rangeMin":2,"rangeMax":2}, ... ]}
-
-Call: https://poloniex.com/public?command=returnLoanOrders&currency=BTC
 
 Trading API Methods
 To use the trading API, you will need to create an API key.
@@ -91,21 +58,6 @@ There are several methods accepted by the trading API, each of which is specifie
   "withdrawals":[{"withdrawalNumber":134933,"currency":"BTC","address":"1N2i5n8DwTGzUq2Vmn9TUL8J1vdr1XBDFg","amount":"5.00010000", 
   "timestamp":1399267904,"status":"COMPLETE: 36e483efa6aff9fd53a235177579d98451c4eb237c210e66cd2b9a2d4a988f8e","ipAddress":"..."}]}
   
-  
-  
-  
-  
-  returnOrderTrades
-  Returns all trades involving a given order, specified by the "orderNumber" POST parameter. If no trades for the order have occurred or you specify an order that does not belong to you, you will receive an error. Sample output:
-  
-  [{"globalTradeID": 20825863, "tradeID": 147142, "currencyPair": "BTC_XVC", "type": "buy", "rate": "0.00018500", "amount": "455.34206390", "total": "0.08423828", "fee": "0.00200000", "date": "2016-03-14 01:04:36"}, ...]
-  
-  
-  moveOrder
-  Cancels an order and places a new one of the same type in a single atomic transaction, meaning either both operations will succeed or both will fail. Required POST parameters are "orderNumber" and "rate"; you may optionally specify "amount" if you wish to change the amount of the new order. Sample output:
-  
-  {"success":1,"orderNumber":"239574176","resultingTrades":{"BTC_BTS":[]}}
-  
   withdraw
   Immediately places a withdrawal for a given currency, with no email confirmation. In order to use this method, the withdrawal privilege must be enabled for your API key. Required POST parameters are "currency", "amount", and "address". For XMR withdrawals, you may optionally specify "paymentId". Sample output:
   
@@ -116,46 +68,11 @@ There are several methods accepted by the trading API, each of which is specifie
   
   {"makerFee": "0.00140000", "takerFee": "0.00240000", "thirtyDayVolume": "612.00248891", "nextTier": "1200.00000000"}
   
-  returnAvailableAccountBalances
-  Returns your balances sorted by account. You may optionally specify the "account" POST parameter if you wish to fetch only the balances of one account. Please note that balances in your margin account may not be accessible if you have any open margin positions or orders. Sample output:
-  
-  {"exchange":{"BTC":"1.19042859","BTM":"386.52379392","CHA":"0.50000000","DASH":"120.00000000","STR":"3205.32958001", "VNL":"9673.22570147"},"margin":{"BTC":"3.90015637","DASH":"250.00238240","XMR":"497.12028113"},"lending":{"DASH":"0.01174765","LTC":"11.99936230"}}
-  
-  returnTradableBalances
-  Returns your current tradable balances for each currency in each market for which margin trading is enabled. Please note that these balances may vary continually with market conditions. Sample output:
-  
-  {"BTC_DASH":{"BTC":"8.50274777","DASH":"654.05752077"},"BTC_LTC":{"BTC":"8.50274777","LTC":"1214.67825290"},"BTC_XMR":{"BTC":"8.50274777","XMR":"3696.84685650"}}
-  
-  transferBalance
-  Transfers funds from one account to another (e.g. from your exchange account to your margin account). Required POST parameters are "currency", "amount", "fromAccount", and "toAccount". Sample output:
-  
-  {"success":1,"message":"Transferred 2 BTC from exchange to margin account."}
-  
 
 closeMarginPosition
 Closes your margin position in a given market (specified by the "currencyPair" POST parameter) using a market order. This call will also return success if you do not have an open position in the specified market. Sample output:
   
 {"success":1,"message":"Successfully closed margin position.","resultingTrades":{"BTC_XMR":[{"amount":"7.09215901","date":"2015-05-10 22:38:49","rate":"0.00235337","total":"0.01669047","tradeID":"1213346","type":"sell"},{"amount":"24.00289920","date":"2015-05-10 22:38:49","rate":"0.00235321","total":"0.05648386","tradeID":"1213347","type":"sell"}]}}
-
-createLoanOffer
-Creates a loan offer for a given currency. Required POST parameters are "currency", "amount", "duration", "autoRenew" (0 or 1), and "lendingRate". Sample output:
-  
-{"success":1,"message":"Loan order placed.","orderID":10590}
-
-cancelLoanOffer
-Cancels a loan offer specified by the "orderNumber" POST parameter. Sample output:
-  
-{"success":1,"message":"Loan offer canceled."}
-
-returnOpenLoanOffers
-Returns your open loan offers for each currency. Sample output:
-  
-{"BTC":[{"id":10595,"rate":"0.00020000","amount":"3.00000000","duration":2,"autoRenew":1,"date":"2015-05-10 23:33:50"}],"LTC":[{"id":10598,"rate":"0.00002100","amount":"10.00000000","duration":2,"autoRenew":1,"date":"2015-05-10 23:34:35"}]}
-
-returnActiveLoans
-Returns your active loans for each currency. Sample output:
-  
-{"provided":[{"id":75073,"currency":"LTC","rate":"0.00020000","amount":"0.72234880","range":2,"autoRenew":0,"date":"2015-05-10 23:45:05","fees":"0.00006000"},{"id":74961,"currency":"LTC","rate":"0.00002000","amount":"4.43860711","range":2,"autoRenew":0,"date":"2015-05-10 23:45:05","fees":"0.00006000"}],"used":[{"id":75238,"currency":"BTC","rate":"0.00020000","amount":"0.04843834","range":2,"date":"2015-05-10 23:51:12","fees":"-0.00000001"}]}
 
 toggleAutoRenew
 Toggles the autoRenew setting on an active loan, specified by the "orderNumber" POST parameter. If successful, "message" will indicate the new autoRenew setting. Sample output:
