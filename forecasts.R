@@ -1,9 +1,12 @@
+# price.xts <- Cl(getHourlyPairData(pair="BTC_ETH"))
+
 getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
-    "ewma_2_8", "ewma_4_16",
-    "ewma_8_32", "ewma_16_64",
-    "ewma_32_128", "ewma_64_256", "ewma_128_512", "ewma_256_1024",
-    "ewma_512_2048", "ewma_1024_4096",
+    "auto_arima_24",
+    # "ewma_2_8", "ewma_4_16",
+    # "ewma_8_32", "ewma_16_64",
+    # "ewma_32_128", "ewma_64_256", "ewma_128_512", "ewma_256_1024",
+    # "ewma_512_2048", "ewma_1024_4096",
     "no_forecast_long", "no_forecast_short")
   return(portfolio.forecasts)
 }
@@ -16,6 +19,23 @@ ewmaRawForecast <- function(price.xts, fast.n=8, slow.n=32){
   fast.ema <- EMA(price.xts, n = fast.n)
   raw.forecast <- fast.ema - slow.ema
   return(raw.forecast)
+}
+
+autoArimaRawForecast <- function(price.xts, hours.ahead=24, current=FALSE){
+  forecast.index <- index(price.xts)
+  price.series <- coredata(price.xts)
+  start.value <- 1
+  if(current){
+    start.value <- length(price.series)
+    forecast.index <- last(forecast.index)
+  }
+  # price.series <- price.series[1:50]
+  forecast.series <- foreach(n=start.value:length(price.series), .combine = "c", .inorder = TRUE) %do% {
+    fit <- auto.arima(price.series[1:n])
+    forecast.value <- last(forecast(fit, h=hours.ahead)$mean)
+    return(forecast.value)
+  }
+  forecast.result <- xts(x=forecast.series, order.by=forecast.index)
 }
 
 breakoutRawForecast <- function(price.xts, lookback=system.config$volatility.lookback){
@@ -36,6 +56,10 @@ no_forecast_long <- function(price.xts){
 
 no_forecast_short <- function(price.xts){
   return(constantRawForecast(constant=-10, price.xts=price.xts))
+}
+
+auto_arima_24 <- function(price.xts){
+  return(autoArimaRawForecast(price.xts = price.xts, hours.ahead = 24))
 }
 
 ewma_2_8 <- function(price.xts){

@@ -199,7 +199,7 @@ getMatchingFxRates <- function(symbols=NULL, account.currencies="USD"){
   return(fx.pairs)
 }
 
-simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
+simulateBacktest <- function(pairs=backtest.config$backtest.pairs, forecast.name=backtest.config$backtest.forecast){
   
   print(paste0("Simulating forecast returns for ",paste0(pairs, collapse = ", "),". Forecast: ",forecast.name))
   
@@ -210,19 +210,30 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   account.currency <- "BTC" # "USD"
   account.currencies <- account.currency
   
+  lookback.hours <- backtest.config$lookback.hours
+  volatility.target <- backtest.config$volatility.target
+  minimum.order.size <- backtest.config$minimum.order.size
+  minimum.position.change <- backtest.config$minimum.position.change
+  backtest.length <- backtest.config$backtest.length
+  
+  end.date <- backtest.config$end.date
+  start.date <- end.date - hours(backtest.length + lookback.hours)
+  date.range <- paste(start.date, end.date, sep="::")
+  
   # setSymbolLookup(BTC_BTS=list(src='custom', dir='data/raw'))
   # setSymbolLookup(BTC_ETH=list(src='custom', dir='data/raw'))
   # setSymbolLookup(USD_BTC=list(src='custom', dir='data/raw'))
   exchange.rate.pairs <- getMatchingFxRates(symbols=pairs, account.currencies=account.currencies)
   if(!is.null(exchange.rate.pairs)){
     e.rates <- getSymbols(Symbols = exchange.rate.pairs, env=.GlobalEnv, auto.assign = TRUE, src="currencies", dir='data/raw'
-                          ,verbose = TRUE
+                          ,verbose = TRUE, dateRange=date.range
                           # , reload.Symbols = FALSE
     )
   }
   
   symbols <- getSymbols(Symbols = c(pairs), env=.GlobalEnv, auto.assign = TRUE, src="custom", dir='data/raw'
-                        ,verbose = TRUE, account.currency=account.currencies, forecast.name=forecast.name
+                        ,verbose = TRUE, account.currency=account.currencies, forecast.name=forecast.name,
+                        dateRange=date.range
                         # , reload.Symbols = FALSE
                         )
   
@@ -235,11 +246,6 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   forecast.adjusted.name <- "adjustedForecast"
   weight.adjusted.name <- "adjustedWeight"
   diversification.multiplier.adjusted.name <- "adjustedDiversificationMultiplier"
-  
-  lookback.hours <- system.config$lookback.hours
-  volatility.target <- system.config$volatility.target
-  minimum.order.size <- system.config$minimum.order.size
-  minimum.position.change <- system.config$minimum.position.change
   
   # symbols <- c()
   
@@ -286,7 +292,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
   # initBTC <- .5
   init.target <- 0
   # initUSD <-  * system.config$current.exchange.rate
-  initEq <- system.config$poloniex.margin.value
+  initEq <- backtest.config$initial.account.value
   
   instrument.diversification.multiplier <- adjustedDiversificationMultiplier(forecast.name = forecast.name,
                                                                              price.xts = xts(order.by = seq.POSIXt(from=aligned.list$init.date, to=aligned.list$final.date, by=5*60)))
@@ -378,7 +384,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
                             #             , envir=.GlobalEnv
                             # ),
                             parameters=list(),
-                            verbose=system.config$debug
+                            verbose=backtest.config$debug
                             # env=.strategy #.GlobalEnv
   )
   
@@ -403,7 +409,7 @@ simulateBacktest <- function(pairs=NULL, forecast.name="combinedForecast"){
     
     if(sum(txns$Txn.Qty) != 0){
       
-      addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
+      # addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
       
       chart.Posn(Portfolio=portfolio.name, Symbol=symbol, type = "line", log.scale = F)
       
