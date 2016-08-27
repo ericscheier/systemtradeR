@@ -21,18 +21,21 @@ system.config$lookback.hours <- 450*24
 system.config$volatility.target <- .005 # hourly target volatility in % terms 
 # started at 0.0005
 # bumped up 10x to reflect vol of market & underinvestment
+system.config$market.making.exposure.ratio <- 2/3
+system.config$margin.maintenance.percent <- .5
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
 system.config$minimum.position.change <- .2 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
 
 system.config$portfolio.pairs <- getPortfolioPairs()
 system.config$portfolio.forecasts <- getPortfolioForecasts()
+system.config$portfolio.currencies <- c("BTC", "BTS", "CLAM", "DOGE", "DASH", "LTC", "MAID", "STR", "XMR", "XRP", "ETH", "FCT")
 
-system.config$kraken.key <- "luww7jhjwRDwFWo7hxB5AZgozm0podzpgGbfKk3wO0quXOkgNwUbCOTH"
-system.config$kraken.secret <- "PfxfUss8bHfX9DLfZCxaioPKJxu6FsBL561pKyk5AxME1Un27h1FTJcBtoEiKnF0veshyC7x+G0uN94C6chX+w=="
+system.config$kraken.key <- kraken.api.key
+system.config$kraken.secret <- kraken.api.secret
 
-system.config$poloniex.key <- "O2NT3UJT-04WVU41J-52ETHGHN-WCGM7DUM"
-system.config$poloniex.secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541fc8823c725b1c352fa2b04edceba44d37cb7c216c6f2a062fc538a3119abcbe8e317f8eee32165168d"
+system.config$poloniex.key <- poloniex.api.key
+system.config$poloniex.secret <- poloniex.api.secret
 if(is.null(system.config$poloniex.margin.value)){system.config$poloniex.margin.value <- try(accountValue())}
 if(inherits(system.config$poloniex.margin.value, "try-error")){
   margin_account_value <- readRDS("data/clean/margin_account_value.RDS")

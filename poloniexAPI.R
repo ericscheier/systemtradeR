@@ -348,7 +348,7 @@ returnOrderBook <- function(currencyPair="all", depth=10){
   return(command.result)
 }
 
-returnMarketTradeHistory <- function(start.time, end.time){
+returnMarketTradeHistory <- function(currencyPair=NULL, start.time, end.time){
   command <- "returnTradeHistory"
   # Returns the past 200 trades for a given market
   # or up to 50,000 trades between a range specified in UNIX timestamps by the "start" and "end" GET parameters.
@@ -359,5 +359,9 @@ returnMarketTradeHistory <- function(start.time, end.time){
   # Call: https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_NXT&start=1410158341&end=1410499372
   start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
   end.seconds <- as.numeric(seconds(as.POSIXct(end.time, origin = "1970-01-01")))
-  
+  config.specs<- list(currencyPair=currencyPair,
+                      start=start.seconds,
+                      end=end.seconds)
+  command.result <- api.poloniex.public(command=command, args=config.specs)
+  return(command.result)
 }

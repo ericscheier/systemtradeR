@@ -1,5 +1,6 @@
 getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", extension = "csv", 
-          col.names = c("Open", "High", "Low", "Close", "Volume"), account.currency="USD", forecast.name="fullSystem",...) 
+          col.names = c("Open", "High", "Low", "Close", "Volume"), account.currency="USD", forecast.name="fullSystem",
+          dateRange =NULL,...) 
 {
   importDefaults("getSymbols.custom")
   this.env <- environment()
@@ -47,6 +48,10 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     
     new.fr <- xts(NULL, order.by = seq(from=min(index(fr)), to=max(index(fr)), by=60*60))
     fr <- na.locf(merge(new.fr, fr), na.omit=FALSE)
+    
+    if(!is.null(dateRange)){
+      fr <- fr[dateRange,]
+    }
     
     symbol <- pairToSymbol(pair=pair)
     currencies <- pairToCurrencies(pair)
