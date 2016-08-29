@@ -30,4 +30,9 @@ chart.StackedBar(smoothed.combo.weights[.indexwday(smoothed.combo.weights)==1], 
                  , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
                  , main="smoothed_combo_weights")
 
+investment.universe <- loadInvestmentUniverse()
+pie(abs(investment.universe$optimal.position) * investment.universe$ref.price, labels=investment.universe$asset)
+pie(investment.universe$instrument.weight, labels=investment.universe$asset)
+pie(abs(investment.universe$subsystem.position) * investment.universe$ref.price, labels=investment.universe$asset)
 
+pie(tail(coredata(smoothed.combo.weights),1), labels=colnames(smoothed.combo.weights))

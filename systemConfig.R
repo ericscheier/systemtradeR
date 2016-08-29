@@ -60,3 +60,4 @@ system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.ra
 system.config$volatility.benchmark <- 0.002 # hourly vol (emaVolatility)
 system.config$volume.benchmark <- 10 * system.config$poloniex.margin.value #BTC per volatility lookback period
 
+source("backtestConfig.R")

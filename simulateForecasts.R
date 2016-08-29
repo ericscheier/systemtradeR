@@ -92,7 +92,7 @@ simulateForecasts <- function(){
 }
 
 poolForecasts <- function(forecast.name=NULL){
-  portfolio.pairs <- system.config$portfolio.pairs
+  portfolio.pairs <- backtest.config$backtest.pairs
   pooled.results <- foreach(pair=portfolio.pairs, .combine="merge", .multicombine=FALSE
                             # , .export="system.config"
                             , .verbose=TRUE

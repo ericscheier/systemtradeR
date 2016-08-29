@@ -145,7 +145,7 @@ xtsIdentity <- function(price.xts, to.merge){
 }
 
 percentFee <- function(TxnQty, TxnPrice, Symbol, ...){
-  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # system.config$transaction.fee, need to add without throwing error
+  return(-1*abs(0.0025 * TxnQty * TxnPrice)) # $transaction.fee, need to add without throwing error
 }
 
 singleValue <- function(value=1, price.xts=NULL){
@@ -174,7 +174,7 @@ adjustedWeight <- function(instrument.name, forecast.name, price.xts, num.pairs.
     return(instrumentWeight(instrument.name=instrument.name, price.xts=price.xts))
   } else {
     if(is.null(num.pairs.xts)){
-      return(singleValue(value=1/length(system.config$portfolio.pairs), price.xts=price.xts))
+      return(singleValue(value=1/length($portfolio.pairs), price.xts=price.xts))
     } else {
       return(xtsIdentity(price.xts = price.xts, to.merge = 1/num.pairs.xts))
     }
@@ -260,7 +260,7 @@ simulateBacktest <- function(pairs=backtest.config$backtest.pairs, forecast.name
   #   fx.rate.data <- getHourlyPairData(pair=e.rate, ohlc=FALSE, volume=FALSE)
   #   
   #   last.hour <- as.POSIXlt(index(tail(trade.target.data,1)))
-  #   last.hour <- floor_date(min(c(last.hour, system.config$last.exchange.rate)), unit="hour")
+  #   last.hour <- floor_date(min(c(last.hour, $last.exchange.rate)), unit="hour")
   #   first.hour <- last.hour - hours(lookback.hours)#
   #   date.subset <- paste(first.hour,last.hour,sep="::")
   #   
@@ -291,7 +291,7 @@ simulateBacktest <- function(pairs=backtest.config$backtest.pairs, forecast.name
   finalDate = aligned.list$final.date
   # initBTC <- .5
   init.target <- 0
-  # initUSD <-  * system.config$current.exchange.rate
+  # initUSD <-  * $current.exchange.rate
   initEq <- backtest.config$initial.account.value
   
   instrument.diversification.multiplier <- adjustedDiversificationMultiplier(forecast.name = forecast.name,
@@ -409,7 +409,7 @@ simulateBacktest <- function(pairs=backtest.config$backtest.pairs, forecast.name
     
     if(sum(txns$Txn.Qty) != 0){
       
-      # addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c(system.config$forecast.cap, - system.config$forecast.cap))
+      # addForecast <- newTA(FUN=adjustedForecast, preFUN=closeOfXts, yrange=c($forecast.cap, - $forecast.cap))
       
       chart.Posn(Portfolio=portfolio.name, Symbol=symbol, type = "line", log.scale = F)
       

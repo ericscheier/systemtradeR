@@ -26,13 +26,41 @@ testMarketMaking <- function(){
   }
 }
 
-makeMarket <- function(trading.pair="XMR_BCN", visible.depth=50){
+refreshMakeMarkets <- function(){
+  determineOptimalAllocation.poloniex()
+  determineCurrentAllocation.poloniex()
+  trading.pairs <- system.config$portfolio.pairs
+  lapply(trading.pairs, makeMarket)
+}
+
+makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   satoshi <- 10^-8
   default.exposure <- system.config$market.making.exposure.ratio
   asset <- pairToCurrencies(trading.pair)$asset
   base <- pairToCurrencies(trading.pair)$base
   
-  desired.asset <- 0
+  optimal.accounts <- loadOptimalAccounts()
+  current.accounts <- loadCurrentAccounts()
+  
+  optimal.accounts.row <- optimal.accounts[optimal.accounts$currency==asset,]
+  current.accounts.row <- current.accounts[current.accounts$currency==asset,]
+  relevant.cols <- c("exchange.equity","lending", "margin.collateral")
+  
+  asset.needed.in.account <- sum(optimal.accounts.row[,relevant.cols]) - sum(current.accounts.row[,relevant.cols])
+  asset.needed.in.non.exchamge <- (
+    optimal.accounts.row$lending + optimal.accounts.row$margin.collateral) - (
+    current.accounts.row$lending + current.accounts.row$margin.collateral
+  )
+  
+  if(asset.needed.in.account > 0){
+    if(asset.needed.in.non.exchamge > 0){
+      transferBalance(currency=asset, amount=min(current.accounts.row$exchange.equity, asset.needed.in.non.exchamge),
+                      fromAccount="exchange", toAccount="lending")
+    }
+  }
+  
+  desired.asset <- optimal.accounts.row$exchange.equity
+    
   complete.balances <- ldply(returnCompleteBalances(account="exchange"), data.frame, stringsAsFactors=F, .id="currency")
   complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   complete.balances <- as.data.table(complete.balances)
@@ -49,11 +77,11 @@ makeMarket <- function(trading.pair="XMR_BCN", visible.depth=50){
   orders.per.side <- 5
   market.making.config <- as.data.table(readRDS(relativePath("data/clean/market_making_config.RDS")))[pair==trading.pair,]
   
-  market.making.config <- list()
-  market.making.config$bid.min.quantile=.01
-  market.making.config$bid.max.quantile=.05
-  market.making.config$ask.min.quantile=.01
-  market.making.config$ask.max.quantile=.05
+  # market.making.config <- list()
+  # market.making.config$bid.min.quantile=.01
+  # market.making.config$bid.max.quantile=.05
+  # market.making.config$ask.min.quantile=.01
+  # market.making.config$ask.max.quantile=.05
   
   order.book <- returnOrderBook(currencyPair=trading.pair, depth=visible.depth)
   
@@ -163,6 +191,12 @@ processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
 refreshMarketMakingQuantile <- function(tracking.pair="XMR_BCN"){
   marketMakingDataCapture(tracking.pair = tracking.pair)
   processMarketCaptureData(tracking.pair=tracking.pair)
+}
+
+refreshMarketMakingData <- function(){
+  active.pairs <- system.config$portfolio.pairs
+  pair.to.refresh <- active.pairs[round(runif(n=1, min=1, max=length(active.pairs)),0)]
+  refreshMarketMakingQuantile(tracking.pair = pair.to.refresh)
 }
 
 

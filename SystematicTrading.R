@@ -87,7 +87,8 @@ getExchangeRate <- function(pair="USDT_BTC"){
 
 productionInstrumentVolatility <- function(pair=NULL, hourly.price.xts=NULL){
   if(is.null(hourly.price.xts)){
-    hourly.price.xts <- getHourlyPairData(pair)
+    hourly.price.xts <- getHourlyPairData(pair, ohlc = TRUE)
+    hourly.price.xts <- xts(x=rowMeans(hourly.price.xts[,c("high","low","open","close")]),order.by = index(hourly.price.xts))
   }
   instrument.volatility <- as.numeric(tail(emaVolatility(hourly.price.xts),1))
   return(instrument.volatility)
@@ -135,9 +136,9 @@ productionSubsystemPosition <- function(pair=NULL, instrument.forecast=NULL,
 }
 
 subsystemPosition <- function(ref.price=NULL
-                              , total.equity=(system.config$poloniex.margin.value * system.config$current.exchange.rate)
+                              , total.equity=(system.config$poloniex.margin.value)
                               , volatility.target=system.config$volatility.target
-                              , exchange.rate=system.config$current.exchange.rate
+                              , exchange.rate=1
                               , instrument.volatility=NULL
                               , instrument.forecast=NULL
                               , instrument.symbol=NULL){
@@ -164,7 +165,6 @@ subsystemPosition <- function(ref.price=NULL
   subsystem.position <- ifelse(is.na(subsystem.position), 0, subsystem.position)
   return(subsystem.position)
 }
-
 emaVolatility <- function(price.xts){
   # expects 5-min close of price data
   ema.volatility <- EMA(sqrt(CalculateReturns(price.xts)^2), n=36)
@@ -281,6 +281,8 @@ rawWeights <- function(return.path=NULL){
                                                    setNames(rep(0, length(ignored.instruments)), ignored.instruments))
                                  
                                  weights <- as.xts(data.frame(t(weights.list), row.names = time.step))
+                                 gc()
+                                 return(weights)
                                }
   
   

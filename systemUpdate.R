@@ -39,7 +39,7 @@ runParallelFunc <- function(parallel.func.name, args=list()){
   cl <- makeCluster(detectCores()) # -!system.config$live
   registerDoParallel(cl)
   clusterEvalQ(cl,source("sources.R"))
-  clusterExport(cl, c("system.config"))
+  clusterExport(cl, c("system.config", "backtest.config"))
   
   func.successful <- try(do.call(parallel.func.name, args=args))
   
@@ -53,6 +53,8 @@ testFunction <- function(){return("Test Successful")}
 minutesFunction <- function(){
   # update & note account value
   account.value <- recordAccountValue()
+  refreshAccount.poloniex()
+  determineOptimalAllocation()
   # check in on open orders and adjust accordingly
   open.orders <- updateOpenOrders()
   updateCurrentPositions()
@@ -69,19 +71,19 @@ hoursFunction <- function(){
   if(system.config$live){canceling.orders <- cancelAllOrders()}
   
   refreshed.pricing <- refreshPortfolioPricing()
-  updateCurrentPositions()
-  updateRefPrices()
-  updateInstrumentVolatilities()
-  updateSubsystemPositions()
-  updateOptimalPositions()
+  # updateCurrentPositions()
+  # updateRefPrices()
+  # updateInstrumentVolatilities()
+  # updateSubsystemPositions()
+  # updateOptimalPositions()
+  refreshVolatility()
+  refreshAccount.poloniex()
+  determineOptimalAllocation()
   
-  trades.to.make <- tradesToMake()
-  trades.made <- NULL
-  if(system.config$live){trades.made <- makeTrades()}
-  return(list(refreshed.pricing,
-              canceling.orders,
-              trades.to.make,
-              trades.made))
+  # trades.to.make <- tradesToMake()
+  # trades.made <- NULL
+  # if(system.config$live){trades.made <- makeTrades()}
+  return()
 }
 
 daysFunction <- function(){
@@ -89,46 +91,40 @@ daysFunction <- function(){
   # reporting
   # update pricing
   # cancel open trades
-  canceling.orders <- NULL
-  if(system.config$live){canceling.orders <- cancelAllOrders()}
+  # canceling.orders <- NULL
+  # if(system.config$live){canceling.orders <- cancelAllOrders()}
   # refresh forecasts and volatility
   refreshed.pricing <- refreshPortfolioPricing()
-  updateCurrentPositions()
-  updateRefPrices()
-  updateInstrumentVolatilities()
-  updateInstrumentForecasts()
-  updateSubsystemPositions()
-  updateOptimalPositions()
+  refreshInvestmentUniverse()
+  refreshAccount.poloniex()
+  determineOptimalAllocation()
+  # updateCurrentPositions()
+  # updateRefPrices()
+  # updateInstrumentVolatilities()
+  # updateInstrumentForecasts()
+  # updateSubsystemPositions()
+  # updateOptimalPositions()
   
-  trades.to.make <- tradesToMake()
-  trades.made <- NULL
-  if(system.config$live){trades.made <- makeTrades()}
-  return(list(refreshed.pricing,
-              canceling.orders,
-              trades.to.make,
-              trades.made))
+  # trades.to.make <- tradesToMake()
+  # trades.made <- NULL
+  # if(system.config$live){trades.made <- makeTrades()}
+  return()
 }
 
 weeksFunction <- function(){
   refreshed.pricing <- refreshAllPricing()
   refreshed.pairs <- refreshPortfolioPairs()
-  simulated.combos <- simulateAllCombos()
-  raw.combo.weights <- rawComboWeights()
-  smoothed.forecast.weights <- smoothedComboWeights()
-  simulated.subsystems <- simulateSubsystems()
-  raw.instrument.weights <- rawInstrumentWeights()
-  smoothed.instrument.weights <- smoothedInstrumentWeights()
+  simulateAllCombos()
+  rawComboWeights()
+  smoothedComboWeights()
+  parseCombos()
   
-  updateInstrumentWeights()
+  refreshed.pricing <- refreshPortfolioPricing()
+  refreshInvestmentUniverse()
+  refreshAccount.poloniex()
+  determineOptimalAllocation()
   
-  return(list(refreshed.pricing,
-              refreshed.pairs,
-              simulated.combos,
-              raw.combo.weights,
-              smoothed.combo.weights,
-              simulated.subsystems,
-              raw.instrument.weights,
-              smoothed.instrument.weights))
+  return()
 }
 
 monthsFunction <- function(){

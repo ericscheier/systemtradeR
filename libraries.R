@@ -18,7 +18,8 @@ libraries <- c("xts",
                "quantstrat",
                "ROI",  
                "lattice",
-               "data.table"
+               "data.table",
+               "forecast"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
