@@ -16,31 +16,55 @@ cancelOpenLoanOffers <- function(currencies=NULL){
   }
 }
 
-lending.currency <- "BTC"
+refreshAllLoans <- function(){
+  lending.currencies <- system.config$portfolio.currencies
+  account.balances <- returnAvailableAccountBalances(account="all")
+  lending.balances <- ldply(account.balances$lending, data.frame, stringsAsFactors=F)
+  names(lending.balances) <- c("currency", "balance")
+  lending.limits <- data.frame(currency=lending.currencies,
+                               balance=lending.balances$balance[match(lending.currencies, lending.balances$currency)],
+                               stringsAsFactors=F)
+  lending.limits$balance <- as.numeric(na.fill(lending.limits$balance,c(0)))
+  apply(lending.balances, 1, function(x) refreshLoans(lending.currency=x[["currency"]],
+                                                      liquid.balance=as.numeric(x[["balance"]])))
+  
+}
 
-refreshLoans <- function(lending.currency=NULL){
-  max.lending.balance <- 0.085
+lending.currency <- "XMR"
+
+refreshLoans <- function(lending.currency=NULL, liquid.balance=NULL){
+  optimal.balances <- loadOptimalAccounts()
+  max.lending.balance <- optimal.balances$lending[optimal.balances$currency==lending.currency]
   max.length <- 2
-  dust.percent.min <- 0.075 #5%
+  dust.percent.min <- 0.05 #5%
   dust.percent.max <- 1 - dust.percent.min
   order.distributions <- 5 # number of orders to place
   max.lending.rate <- .05
   satoshi <- 10^-8
+  minimum.loan.size <- 0.001
   
   
-  cancelOpenLoanOffers(currencies = lending.currency)
   
   active.provided.loans <- ldply(returnActiveLoans()$provided, data.frame, stringsAsFactors=F)
+  active.provided.loans <- active.provided.loans[active.provided.loans$currency==lending.currency,]
   if(nrow(active.provided.loans) > 0){
     current.lending.balance <- sum(as.numeric(active.provided.loans$amount))
   } else {
     current.lending.balance <- 0
   }
   
-  balance.to.lend <- max(0,max.lending.balance - current.lending.balance)
+  balance.to.lend <- min(liquid.balance, max(0,max.lending.balance - current.lending.balance))
+  if(liquid.balance - balance.to.lend > 0){
+    transferBalance(currency=lending.currency, amount=(liquid.balance-balance.to.lend),
+                    fromAccount="lending", toAccount="margin")
+  }
   print(paste0(balance.to.lend," ",lending.currency," to lend"))
   loan.offers <- c()
   if(balance.to.lend){
+    while(balance.to.lend/order.distributions < minimum.loan.size){
+      if(order.distributions==1){return()}
+      order.distributions <- order.distributions - 1
+    }
     lending.book <- returnLoanOrders(currency=lending.currency)
     open.offers <- ldply(lending.book$offers, data.frame, stringsAsFactors=F)
     open.offers <- open.offers[open.offers$rangeMin<=max.length,]
@@ -50,7 +74,7 @@ refreshLoans <- function(lending.currency=NULL){
     # open.demands <- open.demands[open.demands$rangeMin<=max.length,]
     # if(!is.null(open.demands) && nrow(open.demands) > 0){
     #   
-    # }
+    # } 
     # offer.range <- quantile(as.numeric(open.offers$rate), c(dust.percent.min, dust.percent.max))
     offer.range.min <- open.offers$rate[min(which(cumsum(open.offers$amount)>=quantile(cumsum(open.offers$amount), dust.percent.min)))] - satoshi
     offer.range.max <- open.offers$rate[min(which(cumsum(open.offers$amount)>=quantile(cumsum(open.offers$amount), dust.percent.max)))] - satoshi
@@ -80,5 +104,5 @@ getMaturityCurve <- function(currency=NULL){
   # for determining when I will have my cash back in order to optimize cash flow in margin and exchange
 }
 
-loans.offered <- refreshLoans(lending.currency = lending.currency)
-open.loan.offers <- ldply(returnOpenLoanOffers(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="currency")
+# loans.offered <- refreshLoans(lending.currency = lending.currency)
+# open.loan.offers <- ldply(returnOpenLoanOffers(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="currency")

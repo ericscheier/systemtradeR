@@ -2,7 +2,7 @@
 fullComboSimulation <- function(){
   functions <- c("simulateAllCombos", "rawComboWeights", "smoothedComboWeights", "parseCombos", "fullSystemBacktest")
   sapply(functions, runParallelFunc)
-  backupComboSimulation()
+  backupCombosSimulation()
 }
 
 backupCombosSimulation <- function(){
@@ -28,8 +28,8 @@ backupCombosSimulation <- function(){
 
 simulateAllCombos <- function(){
   start.time <- Sys.time()
-  portfolio.forecasts <- system.config$portfolio.forecasts
-  portfolio.pairs <- system.config$portfolio.pairs
+  portfolio.forecasts <- backtest.config$backtest.forecast
+  portfolio.pairs <- backtest.config$backtest.pairs
   
   results.matrix <- 
     foreach(forecast.name=portfolio.forecasts, .combine='merge') %:%

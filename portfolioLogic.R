@@ -41,7 +41,7 @@ updateInstrumentVolatilities <- function(pairs=system.config$portfolio.pairs){
 updateInstrumentWeights <- function(pairs=system.config$portfolio.pairs){
   
   iw <- tail(readRDS(relativePath("/data/clean/smoothed_instrument_weights.RDS")),1)
-  portfolio <- data.frame(asset=pairs, instrument.weight=t(iw)[pairs,], row.names=NULL, stringsAsFactors=F)
+  portfolio <- data.frame(asset=pairs, instrument.weight=t(iw)[sapply(pairs, pairToSymbol),], row.names=NULL, stringsAsFactors=F)
   
   investment.universe <- updateInvestmentUniverse(portfolio)
   
@@ -76,7 +76,7 @@ updateOptimalPositions <- function(){
   
   instrument.diversification.multiplier <- productionInstrumentDiversificationMultiplier()
   
-  within(investment.universe, {optimal.position = instrument.weight * subsystem.position * instrument.diversification.multiplier})
+  investment.universe <- within(investment.universe, {optimal.position = instrument.weight * subsystem.position * instrument.diversification.multiplier})
   
   investment.universe <- saveInvestmentUniverse(investment.universe)
   
@@ -85,7 +85,10 @@ updateOptimalPositions <- function(){
 
 updateCurrentPositions <- function(){
   print("Calculating the current portfolio")
-  balances <- getMarginPosition(currency.pair="all")
+  balances <- try(getMarginPosition(currency.pair="all"))
+  if(inherits(balances, "try-error")){
+    return()
+  }
   portfolio <- data.frame(asset=names(balances), stringsAsFactors = FALSE)
   portfolio$current.position <- apply(portfolio["asset"], 1, function(x) as.numeric(balances[[x]]$amount))
   
@@ -96,14 +99,18 @@ updateCurrentPositions <- function(){
 
 updateOpenOrders <- function(){
   
-  open.orders <- ldply(returnOpenOrders(), data.frame)
+  open.orders <- try(ldply(returnOpenOrders(), data.frame))
+  if(inherits(open.orders, "try-error")){
+    return()
+  }
   return(open.orders)
 }
 
 refreshVolatility <- function(){
   updateInstrumentVolatilities()
-  updateOptimalPortfolio()
-  updateCurrentPortfolio()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  updateCurrentPositions()
   
   investment.universe <- loadInvestmentUniverse()
   return(investment.universe[investment.universe$passes.filter,])
@@ -112,14 +119,16 @@ refreshVolatility <- function(){
 refreshPortfolio <- function(){
   updateInstrumentForecasts()
   updateInstrumentVolatilities()
-  updateOptimalPortfolio()
-  updateCurrentPortfolio()
+  updateSubsystemPositions()
+  updateOptimalPositions()
+  updateCurrentPositions()
   
   investment.universe <- loadInvestmentUniverse()
   return(investment.universe[investment.universe$passes.filter,])
 }
 
 refreshInvestmentUniverse <- function(){
+  
   updateInstrumentForecasts()
   updateInstrumentVolatilities()
   updateInstrumentWeights()
@@ -128,6 +137,7 @@ refreshInvestmentUniverse <- function(){
   updateOptimalPositions()
   updateCurrentPositions()
   updateOpenOrders()
+  return(loadInvestmentUniverse())
 }
 
 updateInvestmentUniverse <- function(portfolio){

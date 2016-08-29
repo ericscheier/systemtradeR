@@ -2,10 +2,12 @@
 
 getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
-    "auto_arima_24",
+    # "auto_arima_24",
     # "ewma_2_8", "ewma_4_16",
     # "ewma_8_32", "ewma_16_64",
-    # "ewma_32_128", "ewma_64_256", "ewma_128_512", "ewma_256_1024",
+    # "ewma_32_128", "ewma_64_256", 
+    "ewma_128_512", 
+    # "ewma_256_1024",
     # "ewma_512_2048", "ewma_1024_4096",
     "no_forecast_long", "no_forecast_short")
   return(portfolio.forecasts)
@@ -33,15 +35,23 @@ autoArimaRawForecast <- function(price.xts, hours.ahead=24, current=FALSE){
   forecast.series <- foreach(n=start.value:length(price.series), .combine = "c", .inorder = TRUE) %do% {
     fit <- auto.arima(price.series[1:n])
     forecast.value <- last(forecast(fit, h=hours.ahead)$mean)
+    gc()
     return(forecast.value)
   }
   forecast.result <- xts(x=forecast.series, order.by=forecast.index)
 }
 
-breakoutRawForecast <- function(price.xts, lookback=system.config$volatility.lookback){
-  lookback <- lookback #* (60/5)
+breakoutRawForecast <- function(price.xts, lookback=backtest.config$lookback.hours){
+  raw.stoch <- SMI(price.xts,n=lookback)
   # http://qoppac.blogspot.co.uk/2016/05/a-simple-breakout-trading-rule.html
   # may want to use stoch function from TTR
+  return(raw.stoch$SMI)
+}
+
+meanRevertingRawForecast <- function(price.xts, lookback=system.config$volatility.lookback){
+  # simly invert the breakout logic
+  raw.stoch <- SMI(price.xts,n=lookback)
+  return(-1 * raw.stoch$SMI)
 }
 
 constantRawForecast <- function(constant, price.xts){
@@ -49,6 +59,18 @@ constantRawForecast <- function(constant, price.xts){
 }
 
 # 8_32, 16_64, 32_128, 64_256, 128_512, 256_1024
+
+breakout_128 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 128))
+}
+
+breakout_64 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 64))
+}
+
+breakout_512 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 512))
+}
 
 no_forecast_long <- function(price.xts){
   return(constantRawForecast(constant=10, price.xts=price.xts))
