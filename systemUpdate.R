@@ -53,13 +53,10 @@ testFunction <- function(){return("Test Successful")}
 minutesFunction <- function(){
   # update & note account value
   account.value <- recordAccountValue()
-  refreshAccount.poloniex()
-  determineOptimalAllocation()
+  refreshExecution()
+  
   # check in on open orders and adjust accordingly
-  open.orders <- updateOpenOrders()
-  updateCurrentPositions()
-  return(list(account.value,
-              open.orders))
+  return()
 }
 
 hoursFunction <- function(){
@@ -77,8 +74,7 @@ hoursFunction <- function(){
   # updateSubsystemPositions()
   # updateOptimalPositions()
   refreshVolatility()
-  refreshAccount.poloniex()
-  determineOptimalAllocation()
+  refreshExecution()
   
   # trades.to.make <- tradesToMake()
   # trades.made <- NULL
@@ -96,8 +92,7 @@ daysFunction <- function(){
   # refresh forecasts and volatility
   refreshed.pricing <- refreshPortfolioPricing()
   refreshInvestmentUniverse()
-  refreshAccount.poloniex()
-  determineOptimalAllocation()
+  refreshExecution()
   # updateCurrentPositions()
   # updateRefPrices()
   # updateInstrumentVolatilities()
@@ -121,8 +116,7 @@ weeksFunction <- function(){
   
   refreshed.pricing <- refreshPortfolioPricing()
   refreshInvestmentUniverse()
-  refreshAccount.poloniex()
-  determineOptimalAllocation()
+  refreshExecution()
   
   return()
 }

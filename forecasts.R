@@ -2,6 +2,7 @@
 
 getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
+    # "breakout_512",
     # "auto_arima_24",
     # "ewma_2_8", "ewma_4_16",
     # "ewma_8_32", "ewma_16_64",

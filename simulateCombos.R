@@ -1,3 +1,17 @@
+testMultipleParams <- function(){
+  source("systemConfig.R")
+  fullComboSimulation()
+  sim.name <- paste0("sim_",round(seconds(Sys.time()),0))
+  backupComboSimulation(simulation.name = sim.name)
+  
+  
+  backtest.config$volatility.target <- .01
+  fullComboSimulation()
+  sim.name <- paste0("sim_",round(seconds(Sys.time()),0))
+  backupComboSimulation(simulation.name = sim.name)
+}
+
+
 
 fullComboSimulation <- function(){
   functions <- c("simulateAllCombos", "rawComboWeights", "smoothedComboWeights", "parseCombos", "fullSystemBacktest")
@@ -5,7 +19,22 @@ fullComboSimulation <- function(){
   backupCombosSimulation()
 }
 
-backupCombosSimulation <- function(){
+backupComboSimulation <- function(simulation.name=NULL){
+  figures <- list.files("figures/final", pattern=".pdf")
+  dir.create(file.path("figures/final", simulation.name))
+  for(figure in figures){
+    file.rename(from=file.path("figures/final", figure), to=file.path("figures/final", simulation.name, figure))
+  }
+  
+  
+  data.results <- list.files("data/clean", pattern=".RDS")
+  dir.create(file.path("data/clean", simulation.name))
+  for(data.result in data.results){
+    file.rename(from=file.path("data/clean", data.result), to=file.path("data/clean", simulation.name, data.result))
+  }
+  
+  saveRDS(backtest.config, file=file.path("data/clean", simulation.name, "backtest_config.RDS"))
+  
   # create a folder structure for backups: data, figures
     # http://stackoverflow.com/questions/4216753/check-existence-of-directory-and-create-if-doesnt-exist
   # save specs environment as RDS in top level
