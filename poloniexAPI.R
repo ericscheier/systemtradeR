@@ -1,4 +1,16 @@
 api.poloniex <- function(command, args = list()) {
+  
+  live.commands <- c("buy","sell","cancelOrder","marginBuy","marginSell","createLoanOffer","cancelLoanOffer","moveOrder",
+                     "transferBalance")
+  combined.args <- paste(names(args), args, sep="=",collapse = ", ")
+  
+  if(!system.config$live & command %in% live.commands){
+    print(paste0("system not live, not executing command: ",command,"( ",combined.args," )"))
+    return()
+  }
+  
+  print(paste0("SYSTEM LIVE, executing command: ",command,"( ",combined.args," )"))
+  
   key <- system.config$poloniex.key
   secret <- system.config$poloniex.secret
   

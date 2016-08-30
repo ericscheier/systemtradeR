@@ -4,24 +4,35 @@
 # poloniex.summary <- refreshAccount.poloniex()
 # aggregate(x=poloniex.summary$balance, by=list(currency=poloniex.summary$currency), FUN=sum)
 
-transferTowardOptimalAccounts <- function(){
-  current.accounts <- loadCurrentAccounts()
-  optimal.accounts <- loadOptimalAccounts()
-  accounts <- c("margin","exchange","lending")
-  accountsDataFrame <- function(account){
-    account.balance <- ldply(returnCompleteBalances(account=account), unlist, .id="currency")
-    account.balance$account <- account
-    return(account.balance)
-  }
-  account.balances <- as.data.table(ldply(accounts, accountsDataFrame))
-  account.balances <- account.balances[currency %in% optimal.accounts$currency,]
-  account.balances[,available:=as.numeric(available)]
-  account.balances[,onOrders:=as.numeric(onOrders)]
+refreshExecution <- function(){
+  recordAccountValue()
+  determineCurrentAllocation.poloniex()
+  determineOptimalAllocation.poloniex()
   
-  for(i in 1:nrow(optimal.accounts)){
-    current.account.value <- sum(account.balances[currency==optimal.accounts$currency[i],c(available, onOrders)])
-  }
+  refreshAllLoans()
+  refreshAllMargin()
+  refreshAllExchange()
+  return()
 }
+
+# transferTowardOptimalAccounts <- function(){
+#   current.accounts <- loadCurrentAccounts()
+#   optimal.accounts <- loadOptimalAccounts()
+#   accounts <- c("margin","exchange","lending")
+#   accountsDataFrame <- function(account){
+#     account.balance <- ldply(returnCompleteBalances(account=account), unlist, .id="currency")
+#     account.balance$account <- account
+#     return(account.balance)
+#   }
+#   account.balances <- as.data.table(ldply(accounts, accountsDataFrame))
+#   account.balances <- account.balances[currency %in% optimal.accounts$currency,]
+#   account.balances[,available:=as.numeric(available)]
+#   account.balances[,onOrders:=as.numeric(onOrders)]
+#   
+#   for(i in 1:nrow(optimal.accounts)){
+#     current.account.value <- sum(account.balances[currency==optimal.accounts$currency[i],c(available, onOrders)])
+#   }
+# }
 
 determineCurrentAllocation.poloniex <- function(){
   # investment.universe <- loadInvestmentUniverse()
@@ -154,6 +165,16 @@ determineCurrentAllocation.poloniex <- function(){
   
   saveRDS(poloniex.overview, relativePath("data/clean/current_accounts.RDS"))
   
+  investment.universe <- loadInvestmentUniverse()
+  ref.prices <-data.table(currency=sapply(investment.universe$asset, function(x) pairToCurrencies(x)$asset),
+                                      ref.price=investment.universe$ref.price)
+  ref.prices[currency=="BTC",ref.price:=1]
+  
+  poloniex.btc.overview <- poloniex.overview[,list(exchange.equity, lending, margin.collateral, margin.position)] * 
+    ref.prices[match(poloniex.overview$currency, ref.prices$currency),c(ref.price)]
+  
+  saveRDS(poloniex.btc.overview, relativePath("data/clean/current_btc_accounts.RDS"))
+  
   return(poloniex.overview)
   
   # current.btc.account.overview <- account.universe[,optimal.account.overview.cols] * account.universe$ref.price
@@ -163,6 +184,10 @@ determineCurrentAllocation.poloniex <- function(){
 
 loadCurrentAccounts <- function(){
   return(readRDS(relativePath("data/clean/current_accounts.RDS")))
+}
+
+loadCurrentBTCAccounts <- function(){
+  return(readRDS(relativePath("data/clean/current_btc_accounts.RDS")))
 }
 
 determineOptimalAllocation.poloniex <- function(){
@@ -224,12 +249,18 @@ determineOptimalAllocation.poloniex <- function(){
       optimal.btc.accounts[optimal.btc.accounts$currency=="BTC", "lending"] + too.small.orders
   }
   
+  saveRDS(optimal.btc.accounts, relativePath("data/clean/optimal_btc_accounts.RDS"))
+  
   optimal.accounts <- optimal.btc.accounts
   optimal.accounts <- merge(optimal.accounts, optimal.btc.account.overview[c("currency","margin.position")], all.x=T)
   optimal.accounts[optimal.accounts$currency=="BTC","margin.position"] <- 0
+  
+  ref.prices <- account.universe$ref.price[match(optimal.accounts$currency, account.universe$currency)]
+  ref.prices[is.na(ref.prices)] <- 1
+  ref.prices[ref.prices==0] <- 1
+  
   optimal.accounts[,c(account.columns,"margin.position")] <-
-    optimal.accounts[,c(account.columns,"margin.position")] /
-    na.fill(account.universe$ref.price[match(optimal.accounts$currency, account.universe$currency)],1)
+    optimal.accounts[,c(account.columns,"margin.position")] / ref.prices
   
   saveRDS(optimal.accounts, relativePath("data/clean/optimal_accounts.RDS"))
   return(optimal.accounts)
@@ -237,6 +268,10 @@ determineOptimalAllocation.poloniex <- function(){
 
 loadOptimalAccounts <- function(){
   return(readRDS(relativePath("data/clean/optimal_accounts.RDS")))
+}
+
+loadOptimalBTCAccounts <- function(){
+  return(readRDS(relativePath("data/clean/optimal_btc_accounts.RDS")))
 }
 
 optimizeAllocation <- function(account.universe.row){

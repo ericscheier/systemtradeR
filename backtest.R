@@ -174,7 +174,7 @@ adjustedWeight <- function(instrument.name, forecast.name, price.xts, num.pairs.
     return(instrumentWeight(instrument.name=instrument.name, price.xts=price.xts))
   } else {
     if(is.null(num.pairs.xts)){
-      return(singleValue(value=1/length($portfolio.pairs), price.xts=price.xts))
+      return(singleValue(value=1/length(backtest.config$backtest.pairs), price.xts=price.xts))
     } else {
       return(xtsIdentity(price.xts = price.xts, to.merge = 1/num.pairs.xts))
     }

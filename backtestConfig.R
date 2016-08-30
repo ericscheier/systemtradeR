@@ -9,7 +9,7 @@ backtest.config$backtest.length <- 200 # hours
 
 backtest.config$lookback.hours <- system.config$lookback.hours
 
-backtest.config$volatility.target <- .01 #system.config$volatility.target
+backtest.config$volatility.target <- system.config$volatility.target
 backtest.config$minimum.order.size <- system.config$minimum.order.size
 backtest.config$minimum.position.change <- system.config$minimum.position.change
 

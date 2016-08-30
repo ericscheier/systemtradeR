@@ -26,6 +26,7 @@ system.config$margin.maintenance.percent <- .5
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
 system.config$minimum.position.change <- .2 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
+system.config$satoshi <- 10^-8
 
 system.config$portfolio.pairs <- getPortfolioPairs()
 system.config$portfolio.forecasts <- getPortfolioForecasts()

@@ -110,7 +110,7 @@ refreshVolatility <- function(){
   updateInstrumentVolatilities()
   updateSubsystemPositions()
   updateOptimalPositions()
-  updateCurrentPositions()
+  # updateCurrentPositions()
   
   investment.universe <- loadInvestmentUniverse()
   return(investment.universe[investment.universe$passes.filter,])
@@ -121,7 +121,7 @@ refreshPortfolio <- function(){
   updateInstrumentVolatilities()
   updateSubsystemPositions()
   updateOptimalPositions()
-  updateCurrentPositions()
+  # updateCurrentPositions()
   
   investment.universe <- loadInvestmentUniverse()
   return(investment.universe[investment.universe$passes.filter,])

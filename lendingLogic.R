@@ -24,7 +24,7 @@ refreshAllLoans <- function(){
   lending.limits <- data.frame(currency=lending.currencies,
                                balance=lending.balances$balance[match(lending.currencies, lending.balances$currency)],
                                stringsAsFactors=F)
-  lending.limits$balance <- as.numeric(na.fill(lending.limits$balance,c(0)))
+  lending.limits[is.na(lending.limits$balance),"balance"] <- 0
   apply(lending.balances, 1, function(x) refreshLoans(lending.currency=x[["currency"]],
                                                       liquid.balance=as.numeric(x[["balance"]])))
   

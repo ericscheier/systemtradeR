@@ -26,7 +26,7 @@ testMarketMaking <- function(){
   }
 }
 
-refreshMakeMarkets <- function(){
+refreshAllExchange <- function(){
   determineOptimalAllocation.poloniex()
   determineCurrentAllocation.poloniex()
   trading.pairs <- system.config$portfolio.pairs
@@ -93,12 +93,19 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   bids <- as.data.frame(apply(bids, 2, as.numeric))
   
   middle <- round(mean(c(max(bids$rate), min(asks$rate))), -log10(satoshi))
+  iv <- loadInvestmentUniverse()
+  portfolio <- data.frame(asset=iv$asset, ref.price=iv$ref.price, stringsAsFactors = F)
+  portfolio[portfolio$asset==trading.pair, "ref.price"] <- middle
+  updateInvestmentUniverse(portfolio)
   # print(paste0("middle is ",middle))
   
   outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
-  outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
-  outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
-  outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]
+  if(nrow(outstanding.orders)){
+    outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
+    outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
+    outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]
+    outstanding.orders <- outstanding.orders[!outstanding.orders$margin,c("orderNumber","type","rate","amount")]
+  }
   
   inside.prices <- c(max(bids$rate), min(asks$rate))
   bid.if.buying <- min(inside.prices)
@@ -111,27 +118,42 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   ask.range.min <- ifelse(position.change>0, ask.if.selling, ask.range.min)
   ask.range.max <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.max.quantile)))]
   
-  outstanding.bids <- outstanding.orders[outstanding.orders$type=="buy",]
-  bids.to.move <- outstanding.bids[with(outstanding.bids, rate>bid.range.max |
-                                          rate<bid.range.min),]
-  bids.to.keep <- outstanding.bids[!(outstanding.bids$orderNumber %in% bids.to.move$orderNumber),]
-  bids.to.cancel <- bids.to.keep[!(cumsum(bids.to.keep$amount)<asset.bid.exposure),]
-  bids.to.keep <- bids.to.keep[!(bids.to.keep$orderNumber %in% bids.to.cancel$orderNumber),]
-  current.bid.exposure <- sum(bids.to.keep$amount)
-  
-  outstanding.asks <- outstanding.orders[outstanding.orders$type=="sell",]
-  asks.to.move <- outstanding.asks[with(outstanding.asks, rate>ask.range.max |
-                                          rate<ask.range.min),]
-  asks.to.keep <- outstanding.asks[!(outstanding.asks$orderNumber %in% asks.to.move$orderNumber),]
-  asks.to.cancel <- asks.to.keep[!(cumsum(asks.to.keep$amount)<asset.ask.exposure),]
-  asks.to.keep <- asks.to.keep[!(asks.to.keep$orderNumber %in% asks.to.cancel$orderNumber),]
-  current.ask.exposure <- sum(asks.to.keep$amount)
-  
-  orders.to.keep <- rbind(bids.to.keep, asks.to.keep)
-  orders.to.move <- rbind(bids.to.move, asks.to.move)
-  orders.to.cancel <- rbind(bids.to.cancel, asks.to.cancel)
-  if(nrow(orders.to.cancel)){
-    sapply(orders.to.cancel$orderNumber, cancelOrder)
+  if(nrow(outstanding.orders)){
+    outstanding.bids <- outstanding.orders[outstanding.orders$type=="buy",]
+    if(nrow(outstanding.bids)){
+      bids.to.move <- outstanding.bids[with(outstanding.bids, rate>bid.range.max |
+                                              rate<bid.range.min),]
+      bids.to.keep <- outstanding.bids[!(outstanding.bids$orderNumber %in% bids.to.move$orderNumber),]
+      bids.to.cancel <- bids.to.keep[!(cumsum(bids.to.keep$amount)<asset.bid.exposure),]
+      bids.to.keep <- bids.to.keep[!(bids.to.keep$orderNumber %in% bids.to.cancel$orderNumber),]
+      current.bid.exposure <- sum(bids.to.keep$amount)
+    } else {
+      bids.to.move <- bids.to.keep <- bids.to.cancel <- data.frame()
+      current.bid.exposure <- 0
+    }
+    
+    outstanding.asks <- outstanding.orders[outstanding.orders$type=="sell",]
+    if(nrow(outstanding.asks)){
+      asks.to.move <- outstanding.asks[with(outstanding.asks, rate>ask.range.max |
+                                              rate<ask.range.min),]
+      asks.to.keep <- outstanding.asks[!(outstanding.asks$orderNumber %in% asks.to.move$orderNumber),]
+      asks.to.cancel <- asks.to.keep[!(cumsum(asks.to.keep$amount)<asset.ask.exposure),]
+      asks.to.keep <- asks.to.keep[!(asks.to.keep$orderNumber %in% asks.to.cancel$orderNumber),]
+      current.ask.exposure <- sum(asks.to.keep$amount)
+    } else {
+      asks.to.move <- asks.to.keep <- asks.to.cancel <- data.frame()
+      current.ask.exposure <- 0
+    }
+    
+    orders.to.keep <- rbind(bids.to.keep, asks.to.keep)
+    orders.to.move <- rbind(bids.to.move, asks.to.move)
+    orders.to.cancel <- rbind(bids.to.cancel, asks.to.cancel)
+    if(nrow(orders.to.cancel)){
+      sapply(orders.to.cancel$orderNumber, cancelOrder)
+    }
+  } else {
+    orders.to.move <- data.frame()
+    current.bid.exposure <- current.ask.exposure <- 0
   }
   
   bids.to.make <- data.frame(rate=seq(from=bid.range.max,
@@ -168,6 +190,9 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
 processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
   rate <- orders.to.make.row[["rate"]]
   amount <- orders.to.make.row[["amount"]]
+  if(amount==0){
+    return()
+  }
   type <- orders.to.make.row[["type"]]
   order.id <- orders.to.make.row[["orderNumber"]]
   if(order.id=="new"){
