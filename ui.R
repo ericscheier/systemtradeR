@@ -1,0 +1,6 @@
+
+
+
+shinyUI(fluidPage(
+  textOutput("currentTime")
+))

@@ -11,7 +11,7 @@ accountValue <- function(){
   
   complete.balances <- ldply(returnCompleteBalances(account="all"), data.frame, stringsAsFactors=F, .id="currency")
   complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
-  account.value <- sum(complete.balances[match(poloniex.currencies,complete.balances$currency),c("btcValue")])
+  account.value <- sum(complete.balances[match(system.config$portfolio.currencies,complete.balances$currency),c("btcValue")])
   
   # summary <- returnMarginAccountSummary()
   # account.value <- as.numeric(summary$netValue)
