@@ -113,13 +113,13 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- rbind(poloniex.summary, loans.offered)
   
-  exchange.offers <- ldply(returnCompleteBalances(account="exchange"), data.frame, stringsAsFactors=F, .id="currency")
-  exchange.offers$onOrders <- as.numeric(exchange.offers$onOrders)
-  exchange.offers <- complete.balances[match(poloniex.currencies,exchange.offers$currency),c("currency","onOrders")]
-  names(exchange.offers) <- c("currency", "balance")
-  exchange.offers$portfolio <- "exchange.offers"
-  
-  poloniex.summary <- rbind(poloniex.summary, exchange.offers)
+  # exchange.offers <- ldply(returnCompleteBalances(account="exchange"), data.frame, stringsAsFactors=F, .id="currency")
+  # exchange.offers$onOrders <- as.numeric(exchange.offers$onOrders)
+  # exchange.offers <- complete.balances[match(poloniex.currencies,exchange.offers$currency),c("currency","onOrders")]
+  # names(exchange.offers) <- c("currency", "balance")
+  # exchange.offers$portfolio <- "exchange.offers"
+  # 
+  # poloniex.summary <- rbind(poloniex.summary, exchange.offers)
   
   
   

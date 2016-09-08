@@ -4,11 +4,11 @@
 systemUpdate <- function(is.live=system.config$live){
   system.config$live <- is.live
   mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
-  update.states <- data.frame(func.label=c("quarters","months","weeks","days","hours","minutes"),
-                              unit=c( "months","months","weeks","days","hours","minutes"),
-                             interval=c(3, 1, 1, 1, 1, 15.0),
-                             last.updated=rep(mock.time, 6),
-                             locked=rep(FALSE, 6))
+  update.states <- data.frame(func.label=c("quarters","months","weeks","days","hours","minutes","seconds"),
+                              unit=c( "months","months","weeks","days","hours","minutes","seconds"),
+                             interval=c(3, 1, 1, 1, 1, 15.0,30),
+                             last.updated=rep(mock.time, 7),
+                             locked=rep(FALSE, 7))
   
   if(file.exists("update_states.RDS")){
     update.states <- readRDS("update_states.RDS")
@@ -49,6 +49,11 @@ runParallelFunc <- function(parallel.func.name, args=list()){
 }
 
 testFunction <- function(){return("Test Successful")}
+
+secondsFunction <- function(){
+  fullAPIPull()
+  return()
+}
 
 minutesFunction <- function(){
   # update & note account value

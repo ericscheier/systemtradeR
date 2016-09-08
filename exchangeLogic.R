@@ -100,7 +100,9 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   # print(paste0("middle is ",middle))
   
   outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
+  # print(nrow(outstanding.orders))
   if(nrow(outstanding.orders)){
+    print("there are existing outstanding orders")
     outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
     outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
     outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]

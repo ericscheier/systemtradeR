@@ -31,8 +31,8 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   # complete.balances <- as.data.table(complete.balances)
   current.asset <- as.numeric(getMarginPosition(currency.pair=trading.pair)$amount)   #complete.balances[currency==asset,available+onOrders]
   position.change <- desired.asset - current.asset
-  asset.bid.exposure <- max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- max(0,desired.asset * default.exposure - (position.change))
+  asset.bid.exposure <- max(0,desired.asset  + (position.change)) # intentionally doubling down on positoin changes
+  asset.ask.exposure <- max(0,desired.asset  - (position.change))
   
   if(asset.bid.exposure==0 && asset.ask.exposure==0){return(paste0("not making a market in ",trading.pair))}
   
