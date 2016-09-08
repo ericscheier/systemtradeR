@@ -1,8 +1,4 @@
 source("systemConfig.R")
-skin <- Sys.getenv("DASHBOARD_SKIN")
-skin <- tolower(skin)
-if (skin == "")
-  skin <- "green"
 
 server <- function(input, output) {
   
