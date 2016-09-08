@@ -20,12 +20,15 @@ refreshAllLoans <- function(){
   lending.currencies <- system.config$portfolio.currencies
   account.balances <- returnAvailableAccountBalances(account="all")
   lending.balances <- ldply(account.balances$lending, data.frame, stringsAsFactors=F)
-  names(lending.balances) <- c("currency", "balance")
   lending.limits <- data.frame(currency=lending.currencies,
-                               balance=lending.balances$balance[match(lending.currencies, lending.balances$currency)],
+                               balance=NA,
                                stringsAsFactors=F)
+  if(nrow(lending.balances)){
+    names(lending.balances) <- c("currency", "balance")
+    lending.limits$balance <- lending.balances$balance[match(lending.currencies, lending.balances$currency)]
+  }
   lending.limits[is.na(lending.limits$balance),"balance"] <- 0
-  apply(lending.balances, 1, function(x) refreshLoans(lending.currency=x[["currency"]],
+  apply(lending.limits, 1, function(x) refreshLoans(lending.currency=x[["currency"]],
                                                       liquid.balance=as.numeric(x[["balance"]])))
   
 }

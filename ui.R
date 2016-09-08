@@ -70,8 +70,15 @@ body <- dashboardBody(
                   plotOutput("account.allocations.chart"),
                   width=12)
             )
-    )
-    # tabItem("bot")
+    ),
+    tabItem("bot",
+            fluidRow(
+              box(title="Update States",
+                  dataTableOutput("update.states.table"),
+                  width=12
+                  )
+            )
+            )
   )
 )
 

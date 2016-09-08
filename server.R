@@ -19,6 +19,8 @@ server <- function(input, output) {
     output$currency.allocations.chart <- renderPlot({currencyAllocationChart()})
     
     output$account.allocations.chart <- renderPlot({accountAllocationChart(scale.by.total.value = FALSE)})
+    
+    output$update.states.table <- renderDataTable({readRDS("update_states.RDS")})
   })
   
   
