@@ -338,7 +338,7 @@ transferBalance <- function(currency=NULL, amount=NULL, fromAccount=NULL, toAcco
                        amount=amount,
                        fromAccount=fromAccount,
                        toAccount=toAccount)
-  command.result <- api.poloniex.public(command=command, args=config.specs)
+  command.result <- api.poloniex(command=command, args=config.specs)
   return(command.result)
 }
 
