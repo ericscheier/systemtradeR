@@ -1,5 +1,16 @@
 
 refreshAllMargin <- function(){
+  current.balances <- loadCurrentAccounts()
+  optimal.balances <- loadOptimalAccounts()
+  current.btc.account.margin.collateral <- current.balances$margin.collateral[current.balances$currency=="BTC"]
+  optimal.btc.account.margin.collateral <- optimal.balances$margin.collateral[optimal.balances$currency=="BTC"]
+  
+  
+  if(current.btc.account.margin.collateral > optimal.btc.account.margin.collateral){
+    transferBalance(currency="BTC", amount=(current.btc.account.margin.collateral - optimal.btc.account.margin.collateral),
+                    fromAccount="margin", toAccount="exchange")
+  }
+  
   trading.pairs <- system.config$portfolio.pairs
   determineOptimalAllocation.poloniex()
   determineCurrentAllocation.poloniex()
@@ -33,6 +44,14 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   position.change <- desired.asset - current.asset
   asset.bid.exposure <- max(0,desired.asset  + (position.change)) # intentionally doubling down on positoin changes
   asset.ask.exposure <- max(0,desired.asset  - (position.change))
+  
+  current.collateral.balance <- current.balances$margin.collateral[current.balances$currency==collateral.currency]
+  max.collateral.balance <- optimal.balances$margin.collateral[optimal.balances$currency==collateral.currency]
+  
+  if(current.collateral.balance > max.collateral.balance){
+    transferBalance(currency=collateral.currency, amount=(current.collateral.balance - max.collateral.balance),
+                    fromAccount="margin", toAccount="exchange")
+  }
   
   if(asset.bid.exposure==0 && asset.ask.exposure==0){
     print(paste0("not making a market in ",trading.pair))
@@ -150,14 +169,6 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   newly.outstanding.orders$rate <- as.numeric(newly.outstanding.orders$rate)
   newly.outstanding.orders$amount <- as.numeric(newly.outstanding.orders$amount)
   # return(newly.outstanding.orders)
-  
-  current.collateral.balance <- current.balances$margin.collateral[current.balances$currency==collateral.currency]
-  max.collateral.balance <- optimal.balances$margin.collateral[optimal.balances$currency==collateral.currency]
-  
-  if(current.collateral.balance > max.collateral.balance){
-    transferBalance(currency=collateral.currency, amount=(current.collateral.balance - max.collateral.balance),
-                    fromAccount="margin", toAccount="exchange")
-  }
   
 }
 
