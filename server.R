@@ -1,27 +1,50 @@
 source("systemConfig.R")
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
-  observe({
-    # refresh.rate <- 60 #seconds
+  refresh.rate <- 30 #seconds
+  
+  output$currentTime <- renderText({
+    options(digits.secs = 0)
+    
+    # invalidateLater causes this output to automatically
+    # become invalidated when input$interval milliseconds
+    # have elapsed
+    invalidateLater(as.integer(refresh.rate * 1000), session)
+    
+    format(Sys.time())
+  })
+    # 
     # if(system.config$live){
-    #   invalidateLater(refresh.rate * 1000)
+    #   invalidateLater()
     # }
     
-    output$market.price.chart <- renderPlot({priceChart(pair=input$trading.pair,
-                                                        date.range=paste0(input$price.date.range, collapse = "::"),
-                                                        period=input$chart.frequency,
-                                                        type="candle")})
-    output$order.book.chart <- renderPlot({orderBookChart(pair=input$trading.pair, market=input$order.book.market)})
+    output$market.price.chart <- renderPlot({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      priceChart(pair=input$trading.pair,
+                 date.range=paste0(input$price.date.range, collapse = "::"),
+                 period=input$chart.frequency,
+                 type="candle")})
     
-    output$account.value.chart <- renderPlot({accountValueChart()})
+    output$order.book.chart <- renderPlot({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      orderBookChart(pair=input$trading.pair, market=input$order.book.market)})
     
-    output$currency.allocations.chart <- renderPlot({currencyAllocationChart()})
+    output$account.value.chart <- renderPlot({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      accountValueChart()})
     
-    output$account.allocations.chart <- renderPlot({accountAllocationChart(scale.by.total.value = FALSE)})
+    output$currency.allocations.chart <- renderPlot({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      currencyAllocationChart()})
     
-    output$update.states.table <- renderDataTable({readRDS("update_states.RDS")})
-  })
+    output$account.allocations.chart <- renderPlot({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      accountAllocationChart(scale.by.total.value = FALSE)})
+    
+    output$update.states.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      readRDS("update_states.RDS")})
   
   
 }

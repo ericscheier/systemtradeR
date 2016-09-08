@@ -12,7 +12,8 @@ sidebar <- dashboardSidebar(
     sidebarMenu(id="menu",
                 menuItem("Markets", tabName = "markets", icon = icon("dashboard")),
                 menuItem("Portfolio", tabName = "portfolio", icon = icon("th")),
-                menuItem("Bot", tabName = "bot", icon = icon("bar-chart-o"))
+                menuItem("Bot", tabName = "bot", icon = icon("bar-chart-o")),
+                textOutput("currentTime")#, container = span)
     )
   )
 )

@@ -6,9 +6,10 @@ systemUpdate <- function(is.live=system.config$live){
   mock.time <- as.POSIXct("1992-04-25 07:40:00 UTC")
   update.states <- data.frame(func.label=c("quarters","months","weeks","days","hours","minutes","seconds"),
                               unit=c( "months","months","weeks","days","hours","minutes","seconds"),
-                             interval=c(3, 1, 1, 1, 1, 15.0,30),
+                             interval=c(3, 1, 1, 1, 1, 15.0,60),
                              last.updated=rep(mock.time, 7),
-                             locked=rep(FALSE, 7))
+                             locked=rep(FALSE, 7),
+                             error=rep(FALSE,7))
   
   if(file.exists("update_states.RDS")){
     update.states <- readRDS("update_states.RDS")
@@ -19,6 +20,7 @@ systemUpdate <- function(is.live=system.config$live){
     test.int <- as.interval(difftime(current.time, update.states[i,"last.updated"], units="mins"), start=update.states[i,"last.updated"])
     is.due <- (as.period(test.int) %/% do.call(as.character(update.states[i, "unit"]), list(1))) >= update.states[i,"interval"]
     is.locked <- update.states[i, "locked"]
+    is.error <- update.states[i, "error"]
     if(is.due && !is.locked){
       update.states[i, "locked"] <- TRUE
       saveRDS(update.states, "update_states.RDS")
@@ -28,7 +30,11 @@ systemUpdate <- function(is.live=system.config$live){
       
       func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       actionNotify(func.successful)
-      if(!inherits(func.successful, "try-error")){update.states[i, "last.updated"] <- current.time}
+      if(!inherits(func.successful, "try-error")){
+        update.states[i, "last.updated"] <- current.time
+      } else {
+          update.states[i, "error"] <- TRUE
+        }
       update.states[i, "locked"] <- FALSE
       saveRDS(update.states, "update_states.RDS")
     }
