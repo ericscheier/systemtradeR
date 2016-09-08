@@ -16,7 +16,7 @@ systemUpdate <- function(is.live=system.config$live){
   }
   
   for (i in 1:nrow(update.states)){
-    # func.label <- update.states$func.label[i]
+    func.label <- update.states$func.label[i]
     current.time <- Sys.time()
     test.int <- as.interval(difftime(current.time, update.states[i,"last.updated"], units="mins"), start=update.states[i,"last.updated"])
     is.due <- (as.period(test.int) %/% do.call(as.character(update.states[i, "unit"]), list(1))) >= update.states[i,"interval"]
@@ -32,7 +32,8 @@ systemUpdate <- function(is.live=system.config$live){
       func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       actionNotify(func.successful)
       
-      # update.states <- readRDS("update_states.RDS")
+      update.states <- readRDS("update_states.RDS")
+      i <- min(which(func.label==update.states$func.label))
       
       if(!inherits(func.successful, "try-error")){
         update.states[i, "last.updated"] <- current.time
