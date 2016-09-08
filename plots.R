@@ -69,6 +69,7 @@ accountAllocationChart <- function(scale.by.total.value=TRUE){
 
 accountValueChart <- function(){
   account.value <- readRDS("data/clean/btc_account_value.RDS")
+  account.value$btc_value <- account.value$btc_value/first(account.value$btc_value)
   
   result.plot <- ggplot(data=account.value, aes(x=date, y=btc_value)) + geom_line() + theme_bw() + 
     labs(title="Account Value", y="BTC",x="Date")
