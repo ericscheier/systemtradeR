@@ -51,6 +51,7 @@ runParallelFunc <- function(parallel.func.name, args=list()){
 testFunction <- function(){return("Test Successful")}
 
 secondsFunction <- function(){
+  # pull market and portfolio data
   fullAPIPull()
   return()
 }
@@ -121,7 +122,7 @@ weeksFunction <- function(){
   
   refreshed.pricing <- refreshPortfolioPricing()
   refreshInvestmentUniverse()
-  refreshExecution()
+  try(refreshExecution())
   
   return()
 }
