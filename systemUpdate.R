@@ -16,6 +16,7 @@ systemUpdate <- function(is.live=system.config$live){
   }
   
   for (i in 1:nrow(update.states)){
+    # func.label <- update.states$func.label[i]
     current.time <- Sys.time()
     test.int <- as.interval(difftime(current.time, update.states[i,"last.updated"], units="mins"), start=update.states[i,"last.updated"])
     is.due <- (as.period(test.int) %/% do.call(as.character(update.states[i, "unit"]), list(1))) >= update.states[i,"interval"]
@@ -30,6 +31,9 @@ systemUpdate <- function(is.live=system.config$live){
       
       func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       actionNotify(func.successful)
+      
+      # update.states <- readRDS("update_states.RDS")
+      
       if(!inherits(func.successful, "try-error")){
         update.states[i, "last.updated"] <- current.time
         update.states[i, "error"] <- FALSE
@@ -60,13 +64,14 @@ testFunction <- function(){return("Test Successful")}
 secondsFunction <- function(){
   # pull market and portfolio data
   fullAPIPull()
+  refreshExecution()
   return()
 }
 
 minutesFunction <- function(){
   # update & note account value
-  account.value <- recordAccountValue()
-  refreshExecution()
+  # account.value <- recordAccountValue()
+  # refreshExecution()
   
   # check in on open orders and adjust accordingly
   return()
