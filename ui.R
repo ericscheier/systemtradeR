@@ -1,3 +1,5 @@
+source("systemConfig.R")
+
 header <- dashboardHeader(title = "altfund")
 
 sidebar <- dashboardSidebar(
