@@ -32,6 +32,7 @@ systemUpdate <- function(is.live=system.config$live){
       actionNotify(func.successful)
       if(!inherits(func.successful, "try-error")){
         update.states[i, "last.updated"] <- current.time
+        update.states[i, "error"] <- FALSE
       } else {
           update.states[i, "error"] <- TRUE
         }
