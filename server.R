@@ -3,9 +3,10 @@ source("systemConfig.R")
 server <- function(input, output) {
   
   observe({
-    refresh.rate <- 30 #seconds
+    refresh.rate <- 60 #seconds
     if(system.config$live){
       invalidateLater(refresh.rate * 1000)
+      fullAPIPull()
     }
     
     output$market.price.chart <- renderPlot({priceChart(pair=input$trading.pair,
