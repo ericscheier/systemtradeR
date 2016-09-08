@@ -127,10 +127,10 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   ask.if.selling <- max(inside.prices)
   
   bid.range.max <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.min.quantile)))]
-  bid.range.max <- ifelse(position.change<0, bid.if.buying, bid.range.max)
+  bid.range.max <- ifelse(position.change>0, bid.if.buying, bid.range.max)
   bid.range.min <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.max.quantile)))]
   ask.range.min <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.min.quantile)))]
-  ask.range.min <- ifelse(position.change>0, ask.if.selling, ask.range.min)
+  ask.range.min <- ifelse(position.change<0, ask.if.selling, ask.range.min)
   ask.range.max <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.max.quantile)))]
   
   if(nrow(outstanding.orders)){
