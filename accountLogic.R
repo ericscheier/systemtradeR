@@ -5,6 +5,7 @@
 # aggregate(x=poloniex.summary$balance, by=list(currency=poloniex.summary$currency), FUN=sum)
 
 refreshExecution <- function(){
+  initializationChecks()
   recordAccountValue()
   determineCurrentAllocation.poloniex()
   determineOptimalAllocation.poloniex()
@@ -13,6 +14,10 @@ refreshExecution <- function(){
   refreshAllMargin()
   refreshAllExchange()
   return()
+}
+
+initializationChecks <- function(){
+  if(!file.exists("data/clean/market_making_config.RDS")){initializeMarketMakingConfig()}
 }
 
 # transferTowardOptimalAccounts <- function(){
