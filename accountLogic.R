@@ -161,9 +161,9 @@ determineCurrentAllocation.poloniex <- function(){
                                                                                                         # open.margin.orders
   )]
   
-  poloniex.overview <- as.data.frame(poloniex.overview)
+  # poloniex.overview <- 
   
-  saveRDS(poloniex.overview, relativePath("data/clean/current_accounts.RDS"))
+  saveRDS(as.data.frame(poloniex.overview), relativePath("data/clean/current_accounts.RDS"))
   
   investment.universe <- loadInvestmentUniverse()
   ref.prices <-data.table(currency=sapply(investment.universe$asset, function(x) pairToCurrencies(x)$asset),
@@ -172,8 +172,10 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.btc.overview <- poloniex.overview[,list(exchange.equity, lending, margin.collateral, margin.position)] * 
     ref.prices[match(poloniex.overview$currency, ref.prices$currency),c(ref.price)]
+  poloniex.btc.overview[,currency:=poloniex.overview$currency]
+  poloniex.btc.overview <- poloniex.btc.overview[,list(currency,exchange.equity, lending, margin.collateral, margin.position)]
   
-  saveRDS(poloniex.btc.overview, relativePath("data/clean/current_btc_accounts.RDS"))
+  saveRDS(as.data.frame(poloniex.btc.overview), relativePath("data/clean/current_btc_accounts.RDS"))
   
   return(poloniex.overview)
   

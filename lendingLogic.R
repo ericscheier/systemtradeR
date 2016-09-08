@@ -30,7 +30,7 @@ refreshAllLoans <- function(){
   
 }
 
-lending.currency <- "XMR"
+# lending.currency <- "XMR"
 
 refreshLoans <- function(lending.currency=NULL, liquid.balance=NULL){
   optimal.balances <- loadOptimalAccounts()

@@ -40,13 +40,13 @@ appendNewData <- function(file.name=NULL, new.data=NULL){
 
 recordAccountValue <- function(){
   system.config$poloniex.margin.value <- accountValue()
-  Sys.sleep(.15)
-  usdt.exchange.rate <- getMid(ticker=returnTicker(), pair="USDT_BTC")
+  # Sys.sleep(.15)
+  # usdt.exchange.rate <- getMid(ticker=returnTicker(), pair="USDT_BTC")
   current.time <- Sys.time()
-  usdt.value <- system.config$poloniex.margin.value * usdt.exchange.rate
-  new.data <- data.frame(date=current.time, usdt_value=usdt.value, btc_value=system.config$poloniex.margin.value)
+  # usdt.value <- system.config$poloniex.margin.value * usdt.exchange.rate
+  new.data <- data.frame(date=current.time, btc_value=system.config$poloniex.margin.value)
   
-  appendNewData(file.name="margin_account_value", new.data=new.data)
+  appendNewData(file.name="btc_account_value", new.data=new.data)
   # print(new.data)
   return(new.data)
 }

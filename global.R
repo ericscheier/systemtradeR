@@ -1,3 +1,3 @@
-source("poloniexAPI.R")
-source("system_config.R")
+source("systemConfig.R")
+# source("system_config.R")
 

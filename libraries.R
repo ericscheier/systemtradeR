@@ -19,7 +19,9 @@ libraries <- c("xts",
                "ROI",  
                "lattice",
                "data.table",
-               "forecast"
+               "forecast",
+               "shinydashboard",
+               "ggplot2"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
