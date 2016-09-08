@@ -36,3 +36,5 @@ pie(investment.universe$instrument.weight, labels=investment.universe$asset)
 pie(abs(investment.universe$subsystem.position) * investment.universe$ref.price, labels=investment.universe$asset)
 
 pie(tail(coredata(smoothed.combo.weights),1), labels=colnames(smoothed.combo.weights))
+
+
