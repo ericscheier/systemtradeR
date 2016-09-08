@@ -34,7 +34,10 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   asset.bid.exposure <- max(0,desired.asset  + (position.change)) # intentionally doubling down on positoin changes
   asset.ask.exposure <- max(0,desired.asset  - (position.change))
   
-  if(asset.bid.exposure==0 && asset.ask.exposure==0){return(paste0("not making a market in ",trading.pair))}
+  if(asset.bid.exposure==0 && asset.ask.exposure==0){
+    print(paste0("not making a market in ",trading.pair))
+    return()
+  }
   
   # current.base <- current.balances$margin.collateral[current.balances$currency==base]
   print(paste0("Currently holding ",current.asset," ",asset,". Want: ",desired.asset))

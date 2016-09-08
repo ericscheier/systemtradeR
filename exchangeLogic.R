@@ -41,6 +41,8 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   
   optimal.accounts <- loadOptimalAccounts()
   current.accounts <- loadCurrentAccounts()
+  current.btc.balances <- loadCurrentBTCAccounts()
+  optimal.btc.balances <- loadOptimalBTCAccounts()
   
   optimal.accounts.row <- optimal.accounts[optimal.accounts$currency==asset,]
   current.accounts.row <- current.accounts[current.accounts$currency==asset,]
@@ -59,7 +61,15 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
     }
   }
   
-  desired.asset <- optimal.accounts.row$exchange.equity
+  optimal.exchange.position <- optimal.accounts.row$exchange.equity
+  
+  current.btc.exchange.equity <- sum(current.btc.balances$exchange.equity[current.btc.balances$currency==base])
+  optimal.btc.exchange.equity <- sum(optimal.btc.balances$exchange.equity[optimal.btc.balances$currency==base])
+  position.scalar <- min(1, current.btc.exchange.equity/optimal.btc.exchange.equity)
+  
+  
+  desired.asset <- optimal.exchange.position * position.scalar
+  if(current.btc.exchange.equity==0){desired.asset <- 0}
     
   complete.balances <- ldply(returnCompleteBalances(account="exchange"), data.frame, stringsAsFactors=F, .id="currency")
   complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
@@ -69,7 +79,10 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   asset.bid.exposure <- max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
   asset.ask.exposure <- max(0,desired.asset * default.exposure - (position.change))
   
-  if(asset.bid.exposure==0 && asset.ask.exposure==0){return(paste0("not making a market in ",trading.pair))}
+  if(asset.bid.exposure==0 && asset.ask.exposure==0){
+    print(paste0("not making a market in ",trading.pair))
+    return()
+    }
   
   current.base <- complete.balances[currency==base,available+onOrders]
   print(paste0("Currently holding ",current.asset," ",asset,". Want: ",desired.asset))
@@ -101,7 +114,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   
   outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
   # print(nrow(outstanding.orders))
-  if(nrow(outstanding.orders)){
+  if(nrow(outstanding.orders)>0){
     print("there are existing outstanding orders")
     outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
     outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
@@ -157,6 +170,8 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
     orders.to.move <- data.frame()
     current.bid.exposure <- current.ask.exposure <- 0
   }
+  
+  
   
   bids.to.make <- data.frame(rate=seq(from=bid.range.max,
                                       to=bid.range.min,
