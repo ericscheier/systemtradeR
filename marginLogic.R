@@ -178,8 +178,8 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
     }
   }
   orders.made <- apply(orders.to.make, 1, processMarginOrders, currency.pair=trading.pair)
-  orders.made <- ldply(orders.made, unlist)
-  print(paste0("Made ",nrow(orders.made)," new orders"))
+  # orders.made <- ldply(orders.made, unlist)
+  # print(paste0("Made ",nrow(orders.made)," new orders"))
   newly.outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
   newly.outstanding.orders$rate <- as.numeric(newly.outstanding.orders$rate)
   newly.outstanding.orders$amount <- as.numeric(newly.outstanding.orders$amount)
