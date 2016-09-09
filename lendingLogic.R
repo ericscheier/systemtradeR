@@ -18,6 +18,8 @@ cancelOpenLoanOffers <- function(currencies=NULL){
 
 refreshAllLoans <- function(){
   lending.currencies <- system.config$portfolio.currencies
+  cancelOpenLoanOffers(currencies=lending.currencies)
+  
   account.balances <- returnAvailableAccountBalances(account="all")
   lending.balances <- ldply(account.balances$lending, data.frame, stringsAsFactors=F)
   lending.limits <- data.frame(currency=lending.currencies,

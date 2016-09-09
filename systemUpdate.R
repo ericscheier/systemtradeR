@@ -83,8 +83,8 @@ hoursFunction <- function(){
   # refreshVolatility (not forecasts or anything else)
   # determine trades to make
   # make trades
-  canceling.orders <- NULL
-  if(system.config$live){canceling.orders <- cancelAllOrders()}
+  # canceling.orders <- NULL
+  # if(system.config$live){canceling.orders <- cancelAllOrders()}
   
   refreshed.pricing <- refreshPortfolioPricing()
   # updateCurrentPositions()
@@ -93,7 +93,7 @@ hoursFunction <- function(){
   # updateSubsystemPositions()
   # updateOptimalPositions()
   refreshVolatility()
-  refreshExecution()
+  try(refreshExecution())
   
   # trades.to.make <- tradesToMake()
   # trades.made <- NULL
@@ -111,7 +111,7 @@ daysFunction <- function(){
   # refresh forecasts and volatility
   refreshed.pricing <- refreshPortfolioPricing()
   refreshInvestmentUniverse()
-  refreshExecution()
+  try(refreshExecution())
   # updateCurrentPositions()
   # updateRefPrices()
   # updateInstrumentVolatilities()
