@@ -41,7 +41,7 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   # complete.balances <- as.data.table(complete.balances)
   current.asset <- getMarginPosition(currency.pair=trading.pair)$amount   #complete.balances[currency==asset,available+onOrders]
-  ifelse(is.null(current.asset),0,as.numeric(current.asset))
+  current.asset <- ifelse(is.null(current.asset),0,as.numeric(current.asset))
   position.change <- desired.asset - current.asset
   asset.bid.exposure <- desired.asset  + (position.change) # intentionally doubling down on positoin changes
   asset.ask.exposure <- desired.asset  - (position.change)
