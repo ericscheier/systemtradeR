@@ -40,10 +40,11 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   # complete.balances <- ldply(returnCompleteBalances(account="margin"), data.frame, stringsAsFactors=F, .id="currency")
   # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   # complete.balances <- as.data.table(complete.balances)
-  current.asset <- as.numeric(getMarginPosition(currency.pair=trading.pair)$amount)   #complete.balances[currency==asset,available+onOrders]
+  current.asset <- getMarginPosition(currency.pair=trading.pair)$amount   #complete.balances[currency==asset,available+onOrders]
+  ifelse(is.null(current.asset),0,as.numeric(current.asset))
   position.change <- desired.asset - current.asset
-  asset.bid.exposure <- max(0,desired.asset  + (position.change)) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- max(0,desired.asset  - (position.change))
+  asset.bid.exposure <- desired.asset  + (position.change) # intentionally doubling down on positoin changes
+  asset.ask.exposure <- desired.asset  - (position.change)
   
   current.collateral.balance <- current.balances$margin.collateral[current.balances$currency==collateral.currency]
   max.collateral.balance <- optimal.balances$margin.collateral[optimal.balances$currency==collateral.currency]
