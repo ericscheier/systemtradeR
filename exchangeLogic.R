@@ -119,7 +119,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
     outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
     outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
     outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]
-    outstanding.orders <- outstanding.orders[!outstanding.orders$margin,c("orderNumber","type","rate","amount")]
+    outstanding.orders <- outstanding.orders[outstanding.orders$margin==0,c("orderNumber","type","rate","amount")]
   }
   
   inside.prices <- c(max(bids$rate), min(asks$rate))
@@ -196,11 +196,11 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
     }
   }
   orders.made <- apply(orders.to.make, 1, processMarketOrders, currency.pair=trading.pair)
-  orders.made <- ldply(orders.made, unlist)
-  print(paste0("Made ",nrow(orders.made)," new orders"))
+  # orders.made <- ldply(orders.made, unlist)
+  # print(paste0("Made ",nrow(orders.made)," new orders"))
   newly.outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
-  newly.outstanding.orders$rate <- as.numeric(newly.outstanding.orders$rate)
-  newly.outstanding.orders$amount <- as.numeric(newly.outstanding.orders$amount)
+  # newly.outstanding.orders$rate <- as.numeric(newly.outstanding.orders$rate)
+  # newly.outstanding.orders$amount <- as.numeric(newly.outstanding.orders$amount)
   return(newly.outstanding.orders)
 }
 

@@ -96,9 +96,10 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   
   outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
   if(nrow(outstanding.orders)){
+    print("there are open orders")
     outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
     outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
-    outstanding.orders <- outstanding.orders[outstanding.orders$margin,c("orderNumber","type","rate","amount")]
+    outstanding.orders <- outstanding.orders[outstanding.orders$margin==1,c("orderNumber","type","rate","amount")]
   }
   
   inside.prices <- c(max(bids$rate), min(asks$rate))
