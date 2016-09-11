@@ -21,6 +21,7 @@ currencyAllocationChart <- function(){
   optimal$total.value <- sum(optimal$value)
   
   accounts <- rbind(current, optimal)
+  accounts <- accounts[with(accounts, order(currency, account, scenario)),]
   
   result.plot <- ggplot(accounts[order(accounts$currency),], aes(x=total.value/2, y=value, fill=currency, width=total.value)) + 
     geom_bar(position = "fill", stat="identity") + coord_polar(theta="y") + facet_wrap(~scenario) +
@@ -58,6 +59,7 @@ accountAllocationChart <- function(scale.by.total.value=TRUE){
   optimal <- merge(optimal, total.values.optimal)
   
   accounts <- rbind(current, optimal)
+  accounts <- accounts[with(accounts, order(currency, account, scenario)),]
   if(!scale.by.total.value){
     accounts$total.value <- 1
   }

@@ -76,8 +76,11 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   complete.balances <- as.data.table(complete.balances)
   current.asset <- complete.balances[currency==asset,available+onOrders]
   position.change <- desired.asset - current.asset
-  asset.bid.exposure <- max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- max(0,desired.asset * default.exposure - (position.change))
+  asset.bid.exposure <- max(0,position.change) #max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
+  asset.ask.exposure <- max(0,position.change) #max(0,desired.asset * default.exposure - (position.change))
+  
+  # if(position.change > 0){asset.ask.exposure <- 0}
+  # if(position.change < 0){asset.bid.exposure <- 0}
   
   if(asset.bid.exposure==0 && asset.ask.exposure==0){
     print(paste0("not making a market in ",trading.pair))
@@ -87,7 +90,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   current.base <- complete.balances[currency==base,available+onOrders]
   print(paste0("Currently holding ",current.asset," ",asset,". Want: ",desired.asset))
   
-  orders.per.side <- 5
+  orders.per.side <- 1 #5
   market.making.config <- as.data.table(readRDS(relativePath("data/clean/market_making_config.RDS")))[pair==trading.pair,]
   
   # market.making.config <- list()
