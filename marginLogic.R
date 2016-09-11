@@ -43,8 +43,8 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   current.asset <- getMarginPosition(currency.pair=trading.pair)$amount   #complete.balances[currency==asset,available+onOrders]
   current.asset <- ifelse(is.null(current.asset),0,as.numeric(current.asset))
   position.change <- desired.asset - current.asset
-  asset.bid.exposure <- desired.asset + (position.change) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- desired.asset  - (position.change)
+  asset.bid.exposure <- .5*(position.change) #desired.asset + .5*(position.change) # intentionally doubling down on positoin changes
+  asset.ask.exposure <- .5*(position.change) #desired.asset  - .5*(position.change)
   
   if(asset.bid.exposure < 0){
     asset.ask.exposure <- asset.ask.exposure + abs(asset.bid.exposure)
@@ -54,6 +54,9 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
     asset.bid.exposure <- asset.bid.exposure + abs(asset.ask.exposure)
     asset.ask.exposure <- 0
   }
+  
+  # if(position.change > 0){asset.ask.exposure <- 0}
+  # if(position.change < 0){asset.bid.exposure <- 0}
   
   
   current.collateral.balance <- current.balances$margin.collateral[current.balances$currency==collateral.currency]
@@ -72,7 +75,7 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   # current.base <- current.balances$margin.collateral[current.balances$currency==base]
   print(paste0("Currently holding ",current.asset," ",asset,". Want: ",desired.asset))
   
-  orders.per.side <- 5
+  orders.per.side <- 1 #5
   market.making.config <- as.data.table(readRDS(relativePath("data/clean/market_making_config.RDS")))[pair==trading.pair,]
   
   # market.making.config <- list()
