@@ -70,7 +70,10 @@ body <- dashboardBody(
               box(title="Account Allocations",
                   plotOutput("account.allocations.chart"),
                   width=12)
-            )
+            )#,
+            # fluidRow(
+            #   box(title="")
+            # )
     ),
     tabItem("bot",
             fluidRow(

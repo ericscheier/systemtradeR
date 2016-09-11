@@ -19,9 +19,17 @@ getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
 }
 
 getExchangeRate <- function(pair="USDT_BTC"){
-  five.price.xts <- getPairData(pair)
-  exchange.rate <- as.numeric(tail(five.price.xts,1))
-  return(exchange.rate)
+  
+  data.dir <- "data/clean/market/"
+  market.files <- list.files(data.dir)
+  file.to.load <- market.files[grep("orderbook_",market.files)]
+  all.order.books <- readRDS(paste0(data.dir,file.to.load))
+  
+  high.bid <- as.numeric(all.order.books[[pair]][["bids"]][[1]][[1]])
+  low.ask <- as.numeric(all.order.books[[pair]][["asks"]][[1]][[1]])
+  
+  middle <- mean(high.bid, low.ask)
+  return(middle)
 }
 
 

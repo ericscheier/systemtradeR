@@ -42,19 +42,27 @@ accountAllocationChart <- function(scale.by.total.value=TRUE){
   current$scenario <- "current"
   total.values.current <- aggregate.data.frame(current$value, by=list(current$currency), sum)
   names(total.values.current) <- c("currency","total.value")
-  current <- merge(current, total.values.current)
   
   
   optimal <- melt(optimal.btc.accounts, id.vars="currency", measure.vars=account.cols, variable.name="account")
   optimal$scenario <- "optimal"
   total.values.optimal <- aggregate.data.frame(optimal$value, by=list(optimal$currency), sum)
   names(total.values.optimal) <- c("currency","total.value")
+  
+  total.values.current$total.value <- total.values.current$total.value/
+    total.values.optimal[match(total.values.current$currency,total.values.optimal$currency),
+                         "total.value"]
+  total.values.optimal$total.value <- total.values.optimal$total.value/total.values.optimal$total.value
+  
+  current <- merge(current, total.values.current)
   optimal <- merge(optimal, total.values.optimal)
   
   accounts <- rbind(current, optimal)
   if(!scale.by.total.value){
     accounts$total.value <- 1
   }
+  
+  accounts$total.value[is.na(accounts$total.value)] <- 0
   
   result.plot <- ggplot(accounts[order(accounts$currency),], aes(x=total.value/2, y=value, fill=account, width=total.value)) + 
     geom_bar(position = "fill", stat="identity") + coord_polar(theta="y") + facet_grid(scenario~currency) +

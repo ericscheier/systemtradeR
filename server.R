@@ -40,7 +40,7 @@ server <- function(input, output, session) {
     
     output$account.allocations.chart <- renderPlot({
       invalidateLater(as.integer(refresh.rate * 1000), session)
-      accountAllocationChart(scale.by.total.value = FALSE)})
+      accountAllocationChart(scale.by.total.value = TRUE)})
     
     output$update.states.table <- renderDataTable({
       invalidateLater(as.integer(refresh.rate * 1000), session)
