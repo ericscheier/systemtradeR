@@ -40,18 +40,19 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   # complete.balances <- ldply(returnCompleteBalances(account="margin"), data.frame, stringsAsFactors=F, .id="currency")
   # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   # complete.balances <- as.data.table(complete.balances)
-  current.asset <- getMarginPosition(currency.pair=trading.pair)$amount   #complete.balances[currency==asset,available+onOrders]
-  current.asset <- ifelse(is.null(current.asset),0,as.numeric(current.asset))
+  # current.asset <- getMarginPosition(currency.pair=trading.pair)$amount   #complete.balances[currency==asset,available+onOrders]
+  # current.asset <- ifelse(is.null(current.asset),0,as.numeric(current.asset))
+  current.asset <- current.margin.position
   position.change <- desired.asset - current.asset
-  asset.bid.exposure <- .5*(position.change) #desired.asset + .5*(position.change) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- .5*(position.change) #desired.asset  - .5*(position.change)
+  # asset.bid.exposure <- .5*(position.change) #desired.asset + .5*(position.change) # intentionally doubling down on positoin changes
+  # asset.ask.exposure <- .5*(position.change) #desired.asset  - .5*(position.change)
   
-  if(asset.bid.exposure < 0){
-    asset.ask.exposure <- asset.ask.exposure + abs(asset.bid.exposure)
+  if(position.change < 0){
+    asset.ask.exposure <- abs(position.change)
     asset.bid.exposure <- 0
   }
-  if(asset.ask.exposure < 0){
-    asset.bid.exposure <- asset.bid.exposure + abs(asset.ask.exposure)
+  if(position.change > 0){
+    asset.bid.exposure <- position.change
     asset.ask.exposure <- 0
   }
   
@@ -67,7 +68,7 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
                     fromAccount="margin", toAccount="exchange")
   }
   
-  if(asset.bid.exposure==0 && asset.ask.exposure==0){
+  if(position.change==0){
     print(paste0("not making a market in ",trading.pair))
     return()
   }
