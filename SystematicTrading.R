@@ -1,4 +1,4 @@
-getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
+getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE, live=FALSE){
   columns <- c("close")
   if(ohlc){columns <- c("open", "high", "low", columns)}
   if(volume){columns <- c(columns, "volume")}
@@ -7,10 +7,14 @@ getPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
                         , order.by = as.POSIXct(ohlc.prices[,"date"], origin = "1970-01-01", format="%Y-%m-%d %H:%M:%S")
                         , tzone = "UTC")
   names(five.price.xts) <- columns
+  if(live){
+    current.close <- getExchangeRate(pair=pair)
+    five.price.xts[nrow(five.price.xts),"close"] <- current.close
+  }
   return(five.price.xts)
 }
 
-getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE){
+getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE, live=FALSE){
   five.price.xts <- getPairData(pair, ohlc=ohlc, volume=volume)
   # columns <- colnames(five.price.xts)
   hour.price.xts <- to.hourly(five.price.xts, OHLC=FALSE, indexAt="endof")
@@ -95,7 +99,7 @@ getExchangeRate <- function(pair="USDT_BTC"){
 
 productionInstrumentVolatility <- function(pair=NULL, hourly.price.xts=NULL){
   if(is.null(hourly.price.xts)){
-    hourly.price.xts <- getHourlyPairData(pair, ohlc = TRUE)
+    hourly.price.xts <- getHourlyPairData(pair, ohlc = TRUE, live=TRUE)
     hourly.price.xts <- xts(x=rowMeans(hourly.price.xts[,c("high","low","open","close")]),order.by = index(hourly.price.xts))
   }
   instrument.volatility <- as.numeric(tail(emaVolatility(hourly.price.xts),1))
@@ -104,7 +108,7 @@ productionInstrumentVolatility <- function(pair=NULL, hourly.price.xts=NULL){
 
 productionSubsystemForecast <- function(pair=NULL, hourly.price.xts=NULL){
   if(is.null(hourly.price.xts)){
-    hourly.price.xts <- getHourlyPairData(pair)
+    hourly.price.xts <- getHourlyPairData(pair, live=TRUE)
   }
   subsystem.forecast <- as.numeric(tail(productionCombinedForecast(pair=pair, hourly.price.xts=hourly.price.xts),1))
   return(subsystem.forecast)
@@ -114,7 +118,7 @@ productionSubsystemPosition <- function(pair=NULL, instrument.forecast=NULL,
                                         instrument.volatility=NULL, ref.price=NULL,
                                         hourly.price.xts=NULL){
   if(any(is.null(c(subsystem.forecast, instrument.volatility, ref.price)))){
-    hourly.price.xts <- getHourlyPairData(pair)
+    hourly.price.xts <- getHourlyPairData(pair, live=TRUE)
   }
   if(is.null(instrument.forecast)){
     instrument.forecast <- productionSubsystemForecast(pair=pair,
