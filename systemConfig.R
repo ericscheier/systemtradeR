@@ -23,6 +23,7 @@ system.config$volatility.target <- .005 # hourly target volatility in % terms
 # bumped up 10x to reflect vol of market & underinvestment
 system.config$market.making.exposure.ratio <- 2/3
 system.config$margin.maintenance.percent <- .5
+system.config$optimal.exchange.percent <- 0 #.3
 system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for order size
 system.config$minimum.position.change <- .2 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
