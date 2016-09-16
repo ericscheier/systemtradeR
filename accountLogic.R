@@ -125,12 +125,34 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- rbind(poloniex.summary, loans.offered)
   
+  outstanding.orders <- ldply(returnOpenOrders(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="pair")
+  if(nrow(outstanding.orders)){
+    outstanding.orders$pair <- as.character(outstanding.orders$pair)
+    outstanding.orders$asset <- sapply(outstanding.orders$pair, function(x) pairToCurrencies(x)$asset)
+    outstanding.orders$base <- sapply(outstanding.orders$pair, function(x) pairToCurrencies(x)$base)
+    
+    outstanding.orders$currency <- apply(outstanding.orders, 1, function(x) if(x["type"]=="buy"){x["base"]}else{x["asset"]})
+    outstanding.orders$balance <- apply(outstanding.orders, 1, function(x) if(x["type"]=="buy"){x["total"]}else{x["amount"]})
+    
+    outstanding.exchange.orders <- outstanding.orders[outstanding.orders$margin==0,]
+    outstanding.margin.orders <- outstanding.orders[outstanding.orders$margin==1,]
+    # print(nrow(outstanding.orders))
+    if(nrow(outstanding.exchange.orders)>0){
+      print("there are existing outstanding exchange orders")
+      outstanding.exchange.orders$balance <- as.numeric(outstanding.exchange.orders$balance)
+      exchange.offers <- outstanding.exchange.orders[,c("currency","balance")]
+      exchange.offers$portfolio <- "exchange.offers"
+      poloniex.summary <- rbind(poloniex.summary, exchange.offers)
+      # outstanding.orders <- outstanding.orders[outstanding.orders$margin==0,c("orderNumber","type","rate","amount")]
+    }
+  }
+  
   # exchange.offers <- ldply(returnCompleteBalances(account="exchange"), data.frame, stringsAsFactors=F, .id="currency")
   # exchange.offers$onOrders <- as.numeric(exchange.offers$onOrders)
   # exchange.offers <- complete.balances[match(poloniex.currencies,exchange.offers$currency),c("currency","onOrders")]
   # names(exchange.offers) <- c("currency", "balance")
   # exchange.offers$portfolio <- "exchange.offers"
-  # 
+  # # 
   # poloniex.summary <- rbind(poloniex.summary, exchange.offers)
   
   
