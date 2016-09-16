@@ -233,8 +233,8 @@ determineOptimalAllocation.poloniex <- function(){
   optimal.btc.account.overview$currency <- as.character(optimal.account.overview$currency)
   
   # optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity) * system.config$market.making.exposure.ratio
-  optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity)
-  optimal.btc.account.overview$exchange.equity <- 0
+  optimal.btc.exchange.equity <- 0 #sum(optimal.btc.account.overview$exchange.equity)
+  # optimal.btc.account.overview$exchange.equity <- 0
   
   optimal.btc.margin.collateral <- sum(optimal.btc.account.overview$margin.collateral)
   optimal.btc.account.overview$margin.collateral <- 0
@@ -310,22 +310,22 @@ optimizeAllocation <- function(account.universe.row){
   # open.orders <- account.universe.row[["open.orders"]]
   # optimal.position.btc <- optimal.position * ref.price
   
-  optimal.equity <- abs(optimal.position) * optimal.exchange.percent
-  optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
-  optimal.margin.position <- optimal.position
+  # optimal.equity <- abs(optimal.position) * optimal.exchange.percent
+  # optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
+  # optimal.margin.position <- optimal.position
   optimal.lending <- 0 #optimal.position - optimal.margin.collateral
   
-  # if(optimal.position < 0){
-  #   optimal.lending <- 0
-  #   optimal.equity <- 0
-  #   optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
-  #   optimal.margin.position <- optimal.position
-  # } else {
-  #   optimal.equity <- optimal.position * optimal.exchange.percent
-  #   optimal.lending <- optimal.position - optimal.equity
-  #   optimal.margin.collateral <- 0
-  #   optimal.margin.position <- 0
-  # }
+  if(optimal.position < 0){
+    # optimal.lending <- 0
+    optimal.equity <- 0
+    optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
+    optimal.margin.position <- optimal.position
+  } else {
+    optimal.equity <- optimal.position * optimal.exchange.percent
+    # optimal.lending <- optimal.position - optimal.equity
+    optimal.margin.collateral <- 0
+    optimal.margin.position <- 0
+  }
   return(data.frame(currency=currency,
                     exchange.equity=optimal.equity,
                     margin.collateral=optimal.margin.collateral,

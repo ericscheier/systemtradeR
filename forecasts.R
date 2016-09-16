@@ -24,22 +24,26 @@ ewmaRawForecast <- function(price.xts, fast.n=8, slow.n=32){
   return(raw.forecast)
 }
 
-autoArimaRawForecast <- function(price.xts, hours.ahead=24, current=FALSE){
+autoArimaRawForecast <- function(price.xts, hours.ahead=24, current=FALSE, trailing.hours=24*7){
   forecast.index <- index(price.xts)
   price.series <- coredata(price.xts)
-  start.value <- 1
+  price.series <- diff(log(price.series))
+  start.value <- max(trailing.hours+1,1)
   if(current){
     start.value <- length(price.series)
     forecast.index <- last(forecast.index)
   }
   # price.series <- price.series[1:50]
   forecast.series <- foreach(n=start.value:length(price.series), .combine = "c", .inorder = TRUE) %do% {
-    fit <- auto.arima(price.series[1:n])
-    forecast.value <- last(forecast(fit, h=hours.ahead)$mean)
+    fit <- auto.arima(price.series[(n-trailing.hours):n], parallel = TRUE)
+    forecast.value <- sum(forecast(fit, h=hours.ahead)$mean)
     gc()
     return(forecast.value)
   }
+  forecast.series <- c(rep(0,trailing.hours + 1), forecast.series)
+  
   forecast.result <- xts(x=forecast.series, order.by=forecast.index)
+  return(forecast.result)
 }
 
 breakoutRawForecast <- function(price.xts, lookback=backtest.config$lookback.hours){
