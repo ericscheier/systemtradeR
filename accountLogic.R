@@ -261,9 +261,9 @@ determineOptimalAllocation.poloniex <- function(){
   if(btc.available < 0){
     # just in case, reduce everything proportinally to get to 0 btc remaining
     # in future may want to use additional margin to go long to beef up account
-    scalar <- account.value/sum(optimal.btc.account.overview[,c("exchange.equity","lending","margin.collateral")])
-    optimal.btc.account.overview <- optimal.btc.account.overview * scalar
-    btc.available <- account.value - sum(optimal.btc.account.overview[,c("exchange.equity","lending","margin.collateral")])
+    scalar <- account.value/sum(optimal.btc.accounts[,account.columns])
+    optimal.btc.accounts[,account.columns] <- optimal.btc.accounts[,account.columns] * scalar
+    btc.available <- account.value - sum(optimal.btc.accounts[,account.columns])
   }
   optimal.btc.lending <- max(0,btc.available)
   optimal.btc.accounts$lending[optimal.btc.accounts$currency=="BTC"] <- optimal.btc.lending
