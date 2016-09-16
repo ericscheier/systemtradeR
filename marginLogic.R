@@ -8,7 +8,7 @@ refreshAllMargin <- function(){
   
   if(current.btc.account.margin.collateral > optimal.btc.account.margin.collateral){
     transferBalance(currency="BTC", amount=(current.btc.account.margin.collateral - optimal.btc.account.margin.collateral),
-                    fromAccount="margin", toAccount="exchange")
+                    fromAccount="margin", toAccount="exchange", confirmed=1)
   }
   
   trading.pairs <- system.config$portfolio.pairs
