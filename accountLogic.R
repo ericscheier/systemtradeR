@@ -248,7 +248,7 @@ determineOptimalAllocation.poloniex <- function(){
     #abs(sum(optimal.btc.account.overview$margin.position)) * system.config$margin.maintenance.percent
   optimal.btc.margin.collateral <- optimal.btc.margin.collateral - sum(optimal.btc.account.overview$margin.collateral)
   
-  optimal.btc.lending <- max(0,btc.available - optimal.btc.exchange.equity)# - optimal.btc.margin.collateral)
+  optimal.btc.lending <- max(0,btc.available) # - optimal.btc.exchange.equity)# - optimal.btc.margin.collateral)
   # optimal.btc.account.overview
   optimal.btc.allocation <- data.frame(currency="BTC",
                                        exchange.equity=optimal.btc.exchange.equity,
