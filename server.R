@@ -45,6 +45,26 @@ server <- function(input, output, session) {
     output$update.states.table <- renderDataTable({
       invalidateLater(as.integer(refresh.rate * 1000), session)
       readRDS("update_states.RDS")})
+    
+    output$investment.universe.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      loadInvestmentUniverse()})
+    
+    output$current.btc.accounts.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      loadCurrentBTCAccounts()})
+    
+    output$optimal.btc.accounts.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      loadOptimalBTCAccounts()})
+    
+    output$current.accounts.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      loadCurrentAccounts()})
+    
+    output$optimal.accounts.table <- renderDataTable({
+      invalidateLater(as.integer(refresh.rate * 1000), session)
+      loadOptimalAccounts()})
   
   
 }

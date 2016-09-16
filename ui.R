@@ -70,6 +70,31 @@ body <- dashboardBody(
               box(title="Account Allocations",
                   plotOutput("account.allocations.chart"),
                   width=12)
+            ),
+            fluidRow(
+              box(title="Investment Universe",
+                  dataTableOutput("investment.universe.table"),
+                  width=12)
+            ),
+            fluidRow(
+              box(title="Current Accounts (BTC)",
+                  dataTableOutput("current.btc.accounts.table"),
+                  width=12)
+            ),
+            fluidRow(
+              box(title="Optimal Accounts (BTC)",
+                  dataTableOutput("optimal.btc.accounts.table"),
+                  width=12)
+            ),
+            fluidRow(
+              box(title="Current Accounts",
+                  dataTableOutput("current.accounts.table"),
+                  width=12)
+            ),
+            fluidRow(
+              box(title="Optimal Accounts",
+                  dataTableOutput("optimal.accounts.table"),
+                  width=12)
             )#,
             # fluidRow(
             #   box(title="")
