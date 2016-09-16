@@ -225,7 +225,9 @@ determineOptimalAllocation.poloniex <- function(){
   
   optimal.btc.account.overview$currency <- as.character(optimal.account.overview$currency)
   
-  optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity) * system.config$market.making.exposure.ratio
+  # optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity) * system.config$market.making.exposure.ratio
+  optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity)
+  optimal.btc.account.overview$exchange.equity <- 0
   
   optimal.btc.margin.collateral <- sum(optimal.btc.account.overview$margin.collateral)
   optimal.btc.account.overview$margin.collateral <- 0
@@ -238,6 +240,7 @@ determineOptimalAllocation.poloniex <- function(){
   #   optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] - long.lending
     #abs(sum(optimal.btc.account.overview$margin.position)) * system.config$margin.maintenance.percent
   optimal.btc.margin.collateral <- optimal.btc.margin.collateral - sum(optimal.btc.account.overview$margin.collateral)
+  
   optimal.btc.lending <- max(0,btc.available - optimal.btc.exchange.equity)# - optimal.btc.margin.collateral)
   # optimal.btc.account.overview
   optimal.btc.allocation <- data.frame(currency="BTC",
@@ -300,7 +303,7 @@ optimizeAllocation <- function(account.universe.row){
   # open.orders <- account.universe.row[["open.orders"]]
   # optimal.position.btc <- optimal.position * ref.price
   
-  optimal.equity <- 0
+  optimal.equity <- abs(optimal.position) * optimal.exchange.percent
   optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
   optimal.margin.position <- optimal.position
   optimal.lending <- 0 #optimal.position - optimal.margin.collateral
