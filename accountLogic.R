@@ -98,6 +98,13 @@ determineCurrentAllocation.poloniex <- function(){
   # haven't tested yet with actual loan data
   if(nrow(active.provided.loans)){
     lent <- aggregate(as.numeric(active.provided.loans$amount), list(currency=active.provided.loans$currency), sum)
+    
+    lent.fees <- aggregate(as.numeric(active.provided.loans$fees), list(currency=active.provided.loans$currency), sum)
+    lent.fees$x <- (1-system.config$lending.fee) * lent.fees$x
+    
+    lent <- rbind(lent, lent.fees)
+    lent <- aggregate(lent$x, list(currency=lent$currency), sum)
+    
     names(lent) <- c("currency", "balance")
     lent$portfolio <- "lent"
   } else {
