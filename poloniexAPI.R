@@ -192,7 +192,7 @@ getMarginPosition <- function(currency.pair="all"){
   return(command.result)
 }
 
-marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.02){
+marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.002){
   command <- "marginBuy"
   # Places a margin buy order in a given market.
   # Required POST parameters are "currencyPair", "rate", and "amount".
@@ -206,7 +206,7 @@ marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.02
   return(command.result)
 }
 
-marginSell <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.02){
+marginSell <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.002){
   command <- "marginSell"
   # Places a margin sell order in a given market. Parameters and output are the same as for the marginBuy method.
   
