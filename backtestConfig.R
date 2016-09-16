@@ -1,5 +1,6 @@
 
 source("backtest.R")
+source("forecasts.R")
 
 if(inherits(try(bactest.config, silent=TRUE), "try-error")){backtest.config <- new.env(parent = emptyenv())}
 

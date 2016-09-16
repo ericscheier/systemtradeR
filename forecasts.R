@@ -89,6 +89,10 @@ auto_arima_24 <- function(price.xts){
   return(autoArimaRawForecast(price.xts = price.xts, hours.ahead = 24))
 }
 
+auto_arima_1 <- function(price.xts){
+  return(autoArimaRawForecast(price.xts = price.xts, hours.ahead = 1, trailing.hours = 48))
+}
+
 ewma_2_8 <- function(price.xts){
   return(ewmaRawForecast(price.xts, fast.n = 2, slow.n=8))
 }

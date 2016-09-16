@@ -221,7 +221,43 @@ determineOptimalAllocation.poloniex <- function(){
   
   optimal.btc.account.overview <- optimal.account.overview[,optimal.account.overview.cols] * optimal.account.overview$ref.price
   
-  btc.available <- account.value - sum(optimal.btc.account.overview[,c("exchange.equity","lending","margin.collateral")])
+  optimal.btc.account.overview$currency <- as.character(optimal.account.overview$currency)
+  
+  # optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity) * system.config$market.making.exposure.ratio
+  optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity)
+  # optimal.btc.account.overview$exchange.equity <- 0
+  
+  optimal.btc.margin.collateral <- sum(abs(optimal.btc.account.overview$margin.position)) * system.config$margin.maintenance.percent
+  
+  optimal.btc.margin.collateral <- max(0,optimal.btc.margin.collateral - sum(optimal.btc.account.overview$margin.collateral))
+  # optimal.btc.account.overview$margin.collateral <- 0
+  
+  # # adapt this logic s.t. I use long positions for margin collateral if I can lend higher elsewhere
+  # optimal.btc.margin.collateral
+  # available.margin.collateral <- sum(optimal.btc.account.overview$exchange.equity) * (1 - system.config$optimal.exchange.percent)
+  # optimal.btc.account.overview$exchange.equity <- optimal.btc.account.overview$exchange.equity * system.config$
+  
+  
+  # long.lending <- optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] * .2
+  # long.lending <- long.lending * min(1,optimal.btc.margin.collateral/sum(long.lending))
+  # optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"margin.collateral"] <- long.lending
+  # optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] <-
+  #   optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] - long.lending
+    #abs(sum(optimal.btc.account.overview$margin.position)) * system.config$margin.maintenance.percent
+  # optimal.btc.margin.collateral <- optimal.btc.margin.collateral - sum(optimal.btc.account.overview$margin.collateral)
+  
+   # - optimal.btc.exchange.equity)# - optimal.btc.margin.collateral)
+  # optimal.btc.account.overview
+  optimal.btc.allocation <- data.frame(currency="BTC",
+                                       exchange.equity=optimal.btc.exchange.equity,
+                                       lending=0,
+                                       margin.collateral=optimal.btc.margin.collateral)
+  
+  account.columns <- c("exchange.equity","lending","margin.collateral")
+  optimal.btc.accounts <- rbind(optimal.btc.account.overview[,c("currency","exchange.equity","lending","margin.collateral")],
+                                optimal.btc.allocation)
+  
+  btc.available <- account.value - sum(optimal.btc.accounts[,c("exchange.equity","lending","margin.collateral")])
   if(btc.available < 0){
     # just in case, reduce everything proportinally to get to 0 btc remaining
     # in future may want to use additional margin to go long to beef up account
@@ -229,35 +265,9 @@ determineOptimalAllocation.poloniex <- function(){
     optimal.btc.account.overview <- optimal.btc.account.overview * scalar
     btc.available <- account.value - sum(optimal.btc.account.overview[,c("exchange.equity","lending","margin.collateral")])
   }
+  optimal.btc.lending <- max(0,btc.available)
+  optimal.btc.accounts$lending[optimal.btc.accounts$currency=="BTC"] <- optimal.btc.lending
   
-  optimal.btc.account.overview$currency <- as.character(optimal.account.overview$currency)
-  
-  # optimal.btc.exchange.equity <- sum(optimal.btc.account.overview$exchange.equity) * system.config$market.making.exposure.ratio
-  optimal.btc.exchange.equity <- 0 #sum(optimal.btc.account.overview$exchange.equity)
-  # optimal.btc.account.overview$exchange.equity <- 0
-  
-  optimal.btc.margin.collateral <- sum(optimal.btc.account.overview$margin.collateral)
-  optimal.btc.account.overview$margin.collateral <- 0
-  
-  # adapt this logic s.t. I use long positions for margin collateral if I can lend higher elsewhere
-  # long.lending <- optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] * .2
-  # long.lending <- long.lending * min(1,optimal.btc.margin.collateral/sum(long.lending))
-  # optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"margin.collateral"] <- long.lending
-  # optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] <-
-  #   optimal.btc.account.overview[optimal.btc.account.overview$lending>0,"lending"] - long.lending
-    #abs(sum(optimal.btc.account.overview$margin.position)) * system.config$margin.maintenance.percent
-  optimal.btc.margin.collateral <- optimal.btc.margin.collateral - sum(optimal.btc.account.overview$margin.collateral)
-  
-  optimal.btc.lending <- max(0,btc.available) # - optimal.btc.exchange.equity)# - optimal.btc.margin.collateral)
-  # optimal.btc.account.overview
-  optimal.btc.allocation <- data.frame(currency="BTC",
-                                       exchange.equity=optimal.btc.exchange.equity,
-                                       lending=optimal.btc.lending,
-                                       margin.collateral=optimal.btc.margin.collateral)
-  
-  account.columns <- c("exchange.equity","lending","margin.collateral")
-  optimal.btc.accounts <- rbind(optimal.btc.account.overview[,c("currency","exchange.equity","lending","margin.collateral")],
-                                optimal.btc.allocation)
   too.small.orders <- sum(optimal.btc.accounts[,account.columns][optimal.btc.accounts[,account.columns] < system.config$minimum.order.size & 
                                                                    optimal.btc.accounts[,account.columns] > 0])
   if(too.small.orders){
@@ -318,12 +328,12 @@ optimizeAllocation <- function(account.universe.row){
   if(optimal.position < 0){
     # optimal.lending <- 0
     optimal.equity <- 0
-    optimal.margin.collateral <- abs(optimal.position) * margin.maintenance.percent
+    optimal.margin.collateral <- 0
     optimal.margin.position <- optimal.position
   } else {
     optimal.equity <- optimal.position * optimal.exchange.percent
     # optimal.lending <- optimal.position - optimal.equity
-    optimal.margin.collateral <- 0
+    optimal.margin.collateral <- optimal.position * (1-optimal.exchange.percent)
     optimal.margin.position <- 0
   }
   return(data.frame(currency=currency,
