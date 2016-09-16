@@ -77,7 +77,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   current.asset <- complete.balances[currency==asset,available+onOrders]
   position.change <- desired.asset - current.asset
   asset.bid.exposure <- max(0,position.change) #max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
-  asset.ask.exposure <- max(0,position.change) #max(0,desired.asset * default.exposure - (position.change))
+  asset.ask.exposure <- max(0,-position.change) #max(0,desired.asset * default.exposure - (position.change))
   
   # if(position.change > 0){asset.ask.exposure <- 0}
   # if(position.change < 0){asset.bid.exposure <- 0}
@@ -181,8 +181,8 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
                                       length.out = orders.per.side),
                              amount = round(rep((asset.bid.exposure-current.bid.exposure)/orders.per.side, orders.per.side), -log10(satoshi)))
   
-  asks.to.make <- data.frame(rate=seq(from=ask.range.max,
-                                      to=ask.range.min,
+  asks.to.make <- data.frame(rate=seq(from=ask.range.min,
+                                      to=ask.range.max,
                                       length.out = orders.per.side),
                              amount = round(rep((asset.ask.exposure-current.ask.exposure)/orders.per.side, orders.per.side), -log10(satoshi)))
   bids.to.make$type <- "buy"
@@ -209,8 +209,9 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
 
 processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
   rate <- orders.to.make.row[["rate"]]
-  amount <- orders.to.make.row[["amount"]]
+  amount <- as.numeric(orders.to.make.row[["amount"]])
   if(amount==0){
+    print("not executing order of magnitude 0")
     return()
   }
   type <- orders.to.make.row[["type"]]
