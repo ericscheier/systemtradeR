@@ -88,8 +88,7 @@ accountValueChart <- function(){
 }
 
 priceChart <- function(pair, date.range, period, type, overlay=FALSE){
-  ## TODO: tack middle of order book onto end (as close, and high/low if needed)
-  price.ohlc.xts <- getPairData(pair=pair, ohlc=TRUE, volume=TRUE)
+  price.ohlc.xts <- getPairData(pair=pair, ohlc=TRUE, volume=TRUE, live=TRUE)
   price.ohlc.xts <- to.period(price.ohlc.xts, period=period)
   names(price.ohlc.xts) <- tolower(gsub("^.+\\.","",names(price.ohlc.xts)))  # remove "FOSL." from column names
   
