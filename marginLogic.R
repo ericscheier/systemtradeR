@@ -155,17 +155,17 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
     current.bid.exposure <- current.ask.exposure <- 0
   }
   
-  bids.per.side <- round(min(orders.per.side, max(1,((asset.bid.exposure-current.bid.exposure) * middle) / system.config$minimum.order.size)),0)
+  bids.per.side <- 1 #round(min(orders.per.side, max(1,((asset.bid.exposure-current.bid.exposure) * middle) / system.config$minimum.order.size)),0)
   
-  asks.per.side <- round(min(orders.per.side, max(1,((asset.ask.exposure-current.ask.exposure) * middle) / system.config$minimum.order.size)),0)
+  asks.per.side <- 1 #round(min(orders.per.side, max(1,((asset.ask.exposure-current.ask.exposure) * middle) / system.config$minimum.order.size)),0)
   
   bids.to.make <- data.frame(rate=seq(from=bid.range.max,
                                       to=bid.range.min,
                                       length.out = bids.per.side),
                              amount = round(rep((asset.bid.exposure-current.bid.exposure)/bids.per.side, bids.per.side), -log10(system.config$satoshi)))
   
-  asks.to.make <- data.frame(rate=seq(from=ask.range.max,
-                                      to=ask.range.min,
+  asks.to.make <- data.frame(rate=seq(from=ask.range.min,
+                                      to=ask.range.max,
                                       length.out = asks.per.side),
                              amount = round(rep((asset.ask.exposure-current.ask.exposure)/asks.per.side, asks.per.side), -log10(system.config$satoshi)))
   
@@ -194,7 +194,7 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
 
 processMarginOrders <- function(orders.to.make.row, currency.pair=NULL){
   rate <- orders.to.make.row[["rate"]]
-  amount <- orders.to.make.row[["amount"]]
+  amount <- as.numeric(orders.to.make.row[["amount"]])
   if(amount==0){
     return()
   }
