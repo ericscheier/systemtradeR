@@ -9,9 +9,14 @@ accountValue <- function(){
   # }
   # balances[c("available", "onOrders", "btcValue")]
   
-  complete.balances <- ldply(returnCompleteBalances(account="all"), data.frame, stringsAsFactors=F, .id="currency")
-  complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
-  account.value <- sum(complete.balances[match(system.config$portfolio.currencies,complete.balances$currency),c("btcValue")])
+  # complete.balances <- ldply(returnCompleteBalances(account="all"), data.frame, stringsAsFactors=F, .id="currency")
+  # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
+  # account.value <- sum(complete.balances[match(system.config$portfolio.currencies,complete.balances$currency),c("btcValue")])
+  # 
+  updateRefPrices()
+  determineCurrentAllocation.poloniex()
+  btc.accounts <- loadCurrentBTCAccounts()
+  account.value <- sum(btc.accounts[,c("exchange.equity","lending","margin.collateral")])
   
   # summary <- returnMarginAccountSummary()
   # account.value <- as.numeric(summary$netValue)
