@@ -344,7 +344,7 @@ simulateBacktest <- function(pairs=backtest.config$backtest.pairs, forecast.name
   
   
   add.rule(strategy.name, 'systematicRebalance',
-           arguments=list(rebalance_on='days',#'hours',
+           arguments=list(rebalance_on='hours', # 'days',#
                           ref.price.col="close",
                           exchange.rate.col="Exchange.Rate",
                           instrument.volatility.col="X1.instrument.volatility",

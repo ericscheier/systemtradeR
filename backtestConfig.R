@@ -1,13 +1,13 @@
 
-
+source("backtest.R")
 
 if(inherits(try(bactest.config, silent=TRUE), "try-error")){backtest.config <- new.env(parent = emptyenv())}
 
 
 backtest.config$end.date <- Sys.Date() -1
-backtest.config$backtest.length <- 200 # hours
+backtest.config$backtest.length <- 24*7*4 # hours
 
-backtest.config$lookback.hours <- system.config$lookback.hours
+backtest.config$lookback.hours <- 48 #system.config$lookback.hours
 
 backtest.config$volatility.target <- system.config$volatility.target
 backtest.config$minimum.order.size <- system.config$minimum.order.size
