@@ -28,6 +28,9 @@ system.config$minimum.order.size <- 0.0001 #BTC, true minimum is 0.0001 for orde
 system.config$minimum.position.change <- .2 # % position should change before transacting
 system.config$transaction.fee <- 0.0025 #% of each transaction
 system.config$lending.fee <- 0.15 # % of earned lending fees paid to poloniex
+system.config$borrowing.cap <- .002
+
+
 system.config$satoshi <- 10^-8
 
 system.config$portfolio.pairs <- getPortfolioPairs()

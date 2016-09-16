@@ -203,7 +203,8 @@ processMarginOrders <- function(orders.to.make.row, currency.pair=NULL){
   if(order.id=="new"){
     result <- try(do.call(get(type), args=list(currency.pair=currency.pair,
                                                rate=rate,
-                                               amount=amount#,
+                                               amount=amount,
+                                               lendingRate=system.config$borrowing.cap
                                                # fillOrKill=0, immediateOrCancel=0, postOnly=1
                                                )))
   } else {
@@ -211,7 +212,8 @@ processMarginOrders <- function(orders.to.make.row, currency.pair=NULL){
     if(!is.null(result$error)){
       result <- try(do.call(get(type), args=list(currency.pair=currency.pair,
                                                  rate=rate,
-                                                 amount=amount#,
+                                                 amount=amount,
+                                                 lendingRate=system.config$borrowing.cap
                                                  # fillOrKill=0, immediateOrCancel=0, postOnly=1
                                                  )))
     }
