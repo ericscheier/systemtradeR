@@ -78,7 +78,7 @@ determineCurrentAllocation.poloniex <- function(){
     # sum(as.numeric(margin.positions$total))
     
     btc.holdings <- data.frame(portfolio="margin.position", currency="BTC", balance=0)
-    btc.margin.pl <- sum(as.numeric(margin.positions$total))
+    btc.margin.pl <- sum(as.numeric(margin.positions$pl), as.numeric(margin.positions$lendingFees))
     
     margin.holdings <- rbind(btc.holdings, margin.holdings)
   } else {
