@@ -328,16 +328,17 @@ returnTradeableBalances <- function(){
   return(command.result)
 }
 
-transferBalance <- function(currency=NULL, amount=NULL, fromAccount=NULL, toAccount=NULL){
+transferBalance <- function(currency=NULL, amount=NULL, fromAccount=NULL, toAccount=NULL, confirmed=1){
   command <- "transferBalance"
   # Transfers funds from one account to another (e.g. from your exchange account to your margin account).
-  # Required POST parameters are "currency", "amount", "fromAccount", and "toAccount". Sample output:
+  # Required POST parameters are "currency", "amount", "fromAccount", and "toAccount". Sample, output:
   #   
   # {"success":1,"message":"Transferred 2 BTC from exchange to margin account."}
   config.specs <- list(currency=currency,
                        amount=amount,
                        fromAccount=fromAccount,
-                       toAccount=toAccount)
+                       toAccount=toAccount,
+                       confirmed=confirmed)
   command.result <- api.poloniex(command=command, args=config.specs)
   return(command.result)
 }
