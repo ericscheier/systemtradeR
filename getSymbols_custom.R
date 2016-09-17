@@ -44,7 +44,7 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     # }
     # fr <- read.csv(sym.file)
     
-    fr <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE)
+    fr <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE, live=TRUE)
     
     new.fr <- xts(NULL, order.by = seq(from=min(index(fr)), to=max(index(fr)), by=60*60))
     fr <- na.locf(merge(new.fr, fr), na.omit=FALSE)
