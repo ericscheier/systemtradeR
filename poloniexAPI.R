@@ -145,8 +145,9 @@ buy <- function(currency.pair=NULL, rate=NULL, amount=NULL, fillOrKill=0, immedi
   # A fill-or-kill order will either fill in its entirety or be completely aborted.
   # An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book.
   # A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.
-  amount <- sprintf(fmt="%.8f",amount)
-  rate <- sprintf(fmt="%.8f",rate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  rate <- sprintf(fmt="%.8f",as.numeric(rate))
+  
   config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount
                        , fillOrKill=fillOrKill, immediateOrCancel=immediateOrCancel, postOnly=postOnly)
   command.result <- api.poloniex(command=command, args=config.specs)
@@ -165,8 +166,9 @@ sell <- function(currency.pair=NULL, rate=NULL, amount=NULL, fillOrKill=0, immed
   # A fill-or-kill order will either fill in its entirety or be completely aborted.
   # An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book.
   # A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.
-  amount <- sprintf(fmt="%.8f",amount)
-  rate <- sprintf(fmt="%.8f",rate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  rate <- sprintf(fmt="%.8f",as.numeric(rate))
+  
   config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount
                        , fillOrKill=fillOrKill, immediateOrCancel=immediateOrCancel, postOnly=postOnly)
   command.result <- api.poloniex(command=command, args=config.specs)
@@ -205,8 +207,8 @@ marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.00
   # If successful, the method will return the order number and any trades immediately resulting from your order. Sample output:
   #   
   # {"success":1,"message":"Margin order placed.","orderNumber":"154407998","resultingTrades":{"BTC_DASH":[{"amount":"1.00000000","date":"2015-05-10 22:47:05","rate":"0.01383692","total":"0.01383692","tradeID":"1213556","type":"buy"}]}}
-  amount <- sprintf(fmt="%.8f",amount)
-  rate <- sprintf(fmt="%.8f",rate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  rate <- sprintf(fmt="%.8f",as.numeric(rate))
   
   config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount, lendingRate=lending.rate)
   command.result <- api.poloniex(command=command, args=config.specs)
@@ -216,8 +218,8 @@ marginBuy <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.00
 marginSell <- function(currency.pair=NULL, rate=0.02, amount=0, lending.rate=0.002){
   command <- "marginSell"
   # Places a margin sell order in a given market. Parameters and output are the same as for the marginBuy method.
-  amount <- sprintf(fmt="%.8f",amount)
-  rate <- sprintf(fmt="%.8f",rate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  rate <- sprintf(fmt="%.8f",as.numeric(rate))
   
   config.specs <- list(currencyPair=currency.pair, rate=rate, amount=amount, lendingRate=lending.rate)
   command.result <- api.poloniex(command=command, args=config.specs)
@@ -265,8 +267,8 @@ createLoanOffer <- function(currency=NULL, amount=0, duration=2, autoRenew=0, le
   # Creates a loan offer for a given currency. Required POST parameters are "currency", "amount", "duration", "autoRenew" (0 or 1), and "lendingRate". Sample output:
   #   
   # {"success":1,"message":"Loan order placed.","orderID":10590}
-  amount <- sprintf(fmt="%.8f",amount)
-  lendingRate <- sprintf(fmt="%.8f",lendingRate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  lendingRate <- sprintf(fmt="%.8f",as.numeric(lendingRate))
   
   config.specs <- list(currency=currency,
                        amount=amount,
@@ -313,8 +315,8 @@ moveOrder <- function(orderNumber=NULL, rate=NULL, amount=NULL){
   # Required POST parameters are "orderNumber" and "rate"; you may optionally specify "amount" if you wish to change the amount of the new order. Sample output:
   #   
   # {"success":1,"orderNumber":"239574176","resultingTrades":{"BTC_BTS":[]}}
-  amount <- sprintf(fmt="%.8f",amount)
-  rate <- sprintf(fmt="%.8f",rate)
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  rate <- sprintf(fmt="%.8f",as.numeric(rate))
   
   config.specs <- list(orderNumber=orderNumber,
                        rate=rate,
