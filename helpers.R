@@ -116,7 +116,23 @@ Ndec <- function(x) {
   return(res)
 }
 
-Ntrunc <- function(x, ..., prec = 0) {base::trunc(x * 10^prec, ...) / 10^prec}
+Ntrunc <- function(x, ..., prec=0){
+  if(class(x)!="character"){
+    x <- as.character(x)
+  }
+  if(!grepl("\\.",x)){
+    return(as.numeric(x))
+  }
+  pre.decimal <- strsplit(x, split="\\.")[[1]][1]
+  post.decimal <- 0
+  if(prec>0){
+    post.decimal <- paste0(strsplit(sub("^.+[.]","",x), split = "")[[1]][1:prec], collapse="")
+  }
+  result <- as.numeric(paste(pre.decimal, post.decimal, sep="."))
+  return(result)
+}
+
+# Ntrunc <- function(x, ..., prec = 0) {base::trunc(x * 10^prec, ...) / 10^prec}
 
 plotWeights <- function(weights.name=NULL){
   start_t <- Sys.time()
