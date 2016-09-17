@@ -40,7 +40,7 @@ autoArimaRawForecast <- function(price.xts, hours.ahead=24, current=FALSE, trail
     gc()
     return(forecast.value)
   }
-  forecast.series <- c(rep(0,trailing.hours + 1), forecast.series)
+  forecast.series <- c(rep(0,start.value), forecast.series)
   
   forecast.result <- xts(x=forecast.series, order.by=forecast.index)
   return(forecast.result)
@@ -90,7 +90,7 @@ auto_arima_24 <- function(price.xts){
 }
 
 auto_arima_1 <- function(price.xts){
-  return(autoArimaRawForecast(price.xts = price.xts, hours.ahead = 1, trailing.hours = 48))
+  return(autoArimaRawForecast(price.xts = Cl(price.xts), hours.ahead = 1, trailing.hours = 48))
 }
 
 ewma_2_8 <- function(price.xts){

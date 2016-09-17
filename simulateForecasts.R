@@ -21,14 +21,15 @@ volatilityAdjustedForecast <- function(price.xts, raw.forecast){
 scaledForecast <- function(volatility.adjusted.forecast){
   # apply.fromstart function doesn't work and is too slow. Consider using roll or RcppROll package for true scalar
   # forecast.scalar <- 10/apply.fromstart(abs(volatility.adjusted.ema), "mean")
-  weighted.forecast.scalar <- 10/SMA(abs(volatility.adjusted.forecast),n=system.config$volatility.lookback*12)
+  weighted.forecast.scalar <- 10/SMA(abs(volatility.adjusted.forecast),n=backtest.config$volatility.lookback)
+  weighted.forecast.scalar[is.infinite(weighted.forecast.scalar)] <- 0
   scaled.forecast <- volatility.adjusted.forecast * weighted.forecast.scalar
   # mean(abs(scaled.forecast), na.rm=T) # should be ~10 before capping
   return(scaled.forecast)
 }
 
 cappedForecast <- function(scaled.forecast){
-  forecast.max <- system.config$forecast.cap
+  forecast.max <- backtest.config$forecast.cap
   forecast.min <- -1 * forecast.max
   
   capped.forecast <- xts(x=pmax(forecast.min,pmin(forecast.max, scaled.forecast)), order.by = index(scaled.forecast))

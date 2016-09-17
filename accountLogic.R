@@ -48,7 +48,12 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- expand.grid(portfolio=poloniex.portfolios, currency=poloniex.currencies, balance=NA, stringsAsFactors = F)
   
+  updateRefPrices()
   poloniex.balances <- returnAvailableAccountBalances()
+  margin.positions <- ldply(getMarginPosition(), data.frame, stringsAsFactors=FALSE)
+  active.loans <- returnActiveLoans()
+  open.loan.offers <- ldply(returnOpenLoanOffers(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="currency")
+  outstanding.orders <- ldply(returnOpenOrders(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="pair")
   
   balanceCalc <- function(x, poloniex.balances=NULL){
     balance <- poloniex.balances[[x["portfolio"]]][[x["currency"]]]
@@ -67,7 +72,7 @@ determineCurrentAllocation.poloniex <- function(){
   # investment.pairs <- investment.universe[!investment.universe$is.restricted && investment.universe$exchange=="poloniex","asset"]
   
   # need to account for if I have no margin positions
-  margin.positions <- ldply(getMarginPosition(), data.frame, stringsAsFactors=FALSE)
+  
   # complete.balances <- returnCompleteBalances(account = "all")
   if(nrow(margin.positions) > 0){
     margin.holdings <- margin.positions[,c(".id",'amount')]
@@ -92,8 +97,6 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- rbind(poloniex.summary, margin.holdings)
   
-  active.loans <- returnActiveLoans()
-  
   active.provided.loans <- ldply(active.loans$provided, data.frame, stringsAsFactors=F)
   # haven't tested yet with actual loan data
   if(nrow(active.provided.loans)){
@@ -113,7 +116,6 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- rbind(poloniex.summary, lent)
   
-  open.loan.offers <- ldply(returnOpenLoanOffers(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="currency")
   # rbind(lapply(ls(open.loan.offers), function(x) ldply(open.loan.offers[[x]], data.frame, stringsAsFactors=FALSE)))
   if(nrow(open.loan.offers)){
     loans.offered <- aggregate(as.numeric(open.loan.offers$amount), list(currency=open.loan.offers$currency), sum)
@@ -125,7 +127,6 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- rbind(poloniex.summary, loans.offered)
   
-  outstanding.orders <- ldply(returnOpenOrders(), function(x) ldply(x, data.frame, stringsAsFactors=F), .id="pair")
   if(nrow(outstanding.orders)){
     outstanding.orders$pair <- as.character(outstanding.orders$pair)
     outstanding.orders$asset <- sapply(outstanding.orders$pair, function(x) pairToCurrencies(x)$asset)
