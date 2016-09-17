@@ -75,6 +75,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   complete.balances <- as.data.table(complete.balances)
   current.asset <- complete.balances[currency==asset,available+onOrders]
+  current.asset <- Ntrunc(current.asset, prec=max(0,Ndec(current.asset)-1))
   position.change <- desired.asset - current.asset
   asset.bid.exposure <- max(0,position.change) #max(0,desired.asset * default.exposure + (position.change)) # intentionally doubling down on positoin changes
   asset.ask.exposure <- max(0,-position.change) #max(0,desired.asset * default.exposure - (position.change))

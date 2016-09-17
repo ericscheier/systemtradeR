@@ -106,6 +106,18 @@ editDirectory <- function(){
   
 }
 
+Ndec <- function(x) {
+  if(class(x)!="character"){
+    x <- as.character(x)
+  }
+  res <- rep(0, length(x))
+  x <- gsub(pattern="[eE].+$", rep="", x=x)
+  res[grep("\\.",x)] <- nchar( sub("^.+[.]","",x) )[grep("\\.",x)]
+  return(res)
+}
+
+Ntrunc <- function(x, ..., prec = 0) {base::trunc(x * 10^prec, ...) / 10^prec}
+
 plotWeights <- function(weights.name=NULL){
   start_t <- Sys.time()
   weights.var <- readRDS(relativePath(paste0("data/clean/",weights.name,".RDS")))
