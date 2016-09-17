@@ -10,7 +10,7 @@ server <- function(input, output, session) {
     # invalidateLater causes this output to automatically
     # become invalidated when input$interval milliseconds
     # have elapsed
-    invalidateLater(as.integer(refresh.rate * 1000), session)
+    invalidateLater(as.integer(1000), session)
     
     format(Sys.time())
   })
