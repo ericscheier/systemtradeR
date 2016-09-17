@@ -121,7 +121,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
     print("there are existing outstanding orders")
     outstanding.orders$rate <- as.numeric(outstanding.orders$rate)
     outstanding.orders$amount <- as.numeric(outstanding.orders$amount)
-    outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]
+    # outstanding.orders <- outstanding.orders[,c("orderNumber","type","rate","amount")]
     outstanding.orders <- outstanding.orders[outstanding.orders$margin==0,c("orderNumber","type","rate","amount")]
   }
   
