@@ -2,6 +2,7 @@ api.poloniex <- function(command, args = list()) {
   
   live.commands <- c("buy","sell","cancelOrder","marginBuy","marginSell","createLoanOffer","cancelLoanOffer","moveOrder",
                      "transferBalance")
+  args <- lapply(args, as.character)
   combined.args <- paste(names(args), args, sep="=",collapse = ", ")
   
   if(!system.config$live & command %in% live.commands){
