@@ -47,21 +47,9 @@ for ticker in tickers:
     middle = (quotes["askPrice"]+quotes["bidPrice"])/2
     time_stamp = pd.to_datetime(quotes["timestamp"])
     middles = pd.DataFrame(middle, columns=["PRICE"])
-    middles.index = time.stamp
+    middles.index = time_stamp
     middles.index.rename("DATETIME", inplace=True)
     
     
     middles.to_csv(ticker+'_price.csv')
     
-
-    
-    
-
-    
-    
-i = 10
-while(i > 0):
-    print(i)
-    i = i - 1
-    if(i<3):
-        i = 0

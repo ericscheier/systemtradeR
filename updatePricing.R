@@ -42,7 +42,12 @@ updatePricing <- function(pair){
   full.data <- rbind(existing.data, new.data[2:nrow(new.data),])
   
   actions <- NULL
-
+  if(sum(is.na(full.data[,"date"])) >= 1){
+    
+    full.data <- na.omit(full.data)
+    replace <- TRUE
+    actions <- c(actions, paste0("Going to remove NAs for date in pair: ",pair))
+  }
   if(sum(is.na(full.data[,"volume"])) >= 1){
     
     full.data <- na.omit(full.data)
@@ -65,6 +70,7 @@ initializePricing <- function(pair, pair.exchange){
   print(paste0("Initializing ",pair))
   earliest.date <- "1992-04-25 07:40:00"
   
+  pair.swap <- FALSE
   if(pair=="USD_BTC"){
     pair.swap <- TRUE
     pair <- "USDT_BTC"

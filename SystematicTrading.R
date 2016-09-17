@@ -241,7 +241,7 @@ smoothedWeights <- function(raw.weights.path=NULL){
 
 rawWeights <- function(return.path=NULL){
   start_t <- Sys.time()
-  rebalance_on = "days"
+  rebalance_on = "hours" #"days"
   training_period = 1#36
   
   returns <- readRDS(relativePath(return.path))
