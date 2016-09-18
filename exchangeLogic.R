@@ -192,7 +192,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   orders.to.make <- rbind(bids.to.make, asks.to.make)
   orders.to.make$orderNumber <- "new"
   
-  if(nrow(orders.to.move)){
+  if(nrow(orders.to.move)>0){
     for(row in 1:nrow(orders.to.move)){
       type <- orders.to.move[row,"type"]
       result <- try(orders.to.make[min(which(apply(cbind(orders.to.make$type==type, orders.to.make$orderNumber=="new"),1,all))),"orderNumber"] <- orders.to.move[row,"orderNumber"],

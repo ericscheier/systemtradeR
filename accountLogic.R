@@ -279,6 +279,7 @@ determineOptimalAllocation.poloniex <- function(){
   account.columns <- c("exchange.equity","lending","margin.collateral")
   optimal.btc.accounts <- rbind(optimal.btc.account.overview[,c("currency","exchange.equity","lending","margin.collateral")],
                                 optimal.btc.allocation)
+  optimal.btc.margin.positions <- optimal.btc.account.overview[,c("currency","margin.position")]
   
   btc.available <- account.value - sum(optimal.btc.accounts[,c("exchange.equity","lending","margin.collateral")])
   if(btc.available < 0){
@@ -300,6 +301,7 @@ determineOptimalAllocation.poloniex <- function(){
       optimal.btc.accounts[optimal.btc.accounts$currency=="BTC", "lending"] + too.small.orders
   }
   
+  optimal.btc.accounts <- merge(optimal.btc.accounts, optimal.btc.margin.positions)
   saveRDS(optimal.btc.accounts, relativePath("data/clean/optimal_btc_accounts.RDS"))
   
   optimal.accounts <- optimal.btc.accounts
