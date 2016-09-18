@@ -2,15 +2,11 @@
 
 getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
-    # "breakout_512",
-    # "auto_arima_24",
-     "ewma_2_8", "ewma_4_16",
-     "ewma_8_32", # "ewma_16_64",
-    #  "ewma_32_128", # "ewma_64_256", 
-    # "ewma_128_512", 
-    # "ewma_256_1024",
-    # "ewma_512_2048", "ewma_1024_4096",
-    "no_forecast_long", "no_forecast_short")
+    "no_forecast_long"
+    # ,"no_forecast_short"
+    )
+  
+  if(system.config$long.only){portfolio.forecasts<-"no_forecast_long"}
   return(portfolio.forecasts)
 }
 
@@ -65,12 +61,24 @@ constantRawForecast <- function(constant, price.xts){
 
 # 8_32, 16_64, 32_128, 64_256, 128_512, 256_1024
 
-breakout_128 <- function(price.xts){
-  return(breakoutRawForecast(price.xts, lookback = 128))
+breakout_8 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 8))
+}
+
+breakout_16 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 16))
+}
+
+breakout_32 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 32))
 }
 
 breakout_64 <- function(price.xts){
   return(breakoutRawForecast(price.xts, lookback = 64))
+}
+
+breakout_128 <- function(price.xts){
+  return(breakoutRawForecast(price.xts, lookback = 128))
 }
 
 breakout_512 <- function(price.xts){

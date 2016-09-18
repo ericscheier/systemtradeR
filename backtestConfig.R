@@ -8,7 +8,7 @@ if(inherits(try(bactest.config, silent=TRUE), "try-error")){backtest.config <- n
 backtest.config$end.date <- Sys.Date() -1
 backtest.config$backtest.length <- 24*7*4 # hours
 
-backtest.config$lookback.hours <- 48 #system.config$lookback.hours
+backtest.config$lookback.hours <- 96 #system.config$lookback.hours
 backtest.config$volatility.lookback <- system.config$ volatility.lookback
 backtest.config$forecast.cap <- system.config$forecast.cap
 
