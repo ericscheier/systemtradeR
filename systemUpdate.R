@@ -92,7 +92,8 @@ hoursFunction <- function(){
   # updateInstrumentVolatilities()
   # updateSubsystemPositions()
   # updateOptimalPositions()
-  refreshVolatility()
+  # refreshVolatility()
+  refreshInvestmentUniverse()
   try(refreshExecution())
   
   # trades.to.make <- tradesToMake()
