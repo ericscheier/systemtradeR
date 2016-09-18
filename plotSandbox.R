@@ -1,3 +1,11 @@
+# tack open orders onto order book
+# show account value as tile
+# show account returns MTD (month-to-date) as tile
+# margin account summary chart to show positions taken (not currently in account/currency charts)
+
+
+
+
 pair <- "BTC_XMR"
 # date.range <- "2016-07-02::2016-07-05"
 # period <- "hours" # "seconds", "minutes", "hours", "days", "weeks", "months", "quarters", and "years"
