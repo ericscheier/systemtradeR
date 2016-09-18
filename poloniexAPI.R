@@ -397,3 +397,14 @@ returnMarketTradeHistory <- function(currencyPair=NULL, start.time, end.time){
   command.result <- api.poloniex.public(command=command, args=config.specs)
   return(command.result)
 }
+
+closeMarginPosition <- function(currency.pair){
+  command <- "closeMarginPosition"
+  # Closes your margin position in a given market (specified by the "currencyPair" POST parameter) using a market order. This call will also return success if you do not have an open position in the specified market. Sample output:
+  #   
+  # {"success":1,"message":"Successfully closed margin position.","resultingTrades":{"BTC_XMR":[{"amount":"7.09215901","date":"2015-05-10 22:38:49","rate":"0.00235337","total":"0.01669047","tradeID":"1213346","type":"sell"},{"amount":"24.00289920","date":"2015-05-10 22:38:49","rate":"0.00235321","total":"0.05648386","tradeID":"1213347","type":"sell"}]}}
+  
+  config.specs <- list(currencyPair=currency.pair)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}

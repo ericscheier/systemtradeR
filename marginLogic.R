@@ -7,8 +7,12 @@ refreshAllMargin <- function(){
   
   
   if(current.btc.account.margin.collateral > optimal.btc.account.margin.collateral){
-    transferBalance(currency="BTC", amount=(current.btc.account.margin.collateral - optimal.btc.account.margin.collateral),
+    transfer.result <- transferBalance(currency="BTC", amount=(current.btc.account.margin.collateral - optimal.btc.account.margin.collateral),
                     fromAccount="margin", toAccount="exchange", confirmed=1)
+    if(!is.null(transfer.result$error)){
+      transferBalance(currency="BTC", amount=((current.btc.account.margin.collateral - optimal.btc.account.margin.collateral)/2),
+                      fromAccount="margin", toAccount="exchange", confirmed=1)
+    }
   }
   
   trading.pairs <- system.config$portfolio.pairs
@@ -95,6 +99,12 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   bids <- as.data.frame(apply(bids, 2, as.numeric))
   
   middle <- round(mean(c(max(bids$rate), min(asks$rate))), -log10(system.config$satoshi))
+  
+  # close position with market order if small enough
+  if(desired.asset==0 & abs(position.change)*middle<=system.config$minimum.order.size){
+    closeMarginPosition(currency.pair=trading.pair)
+    return()
+  }
   
   # print(paste0("middle is ",middle))
   
