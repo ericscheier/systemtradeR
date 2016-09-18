@@ -351,6 +351,8 @@ transferBalance <- function(currency=NULL, amount=NULL, fromAccount=NULL, toAcco
   # Required POST parameters are "currency", "amount", "fromAccount", and "toAccount". Sample, output:
   #   
   # {"success":1,"message":"Transferred 2 BTC from exchange to margin account."}
+  amount <- sprintf(fmt="%.8f",as.numeric(amount))
+  
   config.specs <- list(currency=currency,
                        amount=amount,
                        fromAccount=fromAccount,

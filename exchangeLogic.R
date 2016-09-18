@@ -199,7 +199,14 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
       if(inherits(result, "try-error")){cancelOrder(order.number = outstanding.orders[row,"orderNumber"])}
     }
   }
-  orders.made <- apply(orders.to.make, 1, processMarketOrders, currency.pair=trading.pair)
+  
+  if(nrow(orders.to.make)>0){
+    foreach(i=1:nrow(orders.to.make)) %do% {
+      processMarketOrders(orders.to.make[i,], currency.pair=trading.pair)
+    }
+  }
+  
+  # orders.made <- apply(orders.to.make, 1, processMarketOrders, currency.pair=trading.pair)
   # orders.made <- ldply(orders.made, unlist)
   # print(paste0("Made ",nrow(orders.made)," new orders"))
   newly.outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
