@@ -253,10 +253,10 @@ adjustBaseExchange <- function(base.currency="BTC"){
   current.accounts.row <- current.accounts[current.accounts$currency==base.currency,]
   extra.in.exchange <- current.accounts.row$exchange.equity - optimal.accounts.row$exchange.equity
   if(extra.in.exchange > 0){
-    transfer.result <- transferBalance(currency=asset, amount=extra.in.exchange,
+    transfer.result <- transferBalance(currency=base.currency, amount=extra.in.exchange,
                                        fromAccount="exchange", toAccount="lending")
     if(!is.null(transfer.result$error)){
-      transfer.result <- transferBalance(currency=asset, amount=extra.in.exchange/2,
+      transfer.result <- transferBalance(currency=base.currency, amount=extra.in.exchange/2,
                                          fromAccount="exchange", toAccount="lending")
     }
   }
