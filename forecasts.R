@@ -4,10 +4,10 @@ getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
     # "breakout_512",
     # "auto_arima_24",
-    # "ewma_2_8", "ewma_4_16",
-    # "ewma_8_32", "ewma_16_64",
-    # "ewma_32_128", "ewma_64_256", 
-    "ewma_128_512", 
+     "ewma_2_8", "ewma_4_16",
+     "ewma_8_32", # "ewma_16_64",
+    #  "ewma_32_128", # "ewma_64_256", 
+    # "ewma_128_512", 
     # "ewma_256_1024",
     # "ewma_512_2048", "ewma_1024_4096",
     "no_forecast_long", "no_forecast_short")
