@@ -33,6 +33,7 @@ system.config$borrowing.cap <- .002
 
 system.config$satoshi <- 10^-8
 
+system.config$long.only <- is.long.only
 system.config$portfolio.pairs <- getPortfolioPairs()
 system.config$portfolio.forecasts <- getPortfolioForecasts()
 system.config$portfolio.currencies <- c("BTC", "BTS", "CLAM", "DOGE", "DASH", "LTC", "MAID", "STR", "XMR", "XRP", "ETH", "FCT")
