@@ -5,12 +5,12 @@ refreshAllMargin <- function(){
   current.btc.account.margin.collateral <- current.balances$margin.collateral[current.balances$currency=="BTC"]
   optimal.btc.account.margin.collateral <- optimal.balances$margin.collateral[optimal.balances$currency=="BTC"]
   
-  
-  if(current.btc.account.margin.collateral > optimal.btc.account.margin.collateral){
-    transfer.result <- transferBalance(currency="BTC", amount=(current.btc.account.margin.collateral - optimal.btc.account.margin.collateral),
+  extra.margin.collateral <- current.btc.account.margin.collateral - optimal.btc.account.margin.collateral
+  if(extra.margin.collateral > 0){
+    transfer.result <- transferBalance(currency="BTC", amount=(extra.margin.collateral),
                     fromAccount="margin", toAccount="exchange", confirmed=1)
     if(!is.null(transfer.result$error)){
-      transferBalance(currency="BTC", amount=((current.btc.account.margin.collateral - optimal.btc.account.margin.collateral)/2),
+      transferBalance(currency="BTC", amount=(extra.margin.collateral/2),
                       fromAccount="margin", toAccount="exchange", confirmed=1)
     }
   }

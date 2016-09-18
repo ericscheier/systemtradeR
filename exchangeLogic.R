@@ -27,9 +27,10 @@ testMarketMaking <- function(){
 }
 
 refreshAllExchange <- function(){
+  trading.pairs <- system.config$portfolio.pairs
+  adjustBaseExchange()
   determineOptimalAllocation.poloniex()
   determineCurrentAllocation.poloniex()
-  trading.pairs <- system.config$portfolio.pairs
   lapply(trading.pairs, makeMarket)
 }
 
@@ -240,6 +241,25 @@ processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
   }
   Sys.sleep(1/6)
   return(result)
+}
+
+adjustBaseExchange <- function(base.currency="BTC"){
+  current.accounts <- loadCurrentAccounts()
+  optimal.accounts <- loadOptimalAccounts()
+  current.btc.balances <- loadCurrentBTCAccounts()
+  optimal.btc.balances <- loadOptimalBTCAccounts()
+  
+  optimal.accounts.row <- optimal.accounts[optimal.accounts$currency==base.currency,]
+  current.accounts.row <- current.accounts[current.accounts$currency==base.currency,]
+  extra.in.exchange <- current.accounts.row$exchange.equity - optimal.accounts.row$exchange.equity
+  if(extra.in.exchange > 0){
+    transfer.result <- transferBalance(currency=asset, amount=extra.in.exchange,
+                                       fromAccount="exchange", toAccount="lending")
+    if(!is.null(transfer.result$error)){
+      transfer.result <- transferBalance(currency=asset, amount=extra.in.exchange/2,
+                                         fromAccount="exchange", toAccount="lending")
+    }
+  }
 }
 
 refreshMarketMakingQuantile <- function(tracking.pair="XMR_BCN"){

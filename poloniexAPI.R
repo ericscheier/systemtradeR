@@ -104,7 +104,7 @@ returnCompleteBalances <- function(account="exchange"){
   return(balances)
 }
 
-returnTradeHistory <- function(currency.pair="all"){
+returnTradeHistory <- function(currency.pair="all", start.time=NULL, end.time=NULL){
   command <- "returnTradeHistory"
   # Returns your trade history for a given market, specified by the "currencyPair" POST parameter.
   # You may specify "all" as the currencyPair to receive your trade history for all markets.
@@ -117,8 +117,11 @@ returnTradeHistory <- function(currency.pair="all"){
   # Or, for all markets:
   #   
   # {"BTC_MAID": [ { "globalTradeID": 29251512, "tradeID": "1385888", "date": "2016-05-03 01:29:55", "rate": "0.00014243", "amount": "353.74692925", "total": "0.05038417", "fee": "0.00200000", "orderNumber": "12603322113", "type": "buy", "category": "settlement" }, { "globalTradeID": 29251511, "tradeID": "1385887", "date": "2016-05-03 01:29:55", "rate": "0.00014111", "amount": "311.24262497", "total": "0.04391944", "fee": "0.00200000", "orderNumber": "12603319116", "type": "sell", "category": "marginTrade" }, ... ],"BTC_LTC":[ ... ] ... }
-  
-  config.specs <- list(currencyPair=currency.pair)
+  start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
+  end.seconds <- as.numeric(seconds(as.POSIXct(end.time, origin = "1970-01-01")))
+  config.specs <- list(currencyPair=currency.pair,
+                       start=start.seconds,
+                       end=end.seconds)
   trade.history <- api.poloniex(command=command, args=config.specs)
   return(trade.history)
 }
@@ -405,6 +408,34 @@ closeMarginPosition <- function(currency.pair){
   # {"success":1,"message":"Successfully closed margin position.","resultingTrades":{"BTC_XMR":[{"amount":"7.09215901","date":"2015-05-10 22:38:49","rate":"0.00235337","total":"0.01669047","tradeID":"1213346","type":"sell"},{"amount":"24.00289920","date":"2015-05-10 22:38:49","rate":"0.00235321","total":"0.05648386","tradeID":"1213347","type":"sell"}]}}
   
   config.specs <- list(currencyPair=currency.pair)
+  command.result <- api.poloniex(command=command, args=config.specs)
+  return(command.result)
+}
+
+returnFeeInfo <- function(){
+  
+  command <- "returnFeeInfo"
+  # If you are enrolled in the maker-taker fee schedule, returns your current trading fees and trailing 30-day volume in BTC. This information is updated once every 24 hours.
+  # 
+  # {"makerFee": "0.00140000", "takerFee": "0.00240000", "thirtyDayVolume": "612.00248891", "nextTier": "1200.00000000"}
+  command.result <- api.poloniex(command=command)
+  return(command.result)
+}
+
+returnDepositsWithdrawals <- function(start.time=NULL, end.time=NULL){
+  command <- "returnDepositsWithdrawals"
+  # Returns your deposit and withdrawal history within a range, specified by the "start" and "end" POST parameters, both of which should be given as UNIX timestamps. Sample output:
+  #   
+  # {"deposits":
+  #     [{"currency":"BTC","address":"...","amount":"0.01006132","confirmations":10,
+  #       "txid":"17f819a91369a9ff6c4a34216d434597cfc1b4a3d0489b46bd6f924137a47701","timestamp":1399305798,"status":"COMPLETE"},{"currency":"BTC","address":"...","amount":"0.00404104","confirmations":10, 
+  #         "txid":"7acb90965b252e55a894b535ef0b0b65f45821f2899e4a379d3e43799604695c","timestamp":1399245916,"status":"COMPLETE"}],
+  #   "withdrawals":[{"withdrawalNumber":134933,"currency":"BTC","address":"1N2i5n8DwTGzUq2Vmn9TUL8J1vdr1XBDFg","amount":"5.00010000", 
+  #     "timestamp":1399267904,"status":"COMPLETE: 36e483efa6aff9fd53a235177579d98451c4eb237c210e66cd2b9a2d4a988f8e","ipAddress":"..."}]}
+  start.seconds <- as.numeric(seconds(as.POSIXct(start.time, origin = "1970-01-01")))
+  end.seconds <- as.numeric(seconds(as.POSIXct(end.time, origin = "1970-01-01")))
+  config.specs<- list(start=start.seconds,
+                      end=end.seconds)
   command.result <- api.poloniex(command=command, args=config.specs)
   return(command.result)
 }
