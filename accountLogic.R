@@ -301,12 +301,12 @@ determineOptimalAllocation.poloniex <- function(){
       optimal.btc.accounts[optimal.btc.accounts$currency=="BTC", "lending"] + too.small.orders
   }
   
-  optimal.btc.accounts <- merge(optimal.btc.accounts, optimal.btc.margin.positions)
+  optimal.btc.accounts <- merge(optimal.btc.accounts, optimal.btc.margin.positions, all.x=T)
+  optimal.btc.accounts[optimal.btc.accounts$currency=="BTC","margin.position"] <- 0
   saveRDS(optimal.btc.accounts, relativePath("data/clean/optimal_btc_accounts.RDS"))
   
   optimal.accounts <- optimal.btc.accounts
-  optimal.accounts <- merge(optimal.accounts, optimal.btc.account.overview[c("currency","margin.position")], all.x=T)
-  optimal.accounts[optimal.accounts$currency=="BTC","margin.position"] <- 0
+  # optimal.accounts <- merge(optimal.accounts, optimal.btc.account.overview[c("currency")], all.x=T)
   
   ref.prices <- account.universe$ref.price[match(optimal.accounts$currency, account.universe$currency)]
   ref.prices[is.na(ref.prices)] <- 1
