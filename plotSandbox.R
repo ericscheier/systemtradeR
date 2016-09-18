@@ -5,5 +5,18 @@ pair <- "BTC_XMR"
 depth <- 50
 market <- "lending"
 
+plotWeights <- function(weights.name=NULL){
+  start_t <- Sys.time()
+  weights.var <- readRDS(relativePath(paste0("data/clean/",weights.name,".RDS")))
+  plot.name <- paste0("figures/final/",weights.name,".pdf")
+  png(plot.name)
+  chart.StackedBar(weights.var, colorset=tol12qualitative #rainbow12equal
+                   , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
+                   , main=weights.name)
+  dev.off()
+  end_t <- Sys.time()
+  print(paste0("Weight plotting time: ",end_t - start_t))
+}
+
 pl <- accountAllocationChart(scale.by.total.value = FALSE)
 print(pl)
