@@ -2,6 +2,7 @@
 # show account value as tile
 # show account returns MTD (month-to-date) as tile
 # margin account summary chart to show positions taken (not currently in account/currency charts)
+# lending rates
 
 
 

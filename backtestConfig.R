@@ -4,9 +4,9 @@ if(inherits(try(bactest.config, silent=TRUE), "try-error")){backtest.config <- n
 
 
 backtest.config$end.date <- Sys.Date() -1
-backtest.config$backtest.length <- 24*7*4 # hours
+backtest.config$backtest.length <- 24*7*8 # hours, 8 weeks
 
-backtest.config$lookback.hours <- 96 #system.config$lookback.hours
+backtest.config$lookback.hours <- 168 #system.config$lookback.hours
 backtest.config$volatility.lookback <- system.config$ volatility.lookback
 backtest.config$forecast.cap <- system.config$forecast.cap
 
@@ -20,3 +20,5 @@ backtest.config$backtest.forecast <- system.config$portfolio.forecasts #"auto_ar
 backtest.config$initial.account.value <- 1
 
 backtest.config$debug <- TRUE
+
+source("test_forecasts.R")

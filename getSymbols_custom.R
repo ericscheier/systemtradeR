@@ -44,7 +44,8 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     # }
     # fr <- read.csv(sym.file)
     
-    fr <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE, live=TRUE)
+    fr <- getHourlyPairData(pair=pair, ohlc=TRUE, volume=TRUE, live=FALSE)
+    # pair.specs <- getPairSpecs(pair=pair)
     
     new.fr <- xts(NULL, order.by = seq(from=min(index(fr)), to=max(index(fr)), by=60*60))
     fr <- na.locf(merge(new.fr, fr), na.omit=FALSE)
@@ -73,6 +74,10 @@ getSymbols.custom <- function (Symbols, env, dir = "", return.class = "xts", ext
     min.tick <- max(nchar(gsub("(.*\\.)|([0]*$)", "", as.character(OHLC(fr)))))
     currency(unlist(currencies))
     # currency(c("BTC", "BTS", "USD"), assign_i = FALSE)
+    # instrument(primary_id = symbol, currency = currencies$base, 
+    #            multiplier = 1, tick_size = 10^-min.tick, identifiers = NULL,
+    #            counter_currency = currencies$asset, type = c("exchange_rate", 
+    #                                                               "currency"), assign_i = assign_i)
     exchange_rate(symbol, currency = currencies$base, counter_currency = currencies$asset, tick_size = 10^-min.tick)
     
     s.ccy.str <- getInstrument(symbol)$currency

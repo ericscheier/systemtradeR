@@ -2,8 +2,9 @@
 
 getPortfolioForecasts <- function(){
   portfolio.forecasts <- c(
-    "no_forecast_long"
-    # ,"no_forecast_short"
+    "ewma_128_512",
+    "no_forecast_long",
+    "no_forecast_short"
     )
   
   if(system.config$long.only){portfolio.forecasts<-"no_forecast_long"}
