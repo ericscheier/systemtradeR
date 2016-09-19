@@ -8,17 +8,19 @@
 # "ewma_256_1024",
 # "ewma_512_2048", 
 # "ewma_1024_4096",
+# "breakout_96",
+# "breakout_72",
+# "breakout_48",
+# "breakout_24",
+# "breakhout_12",
+# "ewma_6_24",
+# "ewma_12_48",
+# "ewma_18_72",
+# "ewma_24_96"
 
-forecasts.to.test <- c(
-  "breakout_96",
-  "breakout_72",
-  "breakout_48",
-  "breakout_24",
-  "breakhout_12",
-  "ewma_6_24",
-  "ewma_12_48",
-  "ewma_18_72",
-  "ewma_24_96"
+backtest.config$forecasts.to.test <- c(
+  "ewma_128_512",
+  "breakout_512"
   )
 
 breakout_96 <- function(price.xts){
@@ -61,7 +63,7 @@ ewma_1_4 <- function(price.xts){
   return(ewmaRawForecast(price.xts, fast.n = 1, slow.n=4))
 }
 
-testForecasts <- function(forecasts.to.test=forecasts.to.test){
+testForecasts <- function(forecasts.to.test=backtest.config$forecasts.to.test){
   start.time <- Sys.time()
   portfolio.forecasts <- forecasts.to.test
   portfolio.pairs <- backtest.config$backtest.pairs

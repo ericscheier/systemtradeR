@@ -22,6 +22,10 @@ getHourlyPairData <- function(pair=NULL, ohlc=FALSE, volume=FALSE, live=FALSE){
   return(hour.price.xts)
 }
 
+getPairSpecs <- function(pair=NULL){
+  specs <- read.csv(relativePath("/data/raw/pair_specs.csv"))
+}
+
 getExchangeRate <- function(pair="USDT_BTC"){
   
   data.dir <- "data/clean/market/"
