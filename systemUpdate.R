@@ -73,8 +73,9 @@ minutesFunction <- function(){
   # update & note account value
   # account.value <- recordAccountValue()
   # refreshExecution()
-  
+  refreshVolatility()
   # check in on open orders and adjust accordingly
+  try(refreshExecution())
   return()
 }
 
