@@ -13,7 +13,7 @@ accountValue <- function(){
   # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   # account.value <- sum(complete.balances[match(system.config$portfolio.currencies,complete.balances$currency),c("btcValue")])
   # 
-  updateRefPrices()
+  # updateRefPrices()
   determineCurrentAllocation.poloniex()
   btc.accounts <- loadCurrentBTCAccounts()
   account.value <- sum(btc.accounts[,c("exchange.equity","lending","margin.collateral")])
