@@ -113,8 +113,8 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   middle <- round(mean(c(max(bids$rate), min(asks$rate))), -log10(satoshi))
   iv <- loadInvestmentUniverse()
   portfolio <- data.frame(asset=iv$asset, ref.price=iv$ref.price, stringsAsFactors = F)
-  portfolio[portfolio$asset==trading.pair, "ref.price"] <- middle
-  updateInvestmentUniverse(portfolio)
+  ref.price <- portfolio[portfolio$asset==trading.pair, "ref.price"]
+  # updateInvestmentUniverse(portfolio)
   # print(paste0("middle is ",middle))
   
   outstanding.orders <- ldply(returnOpenOrders(currency.pair=trading.pair), data.frame, stringsAsFactors=F)
@@ -128,14 +128,24 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   }
   
   inside.prices <- c(max(bids$rate), min(asks$rate))
-  bid.if.buying <- min(inside.prices)
-  ask.if.selling <- max(inside.prices)
+  bid.if.buying <- middle # min(inside.prices)
+  ask.if.selling <- middle # max(inside.prices)
+  
+  if(position.change > 0 && middle > ref.price){
+    market.moving <- TRUE
+  } else if(position.change < 0 && middle < ref.price){
+    market.moving <- TRUE
+  } else {
+    market.moving <- FALSE
+  }
   
   bid.range.max <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.min.quantile)))]
   bid.range.max <- ifelse(position.change>0, bid.if.buying, bid.range.max)
+  bid.range.max <- ifelse(market.moving, max(inside.prices), bid.range.max)
   bid.range.min <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.max.quantile)))]
   ask.range.min <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.min.quantile)))]
   ask.range.min <- ifelse(position.change<0, ask.if.selling, ask.range.min)
+  ask.range.min <- ifelse(market.moving, min(inside.prices), ask.range.min)
   ask.range.max <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.max.quantile)))]
   
   if(nrow(outstanding.orders)){
@@ -203,7 +213,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   
   if(nrow(orders.to.make)>0){
     foreach(i=1:nrow(orders.to.make)) %do% {
-      processMarketOrders(orders.to.make[i,], currency.pair=trading.pair)
+      processMarketOrders(orders.to.make[i,], currency.pair=trading.pair, market.moving=market.moving)
     }
   }
   
@@ -216,7 +226,7 @@ makeMarket <- function(trading.pair="BTC_XMR", visible.depth=50){
   return(newly.outstanding.orders)
 }
 
-processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
+processMarketOrders <- function(orders.to.make.row, currency.pair=NULL, market.moving=FALSE){
   rate <- orders.to.make.row[["rate"]]
   amount <- orders.to.make.row[["amount"]]
   if(as.numeric(amount)==0){
@@ -225,18 +235,19 @@ processMarketOrders <- function(orders.to.make.row, currency.pair=NULL){
   }
   type <- orders.to.make.row[["type"]]
   order.id <- orders.to.make.row[["orderNumber"]]
+  post.only <- ifelse(market.moving, 0, 1)
   if(order.id=="new"){
     result <- try(do.call(get(type), args=list(currency.pair=currency.pair,
                                                rate=rate,
                                                amount=amount,
-                                               fillOrKill=0, immediateOrCancel=0, postOnly=1)))
+                                               fillOrKill=0, immediateOrCancel=0, postOnly=post.only)))
   } else {
     result <- try(do.call(moveOrder, args=list(orderNumber=order.id, rate=rate, amount=rate)))
     if(!is.null(result$error)){
       result <- try(do.call(get(type), args=list(currency.pair=currency.pair,
                                                  rate=rate,
                                                  amount=amount,
-                                                 fillOrKill=0, immediateOrCancel=0, postOnly=1)))
+                                                 fillOrKill=0, immediateOrCancel=0, postOnly=post.only)))
     }
   }
   Sys.sleep(1/6)
