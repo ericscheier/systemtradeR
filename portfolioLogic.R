@@ -15,8 +15,13 @@ accountValue <- function(){
   # 
   # updateRefPrices()
   determineCurrentAllocation.poloniex()
-  btc.accounts <- loadCurrentBTCAccounts()
-  account.value <- sum(btc.accounts[,c("exchange.equity","lending","margin.collateral")])
+  current.accounts <- loadCurrentAccounts()
+  
+  ref.prices <- sapply(paste("BTC", current.accounts$currency, sep="_"), getExchangeRate)
+  
+  account.values <- rowSums(current.accounts[,c("exchange.equity","lending","margin.collateral")])
+  
+  account.value <- sum(ref.prices * account.values)
   
   # summary <- returnMarginAccountSummary()
   # account.value <- as.numeric(summary$netValue)

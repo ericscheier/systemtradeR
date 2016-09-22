@@ -28,6 +28,10 @@ getPairSpecs <- function(pair=NULL){
 
 getExchangeRate <- function(pair="USDT_BTC"){
   
+  if(pairToCurrencies(pair)$asset==pairToCurrencies(pair)$base){
+    return(1)
+  }
+  
   data.dir <- "data/clean/market/"
   market.files <- list.files(data.dir)
   file.to.load <- market.files[grep("orderbook_",market.files)]
