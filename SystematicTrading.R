@@ -40,6 +40,49 @@ getExchangeRate <- function(pair="USDT_BTC"){
   return(middle)
 }
 
+positionBuffer <- function(current.position, optimal.position=NULL, trade.to.edge=TRUE){
+  upper.buffer <- current.position + abs(current.position * system.config$minimum.position.change/2)
+  lower.buffer <- current.position - abs(current.position * system.config$minimum.position.change/2)
+  
+  buffered.position <- applyBuffer(current.position, optimal.position, upper.buffer, lower.buffer, trade.to.edge=TRUE)
+  return(buffered.position)
+}
+
+forecastBuffer <- function(){
+  # tbd, relies on forecast scalar func which doesn't exist right now
+}
+
+applyBuffer <- function(current.position, optimal.position=NULL, upper.buffer=NULL, lower.buffer=NULL, trade.to.edge=TRUE){
+  if(any(sapply(list(optimal.position, upper.buffer, lower.buffer), FUN=is.null))){
+    return(current.position)
+  }
+  
+  if(lower.buffer > upper.buffer){
+    temp.upper.buffer <- upper.buffer
+    upper.buffer <- lower.buffer
+    lower.buffer <- temp.upper.buffer
+  }
+  
+  if(current.position > upper.buffer){
+    if(trade_to_edge){
+      buffered.position <- upper.buffer
+    } else {
+      buffered.position <- optimal.position
+    }
+  } else if (current.position < lower.buffer){
+      if(trade_to_edge){
+        buffered.position <- lower.buffer
+      } else {
+        buffered.positon <- optimal.position
+      }
+  } else {
+    buffered.position <- current.position
+  }
+  
+  return(buffered.position)
+}
+
+
 
 # 
 # combinedInstrumentForecast <- function(pair=NULL, five.minute.price.xts=NULL){

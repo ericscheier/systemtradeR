@@ -99,7 +99,9 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   bids <- as.data.frame(apply(bids, 2, as.numeric))
   
   middle <- round(mean(c(max(bids$rate), min(asks$rate))), -log10(system.config$satoshi))
-  
+  iv <- loadInvestmentUniverse()
+  portfolio <- data.frame(asset=iv$asset, ref.price=iv$ref.price, stringsAsFactors = F)
+  ref.price <- portfolio[portfolio$asset==trading.pair, "ref.price"]
   # close position with market order if small enough
   if(desired.asset==0 & abs(position.change)*middle<=system.config$minimum.order.size){
     closeMarginPosition(currency.pair=trading.pair)
@@ -117,14 +119,24 @@ refreshMargin <- function(trading.pair=NULL, visible.depth=50){
   }
   
   inside.prices <- c(max(bids$rate), min(asks$rate))
-  bid.if.buying <- min(inside.prices)
-  ask.if.selling <- max(inside.prices)
+  bid.if.buying <- middle # min(inside.prices)
+  ask.if.selling <- middle # max(inside.prices)
+  
+  if(position.change > 0 && middle > ref.price){
+    market.moving <- TRUE
+  } else if(position.change < 0 && middle < ref.price){
+    market.moving <- TRUE
+  } else {
+    market.moving <- FALSE
+  }
   
   bid.range.max <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.min.quantile)))]
   bid.range.max <- ifelse(position.change>0, bid.if.buying, bid.range.max)
+  bid.range.max <- ifelse(market.moving, max(inside.prices), bid.range.max)
   bid.range.min <- bids$rate[min(which(cumsum(bids$amount)>=quantile(cumsum(bids$amount), market.making.config$bid.max.quantile)))]
   ask.range.min <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.min.quantile)))]
   ask.range.min <- ifelse(position.change<0, ask.if.selling, ask.range.min)
+  ask.range.min <- ifelse(market.moving, min(inside.prices), ask.range.min)
   ask.range.max <- asks$rate[min(which(cumsum(asks$amount)>=quantile(cumsum(asks$amount), market.making.config$ask.max.quantile)))]
   
   if(nrow(outstanding.orders)){

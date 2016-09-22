@@ -90,14 +90,21 @@ updateOptimalPositions <- function(){
 
 updateCurrentPositions <- function(){
   print("Calculating the current portfolio")
-  balances <- try(getMarginPosition(currency.pair="all"))
-  if(inherits(balances, "try-error")){
-    return()
-  }
-  portfolio <- data.frame(asset=names(balances), stringsAsFactors = FALSE)
-  portfolio$current.position <- apply(portfolio["asset"], 1, function(x) as.numeric(balances[[x]]$amount))
+  # balances <- try(getMarginPosition(currency.pair="all"))
+  # if(inherits(balances, "try-error")){
+  #   return()
+  # }
   
-  investment.universe <- updateInvestmentUniverse(portfolio)
+  investment.universe <- loadInvestmentUniverse()
+  current.accounts <- loadCurrentAccounts()
+  
+  iu <- within(investment.universe, {currency=sapply(asset, function(x) pairToCurrencies(x)$asset)})
+  ca <- within(current.accounts, {current.position=exchange.equity + lending + margin.collateral + margin.position})
+  
+  cp <- merge(iu[,c("asset","currency")], ca[,c("currency", "current.position")])
+  cp$currency <- NULL
+  
+  updateInvestmentUniverse(cp)
   
   return(investment.universe)
 }
@@ -112,6 +119,7 @@ updateOpenOrders <- function(){
 }
 
 refreshVolatility <- function(){
+  updateRefPrices()
   updateInstrumentVolatilities()
   updateSubsystemPositions()
   updateOptimalPositions()

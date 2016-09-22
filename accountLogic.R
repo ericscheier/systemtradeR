@@ -48,7 +48,7 @@ determineCurrentAllocation.poloniex <- function(){
   
   poloniex.summary <- expand.grid(portfolio=poloniex.portfolios, currency=poloniex.currencies, balance=NA, stringsAsFactors = F)
   
-  updateRefPrices()
+  # updateRefPrices()
   poloniex.balances <- returnAvailableAccountBalances()
   margin.positions <- ldply(getMarginPosition(), data.frame, stringsAsFactors=FALSE)
   active.loans <- returnActiveLoans()
@@ -212,6 +212,9 @@ determineCurrentAllocation.poloniex <- function(){
   
   saveRDS(as.data.frame(poloniex.btc.overview), relativePath("data/clean/current_btc_accounts.RDS"))
   
+  # update current positions in investment univers
+  updateCurrentPositions()
+  
   return(poloniex.overview)
   
   # current.btc.account.overview <- account.universe[,optimal.account.overview.cols] * account.universe$ref.price
@@ -333,7 +336,9 @@ optimizeAllocation <- function(account.universe.row){
   margin.maintenance.percent <- system.config$margin.maintenance.percent
   optimal.exchange.percent <- system.config$optimal.exchange.percent # 0.3
   
+  current.position <- as.numeric(account.universe.row[["current.position"]])
   optimal.position <- as.numeric(account.universe.row[["optimal.position"]])
+  optimal.position <- positionBuffer(current.position, optimal.position, trade.to.edge=TRUE)
   ref.price <- as.numeric(account.universe.row[["ref.price"]])
   # exchange.equity <- as.numeric(account.universe.row[["exchange.equity"]])
   # lending <- as.numeric(account.universe.row[["lending"]])
