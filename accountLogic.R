@@ -232,7 +232,7 @@ loadCurrentBTCAccounts <- function(){
 
 determineOptimalAllocation.poloniex <- function(){
   investment.universe <- loadInvestmentUniverse()
-  account.value <- system.config$poloniex.margin.value
+  account.value <- system.config$account.value
   
   investment.universe <- investment.universe[investment.universe$exchange=="poloniex",]
   investment.universe$currency <- sapply(investment.universe$asset, function(x) pairToCurrencies(x)$asset)

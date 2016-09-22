@@ -43,10 +43,14 @@ system.config$kraken.secret <- kraken.api.secret
 
 system.config$poloniex.key <- poloniex.api.key
 system.config$poloniex.secret <- poloniex.api.secret
-if(is.null(system.config$poloniex.margin.value)){system.config$poloniex.margin.value <- try(accountValue())}
-if(inherits(system.config$poloniex.margin.value, "try-error")){
-  margin_account_value <- readRDS("data/clean/margin_account_value.RDS")
-  system.config$poloniex.margin.value <- tail(margin_account_value$btc_value,1)}
+
+system.config$starting.capital <- .7 # BTC
+system.config$performance.fee <- .25 #% 0-1
+# system.config$account.value
+if(is.null(system.config$account.value)){system.config$account.value <- try(accountValue())}
+if(inherits(system.config$account.value, "try-error")){
+  account_value <- readRDS("data/clean/btc_account_value.RDS")
+  system.config$account.value <- tail(account_value$btc_value,1)}
 
 base <- "BTC"
 exchange.rate.prices.path <- paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv")
@@ -65,6 +69,6 @@ system.config$last.exchange.rate <- index(tail(system.config$five.exchange.rate,
 system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.rate[system.config$last.exchange.rate])
 
 system.config$volatility.benchmark <- 0.002 # hourly vol (emaVolatility)
-system.config$volume.benchmark <- 10 * system.config$poloniex.margin.value #BTC per volatility lookback period
+system.config$volume.benchmark <- 10 * system.config$account.value #BTC per volatility lookback period
 
 source("backtestConfig.R")

@@ -82,6 +82,15 @@ applyBuffer <- function(current.position, optimal.position=NULL, upper.buffer=NU
   return(buffered.position)
 }
 
+capitalAtRisk <- function(starting.capital=system.config$starting.capital,
+                          account.value=system.config$account.value,
+                          performance.fee=system.config$performance.fee){
+  compounding.multiplier <- min(max(0,1 - performance.fee),1)
+  capital.at.risk <- starting.capital + max(account.value - starting.capital, 0) * compounding.multiplier + 
+    min(account.value - starting.capital, 0)
+  return(capital.at.risk)
+}
+
 
 
 # 
@@ -186,7 +195,7 @@ productionSubsystemPosition <- function(pair=NULL, instrument.forecast=NULL,
   
   
   subsystem.position <- subsystemPosition(ref.price=ref.price
-                                          , total.equity=system.config$poloniex.margin.value * system.config$current.exchange.rate
+                                          , total.equity=capitalAtRisk() * system.config$current.exchange.rate
                                           , volatility.target=system.config$volatility.target
                                           , exchange.rate=system.config$current.exchange.rate
                                           , instrument.volatility=instrument.volatility
@@ -195,7 +204,7 @@ productionSubsystemPosition <- function(pair=NULL, instrument.forecast=NULL,
 }
 
 subsystemPosition <- function(ref.price=NULL
-                              , total.equity=(system.config$poloniex.margin.value)
+                              , total.equity=capitalAtRisk()
                               , volatility.target=system.config$volatility.target
                               , exchange.rate=1
                               , instrument.volatility=NULL
