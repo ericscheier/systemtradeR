@@ -102,7 +102,7 @@ checkAccountValueLog <- function(){
   av <- readRDS("data/clean/btc_account_value.RDS")
   bad.values <- av[diff(log(av$btc_value))>=.05,]
   appendNewData(file.name = "erroneous_account_values", new.data=bad.values)
-  saveRDS(av[diff(log(av$btc_value))<.05,], "data/clean/btc_account_value.RDS")
+  saveRDS(av[diff(log(av$btc_value))<.005,], "data/clean/btc_account_value.RDS")
   print(paste0("removed ",nrow(bad.values)," erroneous account values"))
 }
 
