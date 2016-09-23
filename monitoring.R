@@ -47,7 +47,7 @@ recordAccountValue <- function(){
   new.data <- data.frame(date=current.time, btc_value=system.config$account.value)
   
   appendNewData(file.name="btc_account_value", new.data=new.data)
-  checkAccountValueLog()
+  # checkAccountValueLog()
   updateHighWaterMark()
   # print(new.data)
   return(new.data)
