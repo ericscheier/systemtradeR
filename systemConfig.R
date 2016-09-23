@@ -44,8 +44,9 @@ system.config$kraken.secret <- kraken.api.secret
 system.config$poloniex.key <- poloniex.api.key
 system.config$poloniex.secret <- poloniex.api.secret
 
-system.config$starting.capital <- .7 # BTC
-system.config$performance.fee <- .25 #% 0-1
+system.config$starting.capital <- .68 # BTC
+if(is.null(system.config$high.water.mark)){system.config$high.water.mark <- system.config$starting.capital}
+system.config$performance.fee <- .5 #% 0-1
 # system.config$account.value
 if(is.null(system.config$account.value)){system.config$account.value <- try(accountValue())}
 if(inherits(system.config$account.value, "try-error")){

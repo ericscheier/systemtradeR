@@ -86,12 +86,12 @@ applyBuffer <- function(current.position, optimal.position=NULL, upper.buffer=NU
   return(buffered.position)
 }
 
-capitalAtRisk <- function(starting.capital=system.config$starting.capital,
+capitalAtRisk <- function(high.water.mark=system.config$high.water.mark,
                           account.value=system.config$account.value,
                           performance.fee=system.config$performance.fee){
   compounding.multiplier <- min(max(0,1 - performance.fee),1)
-  capital.at.risk <- starting.capital + max(account.value - starting.capital, 0) * compounding.multiplier + 
-    min(account.value - starting.capital, 0)
+  capital.at.risk <- high.water.mark + max(account.value - high.water.mark, 0) * compounding.multiplier + 
+    min(account.value - high.water.mark, 0)
   return(capital.at.risk)
 }
 

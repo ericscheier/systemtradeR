@@ -47,8 +47,15 @@ recordAccountValue <- function(){
   new.data <- data.frame(date=current.time, btc_value=system.config$account.value)
   
   appendNewData(file.name="btc_account_value", new.data=new.data)
+  checkAccountValueLog()
+  updateHighWaterMark()
   # print(new.data)
   return(new.data)
+}
+
+updateHighWaterMark <- function(){
+  account.value <- readRDS("data/clean/btc_account_value.RDS")
+  system.config$high.water.mark <- max(account.value$btc_value)
 }
 
 timeDifferences <- function(last.updated, current.time){
