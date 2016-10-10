@@ -27,7 +27,7 @@ systemUpdate <- function(is.live=system.config$live){
       saveRDS(update.states, "update_states.RDS")
       intervalFunc <- paste0(update.states[i, "func.label"], "Function")
       running.alert <- paste0("Running ",intervalFunc)
-      actionNotify(running.alert)
+      #actionNotify(running.alert)
       
       func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
       # actionNotify(func.successful)
