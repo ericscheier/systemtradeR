@@ -30,7 +30,7 @@ systemUpdate <- function(is.live=system.config$live){
       actionNotify(running.alert)
       
       func.successful <- try(runParallelFunc(parallel.func.name = intervalFunc))
-      actionNotify(func.successful)
+      # actionNotify(func.successful)
       
       update.states <- readRDS("update_states.RDS")
       i <- min(which(func.label==update.states$func.label))
