@@ -7,3 +7,4 @@ default.cfg
 .Rhistory
 system_config.R
 *.pdf
+.slackr
