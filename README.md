@@ -1,3 +1,3 @@
 # rsystemtrade
 
-A systematic trading engine based on Robert Carver's Systematic Trading.
+A systematic trading engine in R, based on Robert Carver's Systematic Trading.
