@@ -5,7 +5,7 @@ source("sources.R")
 
 
 Sys.setenv(TZ = "UTC")
-set_config(timeout(seconds = 30))
+set_config(timeout(seconds = 90))
 
 slackr_setup(config_file=paste0(getwd(),"/.slackr"))
 if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.env(parent = emptyenv())}

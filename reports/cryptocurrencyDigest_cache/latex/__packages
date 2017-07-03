@@ -1,0 +1,15 @@
+base
+httr
+zoo
+xts
+lubridate
+PerformanceAnalytics
+TTR
+quantmod
+Quandl
+RJSONIO
+WDI
+reshape2
+ggplot2
+plyr
+corrplot
