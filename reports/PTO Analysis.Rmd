@@ -1,0 +1,197 @@
+---
+title: "Permit to PTO Report"
+author: "Hot4Solar"
+date: '`r format(Sys.Date(), "%d %B %Y")`'
+output:
+  pdf_document:
+    latex_engine: lualatex
+    template: lfp_template.tex
+  html_document: default
+  word_document: default
+color-basen: 40A170
+color-char: 40A170
+color-comment: 8F5A03
+color-commentvar: 8F5A03
+color-constant: 0
+color-controlflow: 214A87
+color-datatype: 8F2100
+color-decval: 40A170
+color-documentation: 8F5A03
+color-error: FF0000
+color-float: 40A170
+color-function: 05297D
+color-information: 8F5A03
+color-keyword: 3601
+color-operator: CF5C00
+color-other: 8F5A03
+color-preprocessor: 8F5A03
+color-shade: F8F8F8
+color-specialchar: 0
+color-specialstring: 4F9905
+color-string: 40A170
+color-variable: 0
+color-verbatimstring: 4F9905
+color-warning: 8F5A03
+color-annotation: 8F5A03
+header-includes:
+- \lhead{Sample}
+- \rhead{\raisebox{-.5\height}[0pt][0pt]{\includegraphics[height=1.5cm]{h4s_logo.png}}}
+- \cfoot{\thepage}
+- \usepackage{placeins}
+lastpage-data:
+- hot4solar.com
+- '`r format(Sys.Date(), "%d %B %Y")`'
+color-attribute: C4A103
+subtitle: Oakland, CA
+color-alert: F02929
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.pos = 'h')
+
+library(ggplot2)
+library(data.table)
+library(lubridate)
+
+pm <- fread("PermitMatches.csv")
+pm <- pm[pm$size_dc < 50]
+pm <- pm[pm$pto_days < 365]
+most_recent_pto <- date(max(pm$app_approved_date))
+data_start <- most_recent_pto - months(18)
+pm <- pm[date(pm$app_approved_date) >= data_start]
+
+pm$installer_name <- strtrim(pm$installer_name,30)
+
+pm$month_approved <- floor_date(date(pm$app_approved_date), unit="month")
+
+agg_monthly_means <- aggregate(pm, by=list(pm$month_approved), FUN=mean, na.rm=TRUE)
+agg_monthly_medians <- aggregate(pm, by=list(pm$month_approved), FUN=median, na.rm=TRUE)
+agg_monthly_sums <- aggregate(pm$size_dc, by=list(pm$month_approved), FUN=sum)
+agg_monthly_counts <- aggregate(pm, by=list(pm$month_approved), FUN=length)
+
+installer_monthly_means <- aggregate(pm, by=list(pm$month_approved, pm$installer_name), FUN=mean, na.rm=TRUE)
+installer_monthly_sums <- aggregate(pm$size_dc, by=list(pm$month_approved, pm$installer_name), FUN=sum)
+installer_monthly_counts <- aggregate(pm, by=list(pm$month_approved, pm$installer_name), FUN=length)
+
+installer_means <- aggregate(pm, by=list(pm$installer_name), FUN=mean, na.rm=TRUE)
+installer_sums <- aggregate(pm$size_dc, by=list(pm$installer_name), FUN=sum)
+installer_counts <- aggregate(pm, by=list(pm$installer_name), FUN=length)
+```
+
+# Background
+
+SunShot seeks to establish a baseline for the time it takes between a new solar PV permit and PTO in Northern California. Because there is no single publicly available report which contains this information it must be constructed from multiple data sources.
+
+Hot 4 Solar has prepared a sample report using the following data and approach: 
+
+- 4066 building permits were pulled in the City of Oakland between 2007 and March 2017
+- A similar number of rows were obtained for the City of Oakland from the California Solar Initiative reporting on interconnect in the state 
+- A match for each permit, where possible, was made with a row in the interconnect record using details from both reports (dates, system sizes, installer and zip code) only “hard” matches are used in this report – those where only one row in the interconnect record could be matched with a permit
+- The permit issue date was subtracted from the PTO date to determine the permit time
+
+\FloatBarrier
+
+# Findings
+
+```{r, echo=FALSE, fig.cap="The long tail of lengthy installs skews the distribution"}
+# histogram of systems by pto_days
+ggplot(pm, aes(x=pto_days)) +
+  geom_histogram(binwidth=10, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(pto_days, na.rm=T), colour="mean"),   # Ignore NA values for mean
+             linetype="dashed", size=1, show.legend = TRUE) +
+  geom_vline(aes(xintercept=median(pto_days, na.rm=T), colour="median"),   # Ignore NA values for mean
+             linetype="dashed", size=1, show.legend = TRUE) +
+  scale_colour_manual(values=c(mean="red", median="blue")) +
+  xlab("Days to PTO") + ylab("Number of Systems") + ggtitle("Time to PTO for PV Systems") +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1), 
+        legend.title = element_blank(), legend.background = element_blank())
+```
+
+```{r, eval=FALSE, include=FALSE}
+# histogram of installers by average pto_days
+ggplot(installer_means, aes(x=pto_days)) +
+  geom_histogram(binwidth=10, colour="black", fill="white") +
+  geom_vline(aes(xintercept=mean(pto_days, na.rm=T), colour="mean"),   # Ignore NA values for mean
+             linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=median(pto_days, na.rm=T), colour="median"),   # Ignore NA values for mean
+             linetype="dashed", size=1) +
+  xlab("Days to PTO") + ylab("Number of Installers") + ggtitle("Time to PTO for PV Installers") +
+  scale_colour_manual(values=c(mean="red", median="blue")) +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1), 
+        legend.title = element_blank(), legend.background = element_blank())
+```
+
+
+```{r, echo=FALSE, fig.width=7, fig.height=9, fig.cap="Each installer has a unique installation timeline fingerprint"}
+# boxplots per installer ordered by median pto time
+ggplot(pm, aes(x=reorder(installer_name, pto_days, FUN=median), y=pto_days)) + geom_boxplot() + 
+  guides(fill=FALSE) + coord_flip() + xlab("Installer") + ylab("Days to PTO") +
+  geom_hline(aes(yintercept=mean(pto_days, na.rm=T), colour="mean"),   # Ignore NA values for mean
+             linetype="dashed", size=1) +
+  geom_hline(aes(yintercept=median(pto_days, na.rm=T), colour="median"),   # Ignore NA values for mean
+             linetype="dashed", size=1) +
+  xlab("Installer") + ylab("Days to PTO") + ggtitle("Distribution of Time to PTO for PV Installers") +
+  scale_colour_manual(values=c(mean="red", median="blue")) +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1), 
+        legend.title = element_blank(), legend.background = element_blank())
+```
+
+
+```{r, echo=FALSE, fig.cap="Time from permit to PTO shows a slight upward trend for the entire all installers in this report."}
+ggplot(agg_monthly_medians, aes(month_approved, pto_days)) + 
+  geom_point() + geom_line() + geom_smooth(method = 'loess') +
+  scale_x_date(date_labels = "%b-%Y") + xlab("") + ylab("Days to PTO") + 
+  ggtitle("Median Monthly Time to PTO")
+```
+
+
+```{r, echo=FALSE, fig.cap="If we isolate SolarCity we see a slight decline in time from permit to PTO the last 6 – 12 months."}
+# Time series of monthly mean PTO days for installer of interest with smoothing applied
+chosen_installer <- "SolarCity" #unique(pm$installer_name)[5]
+ggplot(installer_monthly_means[installer_monthly_means$Group.2==chosen_installer,], aes(month_approved, pto_days)) + 
+  geom_point() + geom_line() + geom_smooth(method = 'loess') +
+  scale_x_date(date_labels = "%b-%Y") + xlab("") + ylab("Days to PTO") +
+  ggtitle(paste0("Median Monthly Time to PTO: ", chosen_installer))
+```
+
+\FloatBarrier
+
+# Notes
+
+These results only include systems that were both permitted and went to PTO in the last 18 months. 
+We noticed a recent downward trend for SolarCity permit to PTO times in the last 18 months relative to an upward trend for the rest of the industry. In the complete report we will explore this further whether this is a trend that’s specific to Oakland of if SolarCity’s Permit to PTO time is declining everywhere. 
+
+The data has the following characteristics:
+
+- Unique installers: `r length(unique(pm$installer_name))`
+- System size range (kW): `r min(pm$size_dc)`-`r max(pm$size_dc)` (mean: `r mean(pm$size_dc)`, median: `r median(pm$size_dc)`) kW
+- Number of systems: `r nrow(pm)`
+- Time to PTO per system (days): `r min(pm$pto_days)`-`r max(pm$pto_days)` (mean: `r mean(pm$pto_days)`, median: `r median(pm$pto_days)`) days
+
+
+# Next Steps
+
+The final report will be expanded to include information that could not be included in this sample. The following is a list of additional work planned as part of next steps: 
+
+- **Analysis in all AHJs of interest to SunShot**: We understand that there are roughly 20 AHJs in Northern California that are critical for this analysis. We will pull new permit data in all of these jurisdictions and perform similar analysis as above. We will then provide comparison and global statistics
+- **Probabilistic Record Linkage**: The matches included in this report are only those were a single match in the interconnect record could be matched to the permit record. In the final version of this report probabilistic matching strategy will be applied to expand the number of matches included in the final analysis. The confidence of the matches will be explicitly identified in all cases.
+- **Additional Data Slices**: There is reason to believe that permit to PTO times will be affected by factors such as the utility, the method of financing for a given installation, the installer and the AHJ. We will slice the data by all of these factors to identify variables which significantly impact the permit to PTO time. 
+- **Additional AHJs**: We will perform this same analysis in at least two other jurisdictions (likely New Jersey and Southern California) to determine if there are any significant variations by state or utility. 
+
+
+```{r, echo=FALSE}
+
+```
+
+```{r, echo=FALSE}
+
+```
+
+```{r, echo=FALSE}
+
+```
+
+```{r, echo=FALSE}
+
+```

@@ -1,0 +1,206 @@
+\documentclass[11pt, letterpaper]{article}
+
+% Latex2e fixes
+\usepackage{fixltx2e}
+
+% Setting page layout, margin 1in
+\usepackage[margin=1in]{geometry}
+
+% Xcolor package for color definitions
+\usepackage[dvipsnames]{xcolor}
+
+% Tables with page breaks and enhanced rules
+\usepackage{longtable,booktabs}
+
+% https://stackoverflow.com/questions/36367657/r-knitr-doesnt-respect-order-of-chunks-and-text
+\usepackage{float}
+
+% Xcolor fix for lowercase hex symbols
+\makeatletter
+\def\@hex@@Hex#1%
+ {\if a#1A\else \if b#1B\else \if c#1C\else \if d#1D\else
+  \if e#1E\else \if f#1F\else #1\fi\fi\fi\fi\fi\fi \@hex@Hex}
+\makeatother
+
+\def\tightlist{}
+
+% Color definitions from palette
+\definecolor{YellowDark}{HTML}{F2AF1C}
+\definecolor{YellowBright}{HTML}{FBCC15}
+\definecolor{GreenDark}{HTML}{348F68}
+\definecolor{GreenBright}{HTML}{41AF80}
+\definecolor{RedDark}{HTML}{CC4528}
+\definecolor{RedBright}{HTML}{EC5627}
+\definecolor{BlueDark}{HTML}{0D7888}
+\definecolor{BlueBright}{HTML}{178EAB}
+\definecolor{GreyDark}{HTML}{5A595C}
+\definecolor{GreyBright}{HTML}{ECF0F1}
+\definecolor{White}{HTML}{FFFFFF}
+\definecolor{Black}{HTML}{000000}
+\definecolor{GreyMisc}{HTML}{CCCCCC}
+\definecolor{BodyColor}{HTML}{2C3D50}
+
+% Loading the font
+\usepackage{fontspec}
+%\setmainfont[Color=BodyColor, Path = fonts/]{Montserrat-Regular}
+%\setsansfont[Path = fonts/]{Montserrat-Regular}
+%\setmonofont[Path = fonts/]{Montserrat-Regular}
+
+% Setting the main language
+\usepackage{polyglossia}
+\setmainlanguage{english}
+
+% Packages for importing graphics, setting the par skip, spacing
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{setspace}
+
+\colorlet{shadecolor}{red}
+
+% Used for framed text
+\usepackage{framed}
+
+% Code highlighting
+\usepackage{listings}
+\usepackage{upquote}
+\usepackage{fancyvrb}
+
+% Editing the toc and section headings
+\usepackage{tocloft}
+\usepackage[compact,explicit]{titlesec}
+
+% Section, font size, style and spacing
+\titleformat{\section}[hang]{\fontsize{18pt}{18pt}\bfseries}{}{0pt}{#1}
+\titlespacing{\section}{0pt}{0pt}{-.8\parskip}
+
+\setlength{\parindent}{0pt}
+
+\setcounter{tocdepth}{1}
+
+% TOC customizations, custom header and entries (centered, no numbers)
+\renewcommand{\cfttoctitlefont}{\hspace*{\fill}\bfseries\fontsize{10pt}{10pt}\selectfont}
+\renewcommand{\cftaftertoctitle}{\hspace*{\fill}}
+\renewcommand{\cftaftertoctitleskip}{0pt}
+
+% Remove section numbers
+\makeatletter
+\renewcommand{\cftsecpresnum}{\begin{lrbox}{\@tempboxa}}
+\renewcommand{\cftsecaftersnum}{\end{lrbox}}
+\makeatother
+
+% Center and remove page numbers
+\renewcommand{\cftbeforesecskip}{0pt}
+\renewcommand{\cftsecfont}{\hspace*{\fill}\footnotesize}
+\renewcommand{\cftsecafterpnum}{\hspace*{\fill}\hspace*{-1pc}}
+\cftpagenumbersoff{section}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+
+% Adding Yaml defined colors
+\definecolor{color-shade}{HTML}{$if(color-shade)$$color-shade$$endif$}
+\colorlet{shadecolor}{color-shade}
+\newcommand{\KeywordTok}[1]{\textcolor[HTML]{$if(color-keyword)$$color-keyword$$endif$}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[HTML]{$if(color-datatype)$$color-datatype$$endif$}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[HTML]{$if(color-decval)$$color-decval$$endif$}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[HTML]{$if(color-basen)$$color-basen$$endif$}{{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[HTML]{$if(color-constant)$$color-constant$$endif$}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[HTML]{$if(color-float)$$color-float$$endif$}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[HTML]{$if(color-char)$$color-char$$endif$}{{#1}}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[HTML]{$if(color-specialchar)$$color-specialchar$$endif$}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[HTML]{$if(color-string)$$color-string$$endif$}{{#1}}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[HTML]{$if(color-verbatimstring)$$color-verbatimstring$$endif$}{{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[HTMK]{$if(color-specialstring)$$color-specialstring$$endif$}{{#1}}}
+\newcommand{\CommentTok}[1]{\textcolor[HTML]{$if(color-comment)$$color-comment$$endif$}{\textit{{#1}}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[HTML]{$if(color-documentation)$$color-documentation$$endif$}{\textbf{\textit{{#1}}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[HTML]{$if(color-annotation)$$color-annotation$$endif$}{\textbf{\textit{{#1}}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[HTML]{$if(color-commentvar)$$color-commentvar$$endif$}{\textbf{\textit{{#1}}}}}
+\newcommand{\OtherTok}[1]{\textcolor[HTML]{$if(color-other)$$color-other$$endif$}{{#1}}}
+\newcommand{\VariableTok}[1]{\textcolor[HTML]{$if(color-variable)$$color-variable$$endif$}{{#1}}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[HTMK]{$if(color-controlflow)$$color-controlflow$$endif$}{\textbf{{#1}}}}
+\newcommand{\OperatorTok}[1]{\textcolor[HTML]{$if(color-operator)$$color-operator$$endif$}{\textbf{{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[HTML]{$if(color-alert)$$color-alert$$endif$}{\textbf{{#1}}}}
+\newcommand{\FunctionTok}[1]{\textcolor[HTML]{$if(color-function)$$color-function$$endif$}{{#1}}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[HTML]{$if(color-preprocessor)$$color-preprocessor$$endif$}{\textit{{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[HTML]{$if(color-attribute)$$color-attribute$$endif$}{{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[HTML]{$if(color-information)$$color-information$$endif$}{\textbf{\textit{{#1}}}}}
+\newcommand{\WarningTok}[1]{\textcolor[HTML]{$if(color-warning)$$color-warning$$endif$}{\textbf{\textit{{#1}}}}}
+%\newcommand{\AlertTok}[1]{\textcolor[HTML]{$if(color-alert)$$color-alert$$endif$}{{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[HTML]{$if(color-error)$$color-comment$$endif$}{\textbf{{#1}}}}
+
+% Header ad footer, resetting
+\usepackage{fancyhdr}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+
+% Adding header contents
+$for(header-includes)$
+$header-includes$
+$endfor$
+
+\usepackage[
+	colorlinks=true,
+	urlcolor=GreenBright
+]{hyperref}
+
+\begin{document}
+
+\pagestyle{fancy}
+
+\begin{titlepage}
+	\pagenumbering{alph}
+	\centering
+	
+	{%
+		\fontsize{30pt}{30pt}\selectfont
+		$title$
+	}%
+	
+	\vspace*{\baselineskip}
+	{%
+		\fontsize{20pt}{20pt}\selectfont
+		$subtitle$
+	}%
+	
+	\vspace*{2\baselineskip}
+	{\addfontfeature{Color=GreyMisc}\footnotesize Generated by $author$, $date$}
+	
+	\vspace*{5\baselineskip}
+	
+	\includegraphics[width=.25\textwidth]{altfund_logo.png}
+	
+	\vspace*{\baselineskip}
+	
+	\tableofcontents
+	
+	\thispagestyle{empty}
+\end{titlepage}
+
+\clearpage
+
+\pagenumbering{arabic}
+\onehalfspacing
+\raggedright
+
+$body$
+
+\clearpage
+
+{
+	\thispagestyle{empty}
+	\centering
+	\includegraphics[width=.25\textwidth]{altfund_logo.png}
+	\setlength{\parskip}{.5ex}
+	
+	\vfill
+
+	\footnotesize
+	$if(lastpage-data)$
+		$for(lastpage-data)$
+			$lastpage-data$ \par
+		$endfor$
+	$endif$
+}
+
+\end{document}

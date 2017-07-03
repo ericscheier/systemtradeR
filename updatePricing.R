@@ -34,7 +34,7 @@ updatePricing <- function(pair){
   start.time <- tail(existing.data$date,1)
   # stop.seconds <- as.numeric(seconds(as.POSICct(end.time, origin = "1970-01-01"))))
   
-  new.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=start.time, interval=5)
+  new.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=start.time, interval=1)
   new.data <- new.data[names(existing.data)]
   
   existing.data[nrow(existing.data),] <- new.data[1,]
