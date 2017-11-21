@@ -93,7 +93,7 @@ priceChart <- function(pair, date.range, period, type, overlay=FALSE){
   names(price.ohlc.xts) <- tolower(gsub("^.+\\.","",names(price.ohlc.xts)))  # remove "FOSL." from column names
   
   price.ohlc.xts <- price.ohlc.xts[date.range]
-  price.ohlc <- data.frame(date=as.POSIXct(index(price.ohlc.xts)), price.ohlc.xts[,1:4])
+  price.ohlc <- data.frame(date=as.POSIXct(index(price.ohlc.xts), origin="1970-01-01 00:00.00 UTC"), price.ohlc.xts[,1:4])
   
   price.ohlc$chg <- ifelse(Cl(price.ohlc.xts) > Op(price.ohlc.xts), "up", "dn")
   price.ohlc$width <- as.numeric(periodicity(price.ohlc.xts)[1])
