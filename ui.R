@@ -1,4 +1,5 @@
-source("systemConfig.R")
+#source("systemConfig.R")
+source("libraries.R")
 
 skin <- Sys.getenv("DASHBOARD_SKIN")
 skin <- tolower(skin)

@@ -52,32 +52,6 @@ removeLeadingZeros <- function(returns.xts){
   return(adjusted.xts)
 }
 
-replaceLeadingZeros <- function(returns.xts){
-  
-  columnReplace <- function(column){
-    leading.zeros <- cumsum(abs(column))==0
-    column[leading.zeros] <- NA
-    return(column)
-  }
-  
-  adjusted.xts <- apply(returns.xts, 2, columnReplace)
-  
-  return(as.xts(adjusted.xts))
-}
-
-countLeadingNAs <- function(returns.xts){
-  
-  columnCount <- function(column){
-    leading.nas <- sum(cumsum(!is.na(column))==0)
-    # column[leading.zeros] <- NA
-    return(leading.nas)
-  }
-  
-  resulting.count <- apply(returns.xts, 2, columnCount)
-  
-  return(resulting.count)
-}
-
 relativePath <- function(path){
   # path should have a slash in front of it
   path <- gsub("^/?", "/",path)
@@ -141,3 +115,16 @@ Ntrunc <- function(x, ..., prec=0){
 }
 
 # Ntrunc <- function(x, ..., prec = 0) {base::trunc(x * 10^prec, ...) / 10^prec}
+plotWeights <- function(weights.name=NULL){
+  start_t <- Sys.time()
+  weights.var <- readRDS(relativePath(paste0("data/clean/",weights.name,".RDS")))
+  plot.name <- paste0("figures/final/",weights.name,".pdf")
+  png(plot.name)
+  chart.StackedBar(weights.var, colorset=tol12qualitative #rainbow12equal
+                   , space=0, minor.ticks = FALSE, major.ticks = FALSE, border=NA
+                   , main=weights.name)
+  dev.off()
+  end_t <- Sys.time()
+  print(paste0("Weight plotting time: ",end_t - start_t))
+}
+
