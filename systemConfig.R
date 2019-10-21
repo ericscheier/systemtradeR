@@ -7,11 +7,11 @@ source("sources.R")
 Sys.setenv(TZ = "UTC")
 set_config(timeout(seconds = 30))
 
-slackr_setup(config_file=paste0(getwd(),"/.slackr"))
+#slackr_setup(config_file=paste0(getwd(),"/.slackr"))
 if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.env(parent = emptyenv())}
 
 #~~~~~!!!!!~~~~#
-system.config$live = is.live.machine
+system.config$live = FALSE #is.live.machine
 #~~~~!!!!!~~~~#
 system.config$debug <- FALSE
 
@@ -32,12 +32,13 @@ system.config$poloniex.key <- "O2NT3UJT-04WVU41J-52ETHGHN-WCGM7DUM"
 system.config$poloniex.secret <- "6dfb2b35a571a745a6190cbf6989b7d52409dbf6f40541fc8823c725b1c352fa2b04edceba44d37cb7c216c6f2a062fc538a3119abcbe8e317f8eee32165168d"
 if(is.null(system.config$poloniex.margin.value)){system.config$poloniex.margin.value <- try(accountValue())}
 if(inherits(system.config$poloniex.margin.value, "try-error")){
-  margin_account_value <- readRDS("data/clean/margin_account_value.RDS")
-  system.config$poloniex.margin.value <- tail(margin_account_value$btc_value,1)}
+  #margin_account_value <- readRDS("data/clean/margin_account_value.RDS")
+  system.config$poloniex.margin.value <- 1}#tail(margin_account_value$btc_value,1)}
 
 base <- "BTC"
 exchange.rate.prices.path <- paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv")
 if(!file.exists(exchange.rate.prices.path)){refreshPortfolioPricing()}
+#refreshPortfolioPricing()
 exchange.rate.prices <- read.csv(exchange.rate.prices.path, stringsAsFactors = FALSE) # instrument currency / account value currency (USD)
 
 system.config$five.exchange.rate <- xts(x=exchange.rate.prices[,"close"]

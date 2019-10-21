@@ -33,7 +33,7 @@ updatePricing <- function(pair)
   file.name <- paste0(getwd(), "/data/raw/",pair,"_ohlc.csv")
   if(!file.exists(file.name)){
     print(paste0("Initializing ",pair))
-    earliest.date <- "1992-04-25 07:40:00"
+    earliest.date <- "2019-07-01 00:00:00"
     initialized.data <- getPoloniexPrices(pair=pair, start.time=earliest.date)
     write.csv(x = initialized.data, file = file.name, row.names = FALSE)
   }
