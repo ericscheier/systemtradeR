@@ -38,6 +38,6 @@ if(any(!library.loaded)){lapply(libraries[!library.loaded], massInstall, library
 # next install blotter from GitHub
 #devtools::install_github("braverock/blotter")
 # next install quantstrat from GitHub
-#devtools::install_github("braverock/quantstrat")
+# devtools::install_github("braverock/quantstrat")
 
 #devtools::install_github("IlyaKipnis/IKTrading")
