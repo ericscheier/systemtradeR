@@ -9,3 +9,9 @@ A systematic trading engine in R, based on Robert Carver's Systematic Trading.
 - Slack alerts
 - Event-driven backtesting in quantstrat (takes a long time)
 - Some parallelization
+
+TODO
+- Replace poloniex with coinbase and ccxt
+- add telegram/signal/sms/email/whatsapp alerts
+- speed up backtesting
+- package for CRAN
