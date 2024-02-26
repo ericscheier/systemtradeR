@@ -7,13 +7,13 @@ source("sources.R")
 Sys.setenv(TZ = "UTC")
 set_config(timeout(seconds = 90))
 
-slackr_setup(config_file=paste0(getwd(),"/.slackr"))
+#slackr_setup(config_file=paste0(getwd(),"/.slackr"))
 if(inherits(try(system.config, silent=TRUE), "try-error")){system.config <- new.env(parent = emptyenv())}
 
 #~~~~~!!!!!~~~~#
 system.config$live = is.live.machine
 #~~~~!!!!!~~~~#
-system.config$debug <- FALSE
+system.config$debug <- TRUE
 
 system.config$forecast.cap <- 20
 system.config$volatility.lookback <- 36 #101 #hours
@@ -40,9 +40,6 @@ system.config$portfolio.currencies <- c("BTC", "BTS", "CLAM", "DOGE", "DASH", "L
 
 system.config$kraken.key <- kraken.api.key
 system.config$kraken.secret <- kraken.api.secret
-
-system.config$poloniex.key <- poloniex.api.key
-system.config$poloniex.secret <- poloniex.api.secret
 
 system.config$starting.capital <- .68 # BTC
 if(is.null(system.config$high.water.mark)){system.config$high.water.mark <- system.config$starting.capital}

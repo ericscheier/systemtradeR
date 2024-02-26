@@ -1,4 +1,4 @@
-#source("systemConfig.R")
+source("systemConfig.R")
 source("libraries.R")
 
 skin <- Sys.getenv("DASHBOARD_SKIN")
@@ -13,7 +13,7 @@ sidebar <- dashboardSidebar(
     sidebarMenu(id="menu",
                 menuItem("Markets", tabName = "markets", icon = icon("dashboard")),
                 menuItem("Portfolio", tabName = "portfolio", icon = icon("th")),
-                menuItem("Bot", tabName = "bot", icon = icon("bar-chart-o")),
+                menuItem("Bot", tabName = "bot", icon = icon("bar-chart")),
                 textOutput("currentTime")#, container = span)
     )
   )

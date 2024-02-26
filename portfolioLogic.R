@@ -13,20 +13,20 @@ accountValue <- function(){
   # complete.balances[,c("available","onOrders","btcValue")] <- lapply(complete.balances[,c("available","onOrders","btcValue")], as.numeric)
   # account.value <- sum(complete.balances[match(system.config$portfolio.currencies,complete.balances$currency),c("btcValue")])
   # 
-  # updateRefPrices()
-  determineCurrentAllocation.poloniex()
-  current.accounts <- loadCurrentAccounts()
+  # # updateRefPrices()
+  # determineCurrentAllocation.kraken()
+  # current.accounts <- loadCurrentAccounts()
+  # 
+  # ref.prices <- sapply(paste("BTC", current.accounts$currency, sep="_"), getExchangeRate)
+  # 
+  # account.values <- rowSums(current.accounts[,c("exchange.equity","lending","margin.collateral")])
+  # 
+  # account.value <- sum(ref.prices * account.values)
+  # 
+  # # summary <- returnMarginAccountSummary()
+  # # account.value <- as.numeric(summary$netValue)
   
-  ref.prices <- sapply(paste("BTC", current.accounts$currency, sep="_"), getExchangeRate)
-  
-  account.values <- rowSums(current.accounts[,c("exchange.equity","lending","margin.collateral")])
-  
-  account.value <- sum(ref.prices * account.values)
-  
-  # summary <- returnMarginAccountSummary()
-  # account.value <- as.numeric(summary$netValue)
-  
-  # account.value <- 0.1 # in BTC
+  account.value <- 0.1 # in BTC
   return(account.value)
 }
 
@@ -274,24 +274,6 @@ initializeInvestmentUniverse <- function(){
                          ,"instrument.forecast","subsystem.position")] <- 0
   
   saveInvestmentUniverse(investment.universe)
-}
-
-accountValue <- function(){
-  # leftover of attempts to use exchange account. Using margin instead
-  # currencies <- gsub("BTC_*", "", filterPairs())
-  # #API call to poloniex requesting value of margin account in BTC, as well as USDT_BTC price
-  # balances <- returnCompleteBalances(account="exchange")
-  # my.df <- do.call("rbind", lapply(balances, data.frame))
-  # for (currency in names(balances)){
-  #   
-  # }
-  # balances[c("available", "onOrders", "btcValue")]
-  
-  summary <- returnMarginAccountSummary()
-  account.value <- as.numeric(summary$netValue)
-  
-  # account.value <- 0.1 # in BTC
-  return(account.value)
 }
 
 updateInstrumentForecasts <- function(pairs=system.config$portfolio.pairs){
