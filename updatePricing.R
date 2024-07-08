@@ -70,17 +70,18 @@ initializePricing <- function(pair, pair.exchange){
   print(paste0("Initializing ",pair))
   earliest.date <- "1992-04-25 07:40:00"
   
-  pair.swap <- FALSE
-  if(pair=="USD_BTC"){
-    pair.swap <- TRUE
-    pair <- "USDT_BTC"
-    pair.exchange <- "poloniex"
-  }
+  # pair.swap <- FALSE
+  # if(pair=="USD_BTC"){
+  #   pair.swap <- TRUE
+  #   pair <- "USDT_BTC"
+  #   pair.exchange <- "poloniex"
+  # }
   
-  initialize.interval <- switch (pair.exchange,
-    "poloniex" = 5,
-    "kraken" = 24 * 60
-  )
+  # initialize.interval <- switch (pair.exchange,
+  #   "poloniex" = 5,
+  #   "kraken" = 5 #24 * 60
+  # )
+  initialize.interval <- 60
   
   initialized.data <- getPrices(pair=pair, pair.exchange=pair.exchange, start.time=earliest.date,
                                 interval=initialize.interval)
@@ -96,6 +97,7 @@ initializePricing <- function(pair, pair.exchange){
 }
 
 getPrices <- function(pair=NULL, pair.exchange=NULL, start.time=NULL, interval=NULL){
+  print(paste0("pair exchange test ",pair.exchange))
   web.prices <- do.call(paste0("getPairOHLC.",pair.exchange),
                         args=list(pair=pair, start.time=start.time, interval=interval))
   
