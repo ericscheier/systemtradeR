@@ -341,7 +341,7 @@ updateOptimalPositions <- function(){
 
 updateCurrentPositions <- function(){
   print("Calculating the current portfolio")
-  balances <- getMarginPosition(currency.pair="all")
+  balances <- getSpotPosition(currency.pair="all")
   portfolio <- data.frame(asset=names(balances), stringsAsFactors = FALSE)
   portfolio$current.position <- apply(portfolio["asset"], 1, function(x) as.numeric(balances[[x]]$amount))
   
@@ -426,9 +426,9 @@ updateInvestmentUniverse <- function(portfolio){
 # }
 
 assetFilterRules <- function(investment.universe.row){
-  asset <- investment.universe.row["asset"]
+  asset <- as.character(investment.universe.row["asset"])
   # print(investment.universe.row)
-  if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
+  # if(strsplit(asset, "_")[1] %in% c("XMR", "ETH", "USDT")){return(FALSE)}
   # print(investment.universe.row["is.restricted"])
   if(trimws(investment.universe.row["is.restricted"])){return(FALSE)}
   
@@ -436,7 +436,7 @@ assetFilterRules <- function(investment.universe.row){
   asset.volatility <- as.numeric(tail(emaVolatility(Cl(asset.data)),1))
   asset.volume <- sum(as.numeric(tail(asset.data$volume, system.config$volatility.lookback)))
   print(paste0(asset," volatility ",asset.volatility," volume ",asset.volume))
-  if(strsplit(asset, "_")[1]=="USDT"){asset.volume <- asset.volume/system.config$current.exchange.rate}
+  if(strsplit(asset, "_")[1]=="BTC"){asset.volume <- asset.volume*system.config$current.exchange.rate}
   
   # print(paste0(asset," volatility: ",asset.volatility, " volume: ",asset.volume))
   
@@ -484,7 +484,7 @@ saveInvestmentUniverse <- function(new.investment.universe){
 
 initializeInvestmentUniverse <- function(){
   
-  initial.pairs <- c("USD_BTC")
+  initial.pairs <- c("BTC_USD")
   
   investment.universe <- data.frame(asset=initial.pairs, is.restricted=FALSE, passes.filter=TRUE,
                                     current.position=0,optimal.position=0, is.locked=FALSE,

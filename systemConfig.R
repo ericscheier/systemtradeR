@@ -36,22 +36,19 @@ system.config$satoshi <- 10^-8
 system.config$long.only <- is.long.only
 system.config$portfolio.pairs <- getPortfolioPairs()
 system.config$portfolio.forecasts <- getPortfolioForecasts()
-system.config$portfolio.currencies <- c("BTC", "BTS", "CLAM", "DOGE", "DASH", "LTC", "MAID", "STR", "XMR", "XRP", "ETH", "FCT")
+system.config$portfolio.currencies <- c("BTC", "USD") # "BTS", "CLAM", "DOGE", "DASH", "LTC", "MAID", "STR", "XMR", "XRP", "ETH", "FCT")
 
-system.config$kraken.key <- kraken.api.key
-system.config$kraken.secret <- kraken.api.secret
-
-system.config$starting.capital <- .68 # BTC
+system.config$starting.capital <- 10000 # USD
 if(is.null(system.config$high.water.mark)){system.config$high.water.mark <- system.config$starting.capital}
 system.config$performance.fee <- .5 #% 0-1
 # system.config$account.value
 if(is.null(system.config$account.value)){system.config$account.value <- try(accountValue())}
 if(inherits(system.config$account.value, "try-error")){
-  account_value <- readRDS("data/clean/btc_account_value.RDS")
-  system.config$account.value <- tail(account_value$btc_value,1)}
+  account_value <- readRDS("data/clean/account_value.RDS")
+  system.config$account.value <- tail(account_value$value,1)}
 
-base <- "BTC"
-exchange.rate.prices.path <- paste0(getwd(),"/data/raw/USDT_",base,"_ohlc.csv")
+base <- "USD"
+exchange.rate.prices.path <- paste0(getwd(),"/data/raw/BTC_",base,"_ohlc.csv")
 if(!file.exists(exchange.rate.prices.path)){refreshPortfolioPricing()}
 exchange.rate.prices <- read.csv(exchange.rate.prices.path, stringsAsFactors = FALSE) # instrument currency / account value currency (USD)
 
@@ -66,7 +63,7 @@ system.config$first.exchange.rate <- index(head(system.config$five.exchange.rate
 system.config$last.exchange.rate <- index(tail(system.config$five.exchange.rate,1)) - minutes(10)
 system.config$current.exchange.rate <- as.numeric(system.config$five.exchange.rate[system.config$last.exchange.rate])
 
-system.config$volatility.benchmark <- 0.002 # hourly vol (emaVolatility)
+system.config$volatility.benchmark <- 0.001 # hourly vol (emaVolatility)
 system.config$volume.benchmark <- 10 * system.config$account.value #BTC per volatility lookback period
 
 source("backtestConfig.R")

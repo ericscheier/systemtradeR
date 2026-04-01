@@ -20,7 +20,8 @@ libraries <- c("xts",
                "forecast",
                "shinydashboard",
                "ggplot2",
-               "rgdax"
+               # "rgdax",
+               "keyring"
                )
 
 library.repos <- c("http://cran.us.r-project.org", "http://R-Forge.R-project.org")
